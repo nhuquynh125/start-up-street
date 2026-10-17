@@ -1,4 +1,4 @@
 config/config.local.php
 .env
 *.pem
-echo "config/config.local.php" >> .gitignore
+config/config.local.php
