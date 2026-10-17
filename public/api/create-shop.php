@@ -21,7 +21,7 @@ $input = json_decode(file_get_contents('php://input'), true);
 $ownerUserId = $input['owner_user_id'] ?? null;
 $propertyId = $input['property_id'] ?? null;
 $businessTypeId = $input['business_type_id'] ?? null;
-$name = $input['name'] ?? trim($input['name']);
+$name = trim((string)($input['name'] ?? ''));
 
 // 3. Kiểm tra dữ liệu đầu vào
 if (!$ownerUserId || !$propertyId || !$businessTypeId || empty($name)) {
