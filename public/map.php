@@ -21,16 +21,29 @@ button,select,input{font-family:inherit}button{cursor:pointer}
 .coin{display:inline-block;width:16px;height:16px;border-radius:50%;background:#7a4fb5;border:3px solid #4b2d78;margin-right:6px;vertical-align:-2px}
 #view{position:fixed;inset:52px 0 0 0;overflow:hidden}
 #world{position:absolute;left:0;top:0;will-change:transform}
-.grass{fill:#cfe0c3}.walk{fill:#d8d2c3}.road{fill:#5b5f66}
-.dash{stroke:#fff;stroke-width:3;stroke-dasharray:20 14}
+.grass{fill:#cfe0c3}
 .tree-m{fill:#4c9a4c;stroke:#2f6b2f;stroke-width:2}
-.body{stroke:#333;stroke-width:2}
-.available .body{fill:var(--free)}.owned .body{fill:var(--owned)}.mine .body{fill:var(--mine)}
-.roof{fill:rgba(0,0,0,.2)}.door{fill:#6b4a2b}.win{fill:#bfe3f5;stroke:#333;stroke-width:1.5}
-.lot{cursor:pointer}.lot:hover .body{filter:brightness(1.12)}
-.lot.near .body{stroke:var(--sel);stroke-width:5}
-.lot text{font-size:24px;font-weight:700;text-anchor:middle;fill:#222;pointer-events:none}
-.shadow{fill:rgba(0,0,0,.25)}.pbody{fill:#2b6cb0;stroke:#173f66;stroke-width:2}.phead{fill:#ffd6a5;stroke:#173f66;stroke-width:2}
+.shadow{fill:rgba(0,0,0,.25)}
+
+/* nhà: mái + mặt tiền */
+.lot{cursor:pointer}
+.lot.available{--r1:#93d68e;--r2:#6fb86b;--wall:#f3e6c9}
+.lot.owned{--r1:#d3d3d3;--r2:#b0b0b0;--wall:#e4dccb}
+.lot.mine{--r1:#f7cf6e;--r2:#e3a93a;--wall:#f6e3b0}
+.r1{fill:var(--r1)}.r2{fill:var(--r2)}.wall{fill:var(--wall)}
+.ridge{stroke:rgba(0,0,0,.28);stroke-width:3}
+.eave{fill:rgba(0,0,0,.2)}
+.out{fill:none;stroke:#3b2a1c;stroke-width:2.5}
+.door{fill:#6b4a2b;stroke:#3b2a1c;stroke-width:1.5}
+.win{fill:#bfe3f5;stroke:#3b2a1c;stroke-width:1.5}
+.board{fill:#fff6dd;stroke:#4a2a16;stroke-width:2}
+.sh{fill:rgba(0,0,0,.18);pointer-events:none}
+.lot:hover .r1,.lot:hover .r2{filter:brightness(1.1)}
+.lot.near .out{stroke:var(--sel);stroke-width:5}
+.lot text{text-anchor:middle;font-weight:800;pointer-events:none}
+.code{font-size:24px;fill:#fff;stroke:rgba(0,0,0,.35);stroke-width:4px;paint-order:stroke}
+.sgn{font-size:11px;fill:#4a2a16}
+.pbody{fill:#2b6cb0;stroke:#fff;stroke-width:2}.phead{fill:#ffd6a5;stroke:#173f66;stroke-width:1.5}
 #hint{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--wood-d);color:var(--cream);padding:6px 18px;border-radius:14px;border:3px solid var(--wood-l);font-weight:800;z-index:5;display:none}
 
 /* nút gỗ */
@@ -227,35 +240,82 @@ const fmt=n=>n.toLocaleString('vi-VN')+'đ';
 let balance=Number(localStorage.getItem('startupStreetBalance')||50000000);
 const doorPoint=l=>({x:l.x+l.w/2,y:l.face==='down'?l.y+l.h+20:l.y-20});
 
+/* ---- vẽ nhà: mái ngói nhìn từ trên xuống + dải mặt tiền (biển, mái hiên, cửa) phía đường ---- */
+const FH=54,AWN=['#e76f51','#f4c95d','#6fb0d6','#d8a7ca','#7fc97f'];
 function lotSvg(l,i){
- const roofY=l.face==='down'?l.y:l.y+l.h-26,doorY=l.face==='down'?l.y+l.h-34:l.y,winY=l.y+l.h/2-12;
+ const up=l.face==='up',rh=l.h-FH,ry=up?l.y+FH:l.y,fy=up?l.y:l.y+rh,cx=l.x+l.w/2,mid=ry+rh/2;
+ const fo=(off,h)=>up?fy+FH-off-h:fy+off; /* y theo khoảng cách tới mép mái hiên */
+ let stripes='';
+ for(let s=0;s<10;s++)stripes+=`<rect x="${l.x+s*17}" y="${fo(22,10)}" width="17" height="10" fill="${s%2?'#fff6dd':AWN[i%5]}"/>`;
+ const extra=(i*5)%3===0?`<rect x="${l.x+l.w-48}" y="${mid-24}" width="26" height="18" rx="3" fill="#bfe3f5" stroke="#3b2a1c" stroke-width="2"/>`
+  :(i*3)%4===1?`<rect x="${l.x+22}" y="${mid-30}" width="16" height="22" fill="#6b4a3a" stroke="#3b2a1c" stroke-width="2"/>`:'';
  return `<g class="lot ${l.status}" data-i="${i}">
-<rect class="body" x="${l.x}" y="${l.y}" width="${l.w}" height="${l.h}" rx="8"/>
-<rect class="roof" x="${l.x}" y="${roofY}" width="${l.w}" height="26" rx="4"/>
-<rect class="door" x="${l.x+l.w/2-14}" y="${doorY}" width="28" height="34" rx="3"/>
-<rect class="win" x="${l.x+22}" y="${winY}" width="30" height="24" rx="3"/>
-<rect class="win" x="${l.x+l.w-52}" y="${winY}" width="30" height="24" rx="3"/>
-<text x="${l.x+l.w/2}" y="${winY+8}">${l.code}</text></g>`;
+<rect class="sh" x="${l.x+8}" y="${l.y+10}" width="${l.w}" height="${l.h}" rx="6"/>
+<rect class="r2" x="${l.x}" y="${ry}" width="${l.w}" height="${rh}"/>
+<rect class="r1" x="${l.x}" y="${ry}" width="${l.w}" height="${rh/2}"/>
+<rect fill="url(#shingle)" x="${l.x}" y="${ry}" width="${l.w}" height="${rh}"/>
+<line class="ridge" x1="${l.x}" y1="${mid}" x2="${l.x+l.w}" y2="${mid}"/>
+${extra}
+<rect class="wall" x="${l.x}" y="${fy}" width="${l.w}" height="${FH}"/>
+<rect class="win" x="${l.x+14}" y="${fo(26,22)}" width="30" height="22" rx="3"/>
+<rect class="win" x="${l.x+l.w-44}" y="${fo(26,22)}" width="30" height="22" rx="3"/>
+<rect class="door" x="${cx-13}" y="${fo(30,24)}" width="26" height="24" rx="3"/>
+<rect class="board" x="${cx-56}" y="${fo(4,16)}" width="112" height="16" rx="4"/>
+<text class="sgn" x="${cx}" y="${fo(4,16)+12}"></text>
+${stripes}
+<rect class="eave" x="${l.x}" y="${up?fy+FH-5:fy}" width="${l.w}" height="5"/>
+<rect class="out" x="${l.x}" y="${l.y}" width="${l.w}" height="${l.h}" rx="4"/>
+<text class="code" x="${cx}" y="${mid+8}">${l.code}</text></g>`;
 }
+
+/* ---- cảnh quan: đường lát đá, đèn đường, ghế, cây ---- */
 let trees='';
-for(let i=0;i<70;i++){const top=i%2===0,tx=20+rnd()*(W-40),ty=top?20+rnd()*120:1100+rnd()*120;
- trees+=`<circle class="tree-m" cx="${tx.toFixed(0)}" cy="${ty.toFixed(0)}" r="${10+Math.floor(rnd()*6)}"/>`}
+for(let i=0;i<70;i++){const top=i%2===0,tx=20+rnd()*(W-40),ty=top?20+rnd()*120:1100+rnd()*120,r=10+Math.floor(rnd()*6);
+ trees+=`<ellipse cx="${(tx+4).toFixed(0)}" cy="${(ty+r*.6).toFixed(0)}" rx="${(r*1.1).toFixed(0)}" ry="${(r*.6).toFixed(0)}" fill="rgba(0,0,0,.15)"/><circle class="tree-m" cx="${tx.toFixed(0)}" cy="${ty.toFixed(0)}" r="${r}"/><circle cx="${(tx-3).toFixed(0)}" cy="${(ty-3).toFixed(0)}" r="${(r*.55).toFixed(0)}" fill="#66b366"/>`}
+let lamps='';
+for(let x=100;x<W;x+=380){if(x>1100&&x<1340)continue;
+ [354,446,794,886].forEach(y=>{lamps+=`<circle cx="${x}" cy="${y}" r="24" fill="url(#glow)"/><circle cx="${x}" cy="${y}" r="5" fill="#2b2f33" stroke="#111" stroke-width="1.5"/><circle cx="${x}" cy="${y}" r="2.5" fill="#ffe9a8"/>`})}
+const benches=[[300,352],[1500,436],[2200,352],[420,792],[1900,876]].map(([x,y])=>`<rect x="${x}" y="${y}" width="46" height="12" rx="3" fill="#8a5a3b" stroke="#4a2a16" stroke-width="2"/>`).join('');
+const bands=[[0,350,W,100],[0,790,W,100],[1170,0,100,H]];
+
+/* ---- người đi bộ ---- */
+const LANES=[{axis:'h',c:378,min:20,max:W-20},{axis:'h',c:422,min:20,max:W-20},{axis:'h',c:818,min:20,max:W-20},{axis:'h',c:862,min:20,max:W-20},{axis:'v',c:1198,min:20,max:H-20},{axis:'v',c:1242,min:20,max:H-20}];
+const NPC_BODY=['#d95b4f','#7a4fb5','#e9a03b','#3b9c8f','#c0568a','#5a7bd6','#6fb23f'],NPC_SKIN=['#ffd6a5','#e8b88a','#c68a5e','#8d5a3b'],NPC_HAIR=['#2b1b12','#5b3a1e','#111','#7a4a21'];
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const npcs=Array.from({length:18},(_,k)=>{const ln=LANES[k%LANES.length];
+ return{ln,pos:ln.min+Math.random()*(ln.max-ln.min),dir:Math.random()<.5?-1:1,sp:26+Math.random()*34,t:Math.random()*6.28,off:(Math.random()-.5)*10,body:pick(NPC_BODY),skin:pick(NPC_SKIN),hair:pick(NPC_HAIR)}});
+const npcSvg=n=>`<g class="npc"><ellipse class="shadow" cx="0" cy="12" rx="10" ry="4.5"/><ellipse class="ft" cx="-4" cy="9" rx="3" ry="2.5" fill="#3a2a20"/><ellipse class="ft" cx="4" cy="9" rx="3" ry="2.5" fill="#3a2a20"/><circle cx="0" cy="1" r="9" fill="${n.body}" stroke="rgba(0,0,0,.35)" stroke-width="1.5"/><circle cx="0" cy="-10" r="6.5" fill="${n.skin}" stroke="rgba(0,0,0,.3)" stroke-width="1.2"/><path d="M-6.5 -10A6.5 6.5 0 0 1 6.5 -10Z" fill="${n.hair}"/></g>`;
 
 const world=document.getElementById('world');
 world.innerHTML=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+<defs>
+<pattern id="cob" width="48" height="32" patternUnits="userSpaceOnUse"><rect width="48" height="32" fill="#d9cdb4"/>
+<g fill="#e8decb" stroke="#c4b69a" stroke-width="1.5"><rect x="2" y="2" width="20" height="13" rx="5"/><rect x="26" y="2" width="20" height="13" rx="5"/><rect x="14" y="18" width="20" height="12" rx="5"/><rect x="-10" y="18" width="20" height="12" rx="5"/><rect x="38" y="18" width="20" height="12" rx="5"/></g></pattern>
+<pattern id="shingle" width="16" height="10" patternUnits="userSpaceOnUse"><path d="M0 .5H16M0 5.5H16M8 .5V5.5M0 5.5V10M16 5.5V10" stroke="rgba(0,0,0,.14)" fill="none"/></pattern>
+<radialGradient id="glow"><stop offset="0" stop-color="#ffe9a8" stop-opacity=".55"/><stop offset="1" stop-color="#ffe9a8" stop-opacity="0"/></radialGradient>
+</defs>
 <rect class="grass" width="${W}" height="${H}"/>
-<rect class="walk" x="0" y="350" width="${W}" height="100"/><rect class="walk" x="0" y="790" width="${W}" height="100"/><rect class="walk" x="1170" y="0" width="100" height="${H}"/>
-<rect class="road" x="0" y="360" width="${W}" height="80"/><rect class="road" x="0" y="800" width="${W}" height="80"/><rect class="road" x="1180" y="0" width="80" height="${H}"/>
-<line class="dash" x1="0" y1="400" x2="${W}" y2="400"/><line class="dash" x1="0" y1="840" x2="${W}" y2="840"/><line class="dash" x1="1220" y1="0" x2="1220" y2="${H}"/>
-${trees}${lots.map(lotSvg).join('')}
-<g id="player"><ellipse class="shadow" cx="0" cy="12" rx="13" ry="6"/><circle class="pbody" cx="0" cy="2" r="12"/><circle class="phead" cx="0" cy="-12" r="8"/></g></svg>`;
+${bands.map(b=>`<rect x="${b[0]}" y="${b[1]}" width="${b[2]}" height="${b[3]}" fill="#a89c80" stroke="#a89c80" stroke-width="8"/>`).join('')}
+${bands.map(b=>`<rect x="${b[0]}" y="${b[1]}" width="${b[2]}" height="${b[3]}" fill="url(#cob)"/>`).join('')}
+${trees}${benches}${lots.map(lotSvg).join('')}${lamps}
+${npcs.map(npcSvg).join('')}
+<g id="player"><ellipse class="shadow" cx="0" cy="13" rx="14" ry="6"/><circle cx="0" cy="2" r="18" fill="rgba(255,255,255,.35)"/><circle class="pbody" cx="0" cy="2" r="12"/><circle class="phead" cx="0" cy="-12" r="8"/></g></svg>`;
 
 const $=id=>document.getElementById(id);
 const els=world.querySelectorAll('.lot'),playerEl=$('player'),hint=$('hint'),panel=$('panel'),view=$('view'),moneyEl=$('money');
+world.querySelectorAll('.npc').forEach((el,k)=>{npcs[k].el=el;npcs[k].feet=el.querySelectorAll('.ft')});
 const player={x:1220,y:400},cam={x:0,y:0},keys=new Set();
 let near=-1,open=-1;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const blocked=(px,py)=>lots.some(l=>px+R>l.x&&px-R<l.x+l.w&&py+R>l.y&&py-R<l.y+l.h);
+
+/* biển hiệu trên nhà: tên cửa hàng nếu đã thuê */
+function refreshSign(i,ds){
+ const l=lots[i],d=(ds||loadDesigns())[l.code];
+ const t=l.status==='mine'?(d&&d.shopName)||'CỦA BẠN':l.status==='owned'?'ĐÃ CÓ CHỦ':'CHO THUÊ';
+ els[i].querySelector('.sgn').textContent=t.toLocaleUpperCase('vi-VN').slice(0,14);
+}
+lots.forEach((l,i)=>refreshSign(i,d0));
 
 /* ---- vẽ mặt tiền (dùng cho panel và modal) ---- */
 function renderShop(el,o){
@@ -315,7 +375,7 @@ $('buy').addEventListener('click',()=>{
  l.status='mine';els[open].setAttribute('class','lot mine'+(open===near?' near':''));updateMoney();
  const s=styleOf(selectedBusinessType.id),designs=loadDesigns();
  designs[l.code]={lotCode:l.code,propertyPrice:l.price,businessTypeId:selectedBusinessType.id,businessTypeName:selectedBusinessType.name,shopName:selectedBusinessType.name,facadeColor:s.body,awningColor:'#f4c95d',decor:'plants',rented:true};
- saveDesigns(designs);
+ saveDesigns(designs);refreshSign(open,designs);
  const code=l.code;closePanel();
  openCustomizer(code,'Đã thuê mặt bằng '+code+'. Bắt đầu tùy chỉnh cửa hàng!');
 });
@@ -371,6 +431,7 @@ $('save-design').addEventListener('click',()=>{
  const designs=loadDesigns();if(!curCode||!designs[curCode])return;
  cd.shopName=cd.shopName.trim()||'Cửa hàng của bạn';
  designs[curCode]=Object.assign(designs[curCode],cd,{designSaved:true});saveDesigns(designs);
+ const li=lots.findIndex(x=>x.code===curCode);if(li>=0)refreshSign(li,designs);
  $('customizer-title').textContent='Tùy chỉnh '+cd.shopName+' · '+curCode;
  $('customizer-message').textContent='Đã lưu thiết kế trên trình duyệt.';
 });
@@ -398,6 +459,17 @@ function step(dt){
  const nx=clamp(player.x+dx*SPEED*dt,R,W-R);if(!blocked(nx,player.y))player.x=nx;
  const ny=clamp(player.y+dy*SPEED*dt,R,H-R);if(!blocked(player.x,ny))player.y=ny;
 }
+/* người đi bộ: đi dọc làn đường, chạm đầu mút thì quay lại */
+function stepNpcs(dt){
+ npcs.forEach(n=>{
+  n.pos+=n.dir*n.sp*dt;
+  if(n.pos<n.ln.min){n.pos=n.ln.min;n.dir=1}else if(n.pos>n.ln.max){n.pos=n.ln.max;n.dir=-1}
+  n.t+=dt*n.sp*.22;
+  const h=n.ln.axis==='h',x=h?n.pos:n.ln.c+n.off,y=(h?n.ln.c+n.off:n.pos)-Math.abs(Math.sin(n.t))*1.5,s=Math.sin(n.t)*3;
+  n.el.setAttribute('transform',`translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+  n.feet[0].setAttribute('cy',9+s);n.feet[1].setAttribute('cy',9-s);
+ });
+}
 function updateNear(){
  let best=-1,bestD=70;
  lots.forEach((l,i)=>{const p=doorPoint(l),d=Math.hypot(player.x-p.x,player.y-p.y);if(d<bestD){best=i;bestD=d}});
@@ -413,7 +485,7 @@ function follow(dt,snap){
 let last=performance.now();
 function frame(now){
  const dt=Math.min(0.05,(now-last)/1000);last=now;
- step(dt);playerEl.setAttribute('transform',`translate(${player.x.toFixed(1)} ${player.y.toFixed(1)})`);
+ step(dt);stepNpcs(dt);playerEl.setAttribute('transform',`translate(${player.x.toFixed(1)} ${player.y.toFixed(1)})`);
  updateNear();follow(dt,false);requestAnimationFrame(frame);
 }
 
