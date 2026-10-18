@@ -63,7 +63,12 @@ $options = [
 ];
 
 if (!empty($sslCa)) {
-    $options[PDO::MYSQL_ATTR_SSL_CA] = $sslCa;
+    // PHP >= 8.4 có Pdo\Mysql::ATTR_SSL_CA; PDO::MYSQL_ATTR_SSL_CA bị deprecated từ PHP 8.5.
+    // PHP < 8.4 chưa có lớp Pdo\Mysql nên dùng hằng số cũ.
+    $sslCaAttr = PHP_VERSION_ID >= 80400
+        ? \Pdo\Mysql::ATTR_SSL_CA
+        : PDO::MYSQL_ATTR_SSL_CA;
+    $options[$sslCaAttr] = $sslCa;
 }
 
 try {
