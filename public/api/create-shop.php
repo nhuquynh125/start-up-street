@@ -1,6 +1,7 @@
 <?php
-// POST api/create-shop.php  {owner_user_id, property_id, business_type_id, name}
-// Thứ tự kiểm tra: dữ liệu vào -> người chơi tồn tại (404) -> đã thuê mặt bằng (403)
+// POST api/create-shop.php  {property_id, business_type_id, name}
+// Chủ cửa hàng = người đang đăng nhập (getCurrentUserId), KHÔNG nhận owner_user_id từ client.
+// Thứ tự kiểm tra: đăng nhập (401) -> dữ liệu vào (400) -> người chơi tồn tại (404) -> đã thuê mặt bằng (403)
 //                  -> loại hình tồn tại (404) -> đủ vốn (400) -> mặt bằng chưa có shop (409) -> INSERT
 require_once dirname(__DIR__, 2) . '/lib/shop_helpers.php';
 
@@ -33,15 +34,16 @@ function isPropertyRentedBy(PDO $pdo, $propertyId, $userId)
 }
 
 try {
+    $ownerUserId = getCurrentUserId(); // 401 nếu chưa đăng nhập
+
     $input = readJsonBody();
 
-    $ownerUserId    = toPositiveInt($input['owner_user_id'] ?? null);
     $propertyId     = toPositiveInt($input['property_id'] ?? null);
     $businessTypeId = toPositiveInt($input['business_type_id'] ?? null);
     $name           = trim((string)($input['name'] ?? ''));
 
-    if (!$ownerUserId || !$propertyId || !$businessTypeId || $name === '') {
-        throw new ApiException("Thiếu hoặc sai thông tin bắt buộc (owner_user_id, property_id, business_type_id, name)", 400);
+    if (!$propertyId || !$businessTypeId || $name === '') {
+        throw new ApiException("Thiếu hoặc sai thông tin bắt buộc (property_id, business_type_id, name)", 400);
     }
     if (textLength($name) > 100) {
         throw new ApiException("Tên cửa hàng tối đa 100 ký tự", 400);

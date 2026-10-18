@@ -1,15 +1,17 @@
 <?php
-// GET api/get-shop-products.php?shop_id=5&owner_user_id=1
+// GET api/get-shop-products.php?shop_id=5
+// Chủ cửa hàng = người đang đăng nhập (getCurrentUserId), KHÔNG nhận owner_user_id từ client.
 // Trả về sản phẩm của loại hình + tồn kho + giá bán của cửa hàng (module bán hàng của TV4 dùng lại API này)
 require_once dirname(__DIR__, 2) . '/lib/shop_helpers.php';
 
 requireMethod('GET');
 
 try {
-    $shopId  = toPositiveInt($_GET['shop_id'] ?? null);
-    $ownerId = toPositiveInt($_GET['owner_user_id'] ?? null);
-    if ($shopId === null || $ownerId === null) {
-        throw new ApiException("Thiếu hoặc sai shop_id / owner_user_id", 400);
+    $ownerId = getCurrentUserId(); // 401 nếu chưa đăng nhập
+
+    $shopId = toPositiveInt($_GET['shop_id'] ?? null);
+    if ($shopId === null) {
+        throw new ApiException("Thiếu hoặc sai shop_id", 400);
     }
 
     $shop = requireOwnedShop($pdo, $shopId, $ownerId); // 404 / 403

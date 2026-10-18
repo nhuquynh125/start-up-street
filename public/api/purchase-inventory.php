@@ -1,5 +1,6 @@
 <?php
-// POST api/purchase-inventory.php  {owner_user_id, shop_id, product_id, quantity, selling_price?}
+// POST api/purchase-inventory.php  {shop_id, product_id, quantity, selling_price?}
+// Người nhập hàng = người đang đăng nhập (getCurrentUserId), KHÔNG nhận owner_user_id từ client.
 // Nhập hàng: kiểm tra quyền -> kiểm tra đủ tiền -> trừ ví -> cộng kho. Tất cả trong 1 transaction:
 // không đủ tiền thì kho KHÔNG bị thay đổi.
 require_once dirname(__DIR__, 2) . '/lib/shop_helpers.php';
@@ -7,17 +8,18 @@ require_once dirname(__DIR__, 2) . '/lib/shop_helpers.php';
 requireMethod('POST');
 
 try {
+    $ownerId = getCurrentUserId(); // 401 nếu chưa đăng nhập
+
     $input = readJsonBody();
 
-    $ownerId   = toPositiveInt($input['owner_user_id'] ?? null);
     $shopId    = toPositiveInt($input['shop_id'] ?? null);
     $productId = toPositiveInt($input['product_id'] ?? null);
     $quantity  = toPositiveInt($input['quantity'] ?? null);
     $hasPrice  = array_key_exists('selling_price', $input) && $input['selling_price'] !== null && $input['selling_price'] !== '';
     $sellingPrice = $hasPrice ? toPositiveNumber($input['selling_price']) : null;
 
-    if (!$ownerId || !$shopId || !$productId || !$quantity || $quantity > MAX_RESTOCK_QTY) {
-        throw new ApiException("Thông tin nhập hàng không hợp lệ (owner_user_id, shop_id, product_id, quantity từ 1 đến " . MAX_RESTOCK_QTY . ")", 400);
+    if (!$shopId || !$productId || !$quantity || $quantity > MAX_RESTOCK_QTY) {
+        throw new ApiException("Thông tin nhập hàng không hợp lệ (shop_id, product_id, quantity từ 1 đến " . MAX_RESTOCK_QTY . ")", 400);
     }
     if ($hasPrice && $sellingPrice === null) {
         throw new ApiException("Giá bán phải là số lớn hơn 0", 400);
