@@ -1,28 +1,33 @@
 <?php
-// Đường dẫn tới file cấu hình local
-$configPath = __DIR__ . '/config/config.local.php';
+// db.php — kết nối MySQL dùng chung (gộp từ db-quynh.php và db.php)
 
-if (!file_exists($configPath)) {
-    header('Content-Type: application/json; charset=utf-8');
+function dbFail(string $message, int $status = 500): void
+{
+    if (!headers_sent()) {
+        header('Content-Type: application/json; charset=utf-8');
+    }
+    http_response_code($status);
     echo json_encode([
         "success" => false,
-        "message" => "Thiếu file config/config.local.php! Hãy tạo file cấu hình database.",
+        "message" => $message,
         "data" => null
     ]);
     exit;
 }
 
+// Đường dẫn tới file cấu hình local
+$configPath = __DIR__ . '/config/config.local.php';
+
+if (!file_exists($configPath)) {
+    dbFail("Thiếu file config/config.local.php! Hãy sao chép từ config/config.example.php và điền thông tin kết nối.");
+}
+
 $config = require $configPath;
 
-// Kiểm tra file chứng chỉ SSL CA
-if (!empty($config['ssl_ca']) && !file_exists($config['ssl_ca'])) {
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode([
-        "success" => false,
-        "message" => "Không tìm thấy file chứng chỉ SSL CA tại: " . $config['ssl_ca'],
-        "data" => null
-    ]);
-    exit;
+// Chứng chỉ SSL CA là tùy chọn; nếu có khai báo thì file phải tồn tại
+$sslCa = $config['ssl_ca'] ?? '';
+if (!empty($sslCa) && !file_exists($sslCa)) {
+    dbFail("Không tìm thấy file chứng chỉ SSL CA tại: " . $sslCa);
 }
 
 $dsn = sprintf(
@@ -38,23 +43,13 @@ $options = [
     PDO::ATTR_EMULATE_PREPARES   => false,
 ];
 
-if (!empty($config['ssl_ca'])) {
-    $options[PDO::MYSQL_ATTR_SSL_CA] = $config['ssl_ca'];
+if (!empty($sslCa)) {
+    $options[PDO::MYSQL_ATTR_SSL_CA] = $sslCa;
 }
 
 try {
-    $pdo = new PDO(
-        $dsn,
-        $config['username'],
-        $config['password'],
-        $options
-    );
+    $pdo = new PDO($dsn, $config['username'], $config['password'], $options);
 } catch (PDOException $e) {
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode([
-        "success" => false,
-        "message" => "Kết nối MySQL thất bại: " . $e->getMessage(),
-        "data" => null
-    ]);
-    exit;
+    error_log('MySQL connection failed: ' . $e->getMessage());
+    dbFail("Không thể kết nối database. Hãy kiểm tra cấu hình.");
 }
