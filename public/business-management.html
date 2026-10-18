@@ -61,7 +61,9 @@
         <h2>Cửa hàng của tôi</h2>
         <div id="my-shops-list"></div>
     </div>
-
+    <div id="section-no-property" class="section hidden">
+        <div class="error-box" role="alert">⚠️ Please select and rent a location on the map first.</div>
+    </div>
     <!-- 1. CHỌN MÔ HÌNH KINH DOANH & TẠO CỬA HÀNG -->
     <div id="section-create-shop" class="section">
         <h2>1. Chọn Mô Hình Kinh Doanh</h2>
@@ -117,8 +119,10 @@
     // Từ bản đồ (map.php) sẽ mở thẳng kho bằng ?shop_id=..., hoặc tạo cửa hàng cho mặt bằng bằng ?property_id=...
     const params = new URLSearchParams(location.search);
     const CURRENT_USER_ID = Number(params.get('user_id')) || 1;
-    const RENTED_PROPERTY_ID = Number(params.get('property_id')) || 101; // 101 = giá trị demo khi mở trang trực tiếp
-
+    const MAX_PROPERTY_ID = 48; // map.php has 4 rows x 12 lots
+    const rawPropertyId = Number(params.get('property_id'));
+    const RENTED_PROPERTY_ID = (Number.isInteger(rawPropertyId) && rawPropertyId >= 1 && rawPropertyId <= MAX_PROPERTY_ID)
+        ? rawPropertyId : null;
     // Đường dẫn TƯƠNG ĐỐI (không có dấu "/" ở đầu) để chạy được ở cả 2 nơi:
     //  - php -S 127.0.0.1:8000 -t public  -> /api/...
     //  - PhpStorm preview (localhost:63342/map.php/public/...) -> .../public/api/...
@@ -185,11 +189,20 @@
     // ---------- Khởi động ----------
 
     document.addEventListener('DOMContentLoaded', async () => {
-        document.getElementById('btn-create-shop').addEventListener('click', submitCreateShop);
-        loadBusinessTypes();
+        const hasProperty = RENTED_PROPERTY_ID !== null;
+        const hasShop = Number(params.get('shop_id')) > 0;
+
+        // Without a valid property_id, the creation section (cards + form) is hidden entirely
+        document.getElementById('section-create-shop').classList.toggle('hidden', !hasProperty);
+        // Show the warning, unless the user came from the map's "Quản lý kho hàng" link (shop_id only)
+        document.getElementById('section-no-property').classList.toggle('hidden', hasProperty || hasShop);
+
+        if (hasProperty) {
+            document.getElementById('btn-create-shop').addEventListener('click', submitCreateShop);
+            loadBusinessTypes();
+        }
         await loadMyShops();
 
-        // Mở từ bản đồ: ?shop_id=... -> vào thẳng kho hàng
         const shopIdParam = Number(params.get('shop_id'));
         if (shopIdParam) openShop(shopIdParam);
     });
@@ -262,9 +275,9 @@
             box.innerHTML = `<div class="error-box">❌ ${escapeHtml(err.message)}</div>`;
         }
     }
-
     // Chọn loại hình kinh doanh
     function selectBusinessType(typeId, typeName) {
+        if (RENTED_PROPERTY_ID === null) return;
         document.getElementById('selected-type-id').value = typeId;
         document.getElementById('selected-type-name').value = typeName;
         document.getElementById('create-shop-heading').textContent = `Tạo Cửa Hàng Mới Cho Mặt Bằng #${RENTED_PROPERTY_ID}`;
@@ -277,6 +290,7 @@
 
     // 2. Tạo cửa hàng (POST api/create-shop.php)
     async function submitCreateShop() {
+        if (RENTED_PROPERTY_ID === null) return;
         const typeId = document.getElementById('selected-type-id').value;
         const shopName = document.getElementById('shop-name').value.trim();
         const btn = document.getElementById('btn-create-shop');
