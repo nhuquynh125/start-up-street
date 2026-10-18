@@ -1,65 +1,49 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
+// GET api/get-shop-products.php?shop_id=5&owner_user_id=1
+// Trả về sản phẩm của loại hình + tồn kho + giá bán của cửa hàng (module bán hàng của TV4 dùng lại API này)
+require_once dirname(__DIR__, 2) . '/lib/shop_helpers.php';
 
-$dbPath = dirname(__DIR__, 2) . '/db.php';
-if (!file_exists($dbPath)) {
-    echo json_encode(["success" => false, "message" => "Lỗi server: Không tìm thấy file db.php", "data" => null]);
-    exit;
-}
-require_once $dbPath;
-
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    http_response_code(405);
-    echo json_encode(["success" => false, "message" => "Method Not Allowed. Vui lòng dùng GET.", "data" => null]);
-    exit;
-}
-
-$shopId = $_GET['shop_id'] ?? null;
-
-if (!$shopId) {
-    http_response_code(400);
-    echo json_encode(["success" => false, "message" => "Thiếu shop_id", "data" => null]);
-    exit;
-}
+requireMethod('GET');
 
 try {
-    // Lấy thông tin cửa hàng để biết business_type_id
-    $stmtShop = $pdo->prepare('SELECT id, business_type_id, name FROM shops WHERE id = ?');
-    $stmtShop->execute([$shopId]);
-    $shop = $stmtShop->fetch();
-
-    if (!$shop) {
-        http_response_code(404);
-        echo json_encode(["success" => false, "message" => "Không tìm thấy cửa hàng", "data" => null]);
-        exit;
+    $shopId  = toPositiveInt($_GET['shop_id'] ?? null);
+    $ownerId = toPositiveInt($_GET['owner_user_id'] ?? null);
+    if ($shopId === null || $ownerId === null) {
+        throw new ApiException("Thiếu hoặc sai shop_id / owner_user_id", 400);
     }
 
-    // Lấy danh sách sản phẩm thuộc loại hình kinh doanh này + số lượng tồn kho trong bảng inventory (nếu có)
+    $shop = requireOwnedShop($pdo, $shopId, $ownerId); // 404 / 403
+
     $stmt = $pdo->prepare('
-        SELECT 
+        SELECT
             p.id AS product_id,
             p.name AS product_name,
             p.base_cost,
             COALESCE(i.quantity, 0) AS stock_quantity,
-            COALESCE(i.selling_price, p.base_cost * 1.5) AS selling_price
+            COALESCE(i.selling_price, p.base_cost * ' . DEFAULT_MARKUP . ') AS selling_price,
+            i.last_restocked
         FROM products p
-        LEFT JOIN inventory i ON p.id = i.product_id AND i.shop_id = ?
+        LEFT JOIN inventory i ON i.product_id = p.id AND i.shop_id = ?
         WHERE p.business_type_id = ?
+        ORDER BY p.id
     ');
     $stmt->execute([$shopId, $shop['business_type_id']]);
-    $products = $stmt->fetchAll();
 
-    echo json_encode([
-        "success" => true,
-        "message" => "Lấy danh sách sản phẩm thành công",
-        "data" => [
-            "shop" => $shop,
-            "products" => $products
-        ]
+    // Số dư ví để UI hiển thị; nếu bảng ví chưa khớp cấu hình thì trả null thay vì làm hỏng cả API
+    $balance = null;
+    try {
+        $balance = getWalletBalance($pdo, $ownerId);
+    } catch (Exception $e) {
+        error_log('get-shop-products: không đọc được ví: ' . $e->getMessage());
+    }
+
+    apiRespond(true, "Lấy danh sách sản phẩm thành công", [
+        "shop"     => ["id" => (int)$shop['id'], "name" => $shop['name'], "business_type_id" => (int)$shop['business_type_id']],
+        "balance"  => $balance,
+        "products" => $stmt->fetchAll()
     ]);
-
+} catch (ApiException $e) {
+    apiRespond(false, $e->getMessage(), $e->data, $e->getCode());
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(["success" => false, "message" => "Lỗi truy vấn: " . $e->getMessage(), "data" => null]);
+    apiRespond(false, "Lỗi truy vấn: " . $e->getMessage(), null, 500);
 }
-?>
