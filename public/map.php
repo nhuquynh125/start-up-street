@@ -246,7 +246,8 @@ const d0=loadDesigns();
 lots.forEach(l=>{if(d0[l.code]&&d0[l.code].rented)l.status='mine'});
 
 const fmt=n=>n.toLocaleString('vi-VN')+'đ';
-let balance=Number(localStorage.getItem('startupStreetBalance')||50000000);
+let balance=null; /* chỉ là bản sao để hiển thị; số dư thật = users.balance trong MySQL */
+localStorage.removeItem('startupStreetBalance'); /* xóa số dư cũ còn sót ở trình duyệt */
 const doorPoint=l=>({x:l.x+l.w/2,y:l.face==='down'?l.y+l.h+20:l.y-20});
 
 /* ---- vẽ nhà: mái ngói nhìn từ trên xuống + dải mặt tiền (biển, mái hiên, cửa) phía đường ---- */
@@ -365,7 +366,10 @@ function showPanel(i){
  panel.style.display='block';
 }
 function closePanel(){open=-1;panel.style.display='none'}
-function updateMoney(){moneyEl.textContent=fmt(balance)}
+function updateMoney(){moneyEl.textContent=balance===null?'…':fmt(balance)}
+async function refreshBalance(){
+ try{balance=Number((await apiJson('get-balance.php?user_id='+USER_ID)).data.balance);updateMoney()}
+ catch(e){/* giữ nguyên số đang hiển thị, không tự đoán số dư */}}
 $('close').addEventListener('click',closePanel);
 
 $('business-type-select').addEventListener('change',ev=>{
@@ -378,18 +382,23 @@ $('buy').addEventListener('click',async()=>{
  if(open<0)return;const l=lots[open];
  if(l.status==='mine'){const code=l.code;closePanel();openCustomizer(code,'');return}
  if(l.status!=='available')return;
- if(balance<l.price){$('msg').textContent='Bạn không đủ vốn để thuê mặt bằng này.';return}
+ if(balance!==null&&balance<l.price){$('msg').textContent='Bạn không đủ vốn để thuê mặt bằng này.';return}
  const typeId=$('business-type-select').value;
  if(!typeId){$('msg').textContent='Hãy chọn mô hình kinh doanh trước khi thuê.';return}
  selectedBusinessType=businessTypes.find(t=>String(t.id)===String(typeId));
  const idx=open,buyBtn=$('buy');buyBtn.disabled=true;$('msg').textContent='Đang tạo cửa hàng...';
- let shop;
+ let shop,rent;
+ try{
+  rent=(await apiJson('rent-property.php',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({user_id:USER_ID,property_id:l.id})})).data;
+  balance=Number(rent.balance);updateMoney();
+ }catch(err){$('msg').textContent='Không thể thuê mặt bằng: '+err.message;buyBtn.disabled=false;refreshBalance();return}
  try{
   shop=(await apiJson('create-shop.php',{method:'POST',headers:{'Content-Type':'application/json'},
    body:JSON.stringify({owner_user_id:USER_ID,property_id:l.id,business_type_id:selectedBusinessType.id,name:selectedBusinessType.name})})).data;
- }catch(err){$('msg').textContent='Không thể tạo cửa hàng: '+err.message;buyBtn.disabled=false;return}
+ }catch(err){$('msg').textContent='Đã thuê mặt bằng nhưng chưa tạo được cửa hàng: '+err.message+'. Bấm lại để thử tiếp (không bị trừ tiền thuê lần 2).';buyBtn.disabled=false;return}
  buyBtn.disabled=false;
- balance-=l.price;localStorage.setItem('startupStreetBalance',String(balance));
+ /* tiền thuê đã được server trừ trong rent-property.php */
  l.status='mine';els[idx].setAttribute('class','lot mine'+(idx===near?' near':''));updateMoney();
  const s=styleOf(selectedBusinessType.id),designs=loadDesigns();
  designs[l.code]={lotCode:l.code,propertyPrice:l.price,businessTypeId:selectedBusinessType.id,businessTypeName:selectedBusinessType.name,shopName:selectedBusinessType.name,facadeColor:s.body,awningColor:'#f4c95d',decor:'plants',rented:true,shopId:shop.shop_id};
@@ -514,7 +523,7 @@ fetch('api/business-types.php').then(r=>r.json()).then(data=>{
  }
 }).catch(()=>{});
 
-updateMoney();updateFacadePreview();
+updateMoney();refreshBalance();window.addEventListener('focus',refreshBalance);updateFacadePreview();
 apiJson('get-shops.php').then(res=>{
  const designs=loadDesigns();let changed=false;
  res.data.shops.forEach(s=>{
