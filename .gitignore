@@ -1,4 +1,6 @@
 config/config.local.php
+/config/config.local.php
 .env
 *.pem
-config/config.local.php
+/certs/*
+!/certs/.gitkeep
