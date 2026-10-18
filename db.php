@@ -14,7 +14,26 @@ function dbFail(string $message, int $status = 500): void
     ]);
     exit;
 }
+// Thiếu extension -> báo rõ thay vì 500 trắng
+if (!extension_loaded('pdo_mysql')) {
+    dbFail("PHP (" . PHP_VERSION . ") đang thiếu extension pdo_mysql. Bật extension=pdo_mysql trong php.ini rồi chạy lại server.");
+}
 
+// Mọi lỗi nghiêm trọng còn lại cũng trả JSON
+set_exception_handler(function (Throwable $e) {
+    error_log($e);
+    dbFail("Lỗi server: " . $e->getMessage());
+});
+register_shutdown_function(function () {
+    $err = error_get_last();
+    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        if (!headers_sent()) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(500);
+        }
+        echo json_encode(["success" => false, "message" => "Lỗi PHP: " . $err['message'], "data" => null]);
+    }
+});
 // Đường dẫn tới file cấu hình local
 $configPath = __DIR__ . '/config/config.local.php';
 

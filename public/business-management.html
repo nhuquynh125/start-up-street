@@ -16,6 +16,10 @@
         .card .capital { font-weight: bold; color: #e74c3c; font-size: 16px; margin: 10px 0; }
         .btn { background: #2ecc71; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; }
         .btn:hover { background: #27ae60; }
+        .btn:disabled { background: #95a5a6; cursor: not-allowed; }
+        .btn-stock { background: #f39c12; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
+        .btn-stock:hover { background: #d68910; }
+        .btn-stock:disabled { background: #95a5a6; cursor: not-allowed; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
         input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
@@ -24,6 +28,13 @@
         th { background-color: #34495e; color: white; }
         .section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .hidden { display: none; }
+        .error-box { background: #fdecea; color: #c0392b; border: 1px solid #f5b7b1; border-radius: 6px; padding: 12px 15px; grid-column: 1 / -1; }
+        .error-box code { background: #fff; padding: 2px 6px; border-radius: 3px; }
+        .toast { position: fixed; top: 20px; right: 20px; padding: 12px 18px; border-radius: 6px; color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 1000; }
+        .toast.ok { background: #27ae60; }
+        .toast.err { background: #e74c3c; }
+        .stock-input { width: 60px; }
+        .price-input { width: 110px; }
     </style>
 </head>
 <body>
@@ -43,22 +54,22 @@
             <hr>
             <h3>Tạo Cửa Hàng Mới Cho Mặt Bằng Đã Thuê</h3>
             <div class="form-group">
-                <label>Loại hình đã chọn:</label>
+                <label for="selected-type-name">Loại hình đã chọn:</label>
                 <input type="text" id="selected-type-name" disabled style="background: #eee;">
                 <input type="hidden" id="selected-type-id">
             </div>
             <div class="form-group">
-                <label>Tên cửa hàng của bạn:</label>
-                <input type="text" id="shop-name" placeholder="Ví dụ: Trà Sữa Moon Tea">
+                <label for="shop-name">Tên cửa hàng của bạn:</label>
+                <input type="text" id="shop-name" placeholder="Ví dụ: Trà Sữa Moon Tea" maxlength="100">
             </div>
-            <button class="btn" onclick="submitCreateShop()">Mở Cửa Hàng Ngay</button>
+            <button class="btn" id="btn-create-shop" onclick="submitCreateShop()">Mở Cửa Hàng Ngay</button>
         </div>
     </div>
 
     <!-- 2. QUẢN LÝ SẢN PHẨM & KHO HÀNG -->
     <div id="section-inventory" class="section hidden">
         <h2 id="current-shop-title">2. Quản Lý Kho Hàng Cửa Hàng</h2>
-        
+
         <h3>Danh Sách Sản Phẩm & Tồn Kho</h3>
         <table>
             <thead>
@@ -81,36 +92,94 @@
 <script>
     // Giả lập ID User và Mặt bằng đã thuê từ TV1 và TV2
     const CURRENT_USER_ID = 1;
-    const RENTED_PROPERTY_ID = 101; 
+    const RENTED_PROPERTY_ID = 101;
+
+    // Đường dẫn TƯƠNG ĐỐI (không có dấu "/" ở đầu) để chạy được ở cả 2 nơi:
+    //  - php -S 127.0.0.1:8000 -t public  -> /api/...
+    //  - PhpStorm preview (localhost:63342/map.php/public/...) -> .../public/api/...
+    const API_BASE = 'api/';
 
     let currentShopId = null;
 
-    // Load danh sách loại hình kinh doanh khi mở trang
-    document.addEventListener("DOMContentLoaded", function() {
-        loadBusinessTypes();
-    });
+    // ---------- Tiện ích ----------
 
-    // 1. Lấy loại hình kinh doanh từ API (GET /api/business-types.php)
-    function loadBusinessTypes() {
-        fetch('/api/business-types.php')
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    let html = '';
-                    data.data.business_types.forEach(type => {
-                        html += `
-                            <div class="card">
-                                <h3>${type.name}</h3>
-                                <p>${type.description}</p>
-                                <div class="capital">Vốn cần: ${Number(type.required_capital).toLocaleString()} VNĐ</div>
-                                <button class="btn" onclick="selectBusinessType(${type.id}, '${type.name}')">Chọn Mô Hình</button>
-                            </div>
-                        `;
-                    });
-                    document.getElementById('business-types-list').innerHTML = html;
-                }
-            })
-            .catch(err => console.error("Lỗi load business types:", err));
+    // Chống lỗi HTML khi tên có dấu ' " < > &
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function formatVnd(value) {
+        return Number(value).toLocaleString('vi-VN') + ' VNĐ';
+    }
+
+    function showToast(message, ok) {
+        const el = document.createElement('div');
+        el.className = 'toast ' + (ok ? 'ok' : 'err');
+        el.textContent = message;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 3000);
+    }
+
+    // Gọi API, luôn trả về object { success, message, data } hoặc ném lỗi có thông điệp rõ ràng
+    async function callApi(path, options) {
+        let res;
+        try {
+            res = await fetch(API_BASE + path, options);
+        } catch (networkErr) {
+            throw new Error('Không kết nối được tới server. Hãy chạy: php -S 127.0.0.1:8000 -t public rồi mở http://127.0.0.1:8000/business-management.html');
+        }
+
+        const text = await res.text();
+        let json;
+        try {
+            json = JSON.parse(text);
+        } catch (parseErr) {
+            throw new Error(`API ${path} không trả về JSON (HTTP ${res.status}). Kiểm tra đường dẫn hoặc lỗi PHP.`);
+        }
+
+        if (!json.success) {
+            throw new Error(json.message || `API ${path} báo lỗi (HTTP ${res.status})`);
+        }
+        return json;
+    }
+
+    // ---------- Khởi động ----------
+
+    document.addEventListener('DOMContentLoaded', loadBusinessTypes);
+
+    // 1. Lấy loại hình kinh doanh (GET api/business-types.php)
+    async function loadBusinessTypes() {
+        const box = document.getElementById('business-types-list');
+        try {
+            const json = await callApi('business-types.php');
+            const types = json.data.business_types;
+
+            if (!types.length) {
+                box.innerHTML = '<div class="error-box">Chưa có loại hình kinh doanh nào trong database.</div>';
+                return;
+            }
+
+            box.innerHTML = types.map(type => `
+                <div class="card">
+                    <h3>${escapeHtml(type.name)}</h3>
+                    <p>${escapeHtml(type.description)}</p>
+                    <div class="capital">Vốn cần: ${formatVnd(type.required_capital)}</div>
+                    <button class="btn" data-type-id="${Number(type.id)}" data-type-name="${escapeHtml(type.name)}">Chọn Mô Hình</button>
+                </div>
+            `).join('');
+
+            box.querySelectorAll('button[data-type-id]').forEach(btn => {
+                btn.addEventListener('click', () => selectBusinessType(btn.dataset.typeId, btn.dataset.typeName));
+            });
+        } catch (err) {
+            console.error('Lỗi load business types:', err);
+            box.innerHTML = `<div class="error-box">❌ ${escapeHtml(err.message)}</div>`;
+        }
     }
 
     // Chọn loại hình kinh doanh
@@ -118,97 +187,126 @@
         document.getElementById('selected-type-id').value = typeId;
         document.getElementById('selected-type-name').value = typeName;
         document.getElementById('create-shop-form').classList.remove('hidden');
+        document.getElementById('shop-name').focus();
     }
 
-    // 2. Gửi request tạo cửa hàng (POST /api/create-shop.php)
-    function submitCreateShop() {
+    // 2. Tạo cửa hàng (POST api/create-shop.php)
+    async function submitCreateShop() {
         const typeId = document.getElementById('selected-type-id').value;
-        const shopName = document.getElementById('shop-name').value;
+        const shopName = document.getElementById('shop-name').value.trim();
+        const btn = document.getElementById('btn-create-shop');
 
+        if (!typeId) {
+            showToast('Vui lòng chọn mô hình kinh doanh!', false);
+            return;
+        }
         if (!shopName) {
-            alert("Vui lòng nhập tên cửa hàng!");
+            showToast('Vui lòng nhập tên cửa hàng!', false);
             return;
         }
 
-        fetch('/api/create-shop.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                owner_user_id: CURRENT_USER_ID,
-                property_id: RENTED_PROPERTY_ID,
-                business_type_id: typeId,
-                name: shopName
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                alert("Tạo cửa hàng thành công!");
-                currentShopId = data.data.shop_id;
-                
-                // Mở khu vực quản lý kho hàng
-                document.getElementById('section-inventory').classList.remove('hidden');
-                document.getElementById('current-shop-title').innerText = `2. Quản Lý Kho Hàng: ${shopName}`;
-                loadShopProducts(currentShopId);
-            } else {
-                alert("Lỗi: " + data.message);
-            }
-        });
-    }
-
-    // 3. Load danh sách sản phẩm và tồn kho (GET /api/get-shop-products.php)
-    function loadShopProducts(shopId) {
-        fetch(`/api/get-shop-products.php?shop_id=${shopId}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    let html = '';
-                    data.data.products.forEach(p => {
-                        html += `
-                            <tr>
-                                <td>${p.product_id}</td>
-                                <td><b>${p.product_name}</b></td>
-                                <td>${Number(p.base_cost).toLocaleString()} VNĐ</td>
-                                <td>
-                                    <input type="number" id="price-${p.product_id}" value="${p.selling_price}" style="width:100px;"> VNĐ
-                                </td>
-                                <td><span style="color:blue; font-weight:bold;">${p.stock_quantity}</span> cái</td>
-                                <td>
-                                    <input type="number" id="qty-${p.product_id}" value="10" min="1" style="width:60px;">
-                                    <button onclick="purchaseInventory(${p.product_id})" style="background:#f39c12; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer;">Nhập Hàng</button>
-                                </td>
-                            </tr>
-                        `;
-                    });
-                    document.getElementById('inventory-table-body').innerHTML = html;
-                }
+        btn.disabled = true;
+        try {
+            const json = await callApi('create-shop.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    owner_user_id: CURRENT_USER_ID,
+                    property_id: RENTED_PROPERTY_ID,
+                    business_type_id: typeId,
+                    name: shopName
+                })
             });
+
+            showToast('Tạo cửa hàng thành công!', true);
+            currentShopId = json.data.shop_id;
+
+            // Mở khu vực quản lý kho hàng
+            document.getElementById('section-inventory').classList.remove('hidden');
+            document.getElementById('current-shop-title').textContent = `2. Quản Lý Kho Hàng: ${shopName}`;
+            await loadShopProducts(currentShopId);
+        } catch (err) {
+            console.error('Lỗi tạo cửa hàng:', err);
+            showToast('Lỗi: ' + err.message, false);
+        } finally {
+            btn.disabled = false;
+        }
     }
 
-    // 4. Nhập hàng vào kho (POST /api/purchase-inventory.php)
-    function purchaseInventory(productId) {
-        const qty = document.getElementById(`qty-${productId}`).value;
-        const sellingPrice = document.getElementById(`price-${productId}`).value;
+    // 3. Load sản phẩm và tồn kho (GET api/get-shop-products.php)
+    async function loadShopProducts(shopId) {
+        const tbody = document.getElementById('inventory-table-body');
+        tbody.innerHTML = '<tr><td colspan="6">Đang tải sản phẩm...</td></tr>';
 
-        fetch('/api/purchase-inventory.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                shop_id: currentShopId,
-                product_id: productId,
-                quantity: parseInt(qty),
-                selling_price: parseFloat(sellingPrice)
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                alert("Nhập hàng thành công!");
-                loadShopProducts(currentShopId); // Refresh lại bảng kho
-            } else {
-                alert("Lỗi: " + data.message);
+        try {
+            const json = await callApi(`get-shop-products.php?shop_id=${encodeURIComponent(shopId)}`);
+            const products = json.data.products;
+
+            if (!products.length) {
+                tbody.innerHTML = '<tr><td colspan="6">Loại hình này chưa có sản phẩm nào trong database.</td></tr>';
+                return;
             }
-        });
+
+            tbody.innerHTML = products.map(p => `
+                <tr>
+                    <td>${Number(p.product_id)}</td>
+                    <td><b>${escapeHtml(p.product_name)}</b></td>
+                    <td>${formatVnd(p.base_cost)}</td>
+                    <td>
+                        <input type="number" class="price-input" id="price-${Number(p.product_id)}"
+                               value="${Math.round(Number(p.selling_price))}" min="0" step="500"> VNĐ
+                    </td>
+                    <td><span style="color:blue; font-weight:bold;">${Number(p.stock_quantity)}</span> cái</td>
+                    <td>
+                        <input type="number" class="stock-input" id="qty-${Number(p.product_id)}" value="10" min="1">
+                        <button class="btn-stock" data-product-id="${Number(p.product_id)}">Nhập Hàng</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            tbody.querySelectorAll('button[data-product-id]').forEach(btn => {
+                btn.addEventListener('click', () => purchaseInventory(btn.dataset.productId, btn));
+            });
+        } catch (err) {
+            console.error('Lỗi load sản phẩm:', err);
+            tbody.innerHTML = `<tr><td colspan="6"><div class="error-box">❌ ${escapeHtml(err.message)}</div></td></tr>`;
+        }
+    }
+
+    // 4. Nhập hàng vào kho (POST api/purchase-inventory.php)
+    async function purchaseInventory(productId, btn) {
+        const qty = parseInt(document.getElementById(`qty-${productId}`).value, 10);
+        const sellingPrice = parseFloat(document.getElementById(`price-${productId}`).value);
+
+        if (!Number.isInteger(qty) || qty <= 0) {
+            showToast('Số lượng nhập phải lớn hơn 0!', false);
+            return;
+        }
+        if (!Number.isFinite(sellingPrice) || sellingPrice < 0) {
+            showToast('Giá bán không hợp lệ!', false);
+            return;
+        }
+
+        if (btn) btn.disabled = true;
+        try {
+            await callApi('purchase-inventory.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    shop_id: currentShopId,
+                    product_id: Number(productId),
+                    quantity: qty,
+                    selling_price: sellingPrice
+                })
+            });
+
+            showToast('Nhập hàng thành công!', true);
+            await loadShopProducts(currentShopId); // Refresh lại bảng kho
+        } catch (err) {
+            console.error('Lỗi nhập hàng:', err);
+            showToast('Lỗi: ' + err.message, false);
+            if (btn) btn.disabled = false;
+        }
     }
 </script>
 
