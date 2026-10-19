@@ -41,7 +41,7 @@
   }
   async function syncBalance() {
     try {
-      walletBalance = Number((await api('get-balance.php?user_id=' + USER_ID)).data.balance);
+      walletBalance = Number((await api('get-balance.php')).data.balance);
       GameState.balance = walletBalance; // bản sao cho các chỗ game.js còn đọc; KHÔNG phải nguồn sự thật
     } catch (e) { /* giữ số cũ */ }
     paintBalance();
@@ -62,7 +62,7 @@
       return;
     }
     try {
-      const d = (await api('get-shop-products.php?shop_id=' + SHOP_ID + '&owner_user_id=' + USER_ID)).data;
+      const d = (await api('get-shop-products.php?shop_id=' + SHOP_ID)).data;
       d.products.forEach(sp => {
         const p = Products.find(x => x.name === sp.product_name);
         if (!p) return;
@@ -92,7 +92,7 @@
     }
     try {
       const r = (await api('sell-product.php', post({
-        owner_user_id: USER_ID, shop_id: SHOP_ID, product_id: product.dbId, quantity: 1
+        shop_id: SHOP_ID, product_id: product.dbId, quantity: 1
       }))).data;
 
       // Ép số liệu cục bộ về đúng số server trả, để phần xử lý gốc cộng/trừ ra kết quả khớp:
@@ -128,7 +128,7 @@
     for (const p of todo) {
       try {
         const r = (await api('purchase-inventory.php', post({
-          owner_user_id: USER_ID, shop_id: SHOP_ID, product_id: p.dbId, quantity: MAX_STOCK - p.stock
+          shop_id: SHOP_ID, product_id: p.dbId, quantity: MAX_STOCK - p.stock
         }))).data;
         p.stock = r.stock_quantity;
         totalCost += r.total_cost;

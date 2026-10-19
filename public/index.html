@@ -34,7 +34,7 @@
   </div>
   <div class="hud-player">
     <div>
-      <div style="font-weight:700; font-size:0.9rem;">Thành viên 4</div>
+      <div style="font-weight:700; font-size:0.9rem;">Mô phỏng & Tài chính</div>
       <div style="font-size:0.75rem; opacity:0.8;">Mô phỏng & Tài chính</div>
     </div>
     <div class="hud-avatar">📊</div>
@@ -43,16 +43,16 @@
 
 <!-- ═══════════════════════ NAV TABS ═══════════════════════ -->
 <nav class="nav-tabs">
-  <button class="nav-tab active" onclick="switchTab('operation')">
+  <button class="nav-tab active" onclick="switchTab('operation', event)">
     🛎️ Xử lý đơn & Bán hàng
   </button>
-  <button class="nav-tab" onclick="switchTab('finance')">
+  <button class="nav-tab" onclick="switchTab('finance', event)">
     📊 Dashboard Tài chính
   </button>
-  <button class="nav-tab" onclick="switchTab('daily-report')">
+  <button class="nav-tab" onclick="switchTab('daily-report', event)">
     📑 Báo cáo ngày & Feedback
   </button>
-  <button class="nav-tab" onclick="switchTab('history')">
+  <button class="nav-tab" onclick="switchTab('history', event)">
     📋 Lịch sử giao dịch (Sổ cái)
   </button>
 </nav>
@@ -68,7 +68,7 @@
       <div class="store-icon">🧋</div>
       <div class="store-info">
         <h2>Tiệm Moon Tea ☽</h2>
-        <div class="store-type">📍 Mặt bằng A2 (Khu trường học) · Nhận dữ liệu món từ Thành viên 3</div>
+        <div class="store-type">📍 Mặt bằng A2 (Khu trường học) · Nhận dữ liệu món từ API</div>
         <div style="font-size:0.8rem; color:var(--line-light); margin-top:4px;">
           Tiền thuê: <strong>500,000đ/ngày</strong> · Lương nhân viên: <strong>300,000đ/ngày</strong>
         </div>

@@ -1,5 +1,5 @@
 <?php
-// Nối map.php với API cửa hàng (Thành viên 3). Chạy 1 lần từ thư mục gốc dự án:
+// Nối map.php với API cửa hàng. Chạy 1 lần từ thư mục gốc dự án:
 //     php tools/apply-map-shop-integration.php
 // Script chỉ sửa đúng các dòng cần thiết, KHÔNG ghi đè cả file (map.php còn là việc của TV2).
 // Nếu có chỗ không khớp (file đã bị sửa) thì báo rõ chỗ nào và KHÔNG ghi gì. Có tạo sẵn map.php.bak.

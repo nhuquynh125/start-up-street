@@ -2,7 +2,7 @@
 -- STARTUP STREET — Mặt bằng & thuê mặt bằng (nguồn giá DUY NHẤT nằm ở server)
 -- Chạy được nhiều lần (idempotent). Số liệu 48 mặt bằng được sinh từ ĐÚNG bộ random (seed 20260117)
 -- mà map.php đang dùng, nên mã/giá/diện tích khớp với những gì người chơi thấy trên bản đồ.
--- Nếu Thành viên 2 đã có bảng properties/rentals riêng thì KHÔNG chạy file này:
+-- Nếu đã có bảng properties/rentals riêng thì KHÔNG chạy file này:
 -- chỉ cần chỉnh 3 hằng số RENTALS_* trong create-shop.php và PROPERTIES_* trong rent-property.php.
 -- ====================================================
 

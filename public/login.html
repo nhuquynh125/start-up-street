@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đăng nhập — Startup Street</title>
+<meta name="description" content="Đăng nhập hoặc tạo tài khoản để bắt đầu khởi nghiệp trên Startup Street!">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --wood-dark:#3d1f0a; --wood:#7a4a24; --wood-light:#b07040;
+  --paper:#fdf5e4; --paper-dark:#ede0c4; --cream:#fff9ee;
+  --sky:#c9e9f6; --leaf:#4a8a3a; --leaf-light:#6ab05a;
+  --ok:#5aa83a; --ok-dark:#3d7a26; --no:#c94040; --no-dark:#932828;
+  --gold:#f0b832; --gold-dark:#c8922a;
+  --ink:#2a1800; --ink-mid:#5a3c1a; --ink-light:#8a6040;
+  --font:'Baloo 2',Nunito,system-ui,sans-serif;
+  --shadow:0 8px 24px rgba(60,20,0,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--font);overflow:hidden}
+body{background:var(--sky);display:flex;align-items:center;justify-content:center;position:relative}
+
+/* Animated background town */
+.bg-town{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.bg-sky{position:absolute;inset:0;background:linear-gradient(180deg,#87ceeb 0%,#c9e9f6 60%,#d9f0e8 100%)}
+.bg-ground{position:absolute;bottom:0;left:0;right:0;height:38%;background:linear-gradient(180deg,#9ac880 0%,#7aaa56 100%)}
+.bg-road{position:absolute;bottom:22%;left:0;right:0;height:10%;background:#c8bfa0}
+.bg-road::before{content:'';position:absolute;top:50%;left:0;right:0;height:4px;background:repeating-linear-gradient(90deg,#e8dfc0 0 40px,transparent 40px 80px);transform:translateY(-50%)}
+
+/* Buildings */
+.bld{position:absolute;bottom:32%}
+.bld-body{border-radius:8px 8px 0 0}
+.bld-roof{position:absolute;top:0;left:-6px;right:-6px;transform:translateY(-100%)}
+.bld-roof svg{width:100%;height:auto;display:block}
+.bld-win{position:absolute;background:var(--sky);border:3px solid rgba(0,0,0,.2);border-radius:3px}
+.bld-sign{position:absolute;bottom:0;left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--paper);border:3px solid var(--wood);border-radius:8px 8px 0 0;padding:2px 10px;font-weight:800;font-size:11px;color:var(--ink)}
+
+/* Walking NPCs */
+.npc-wrap{position:absolute;bottom:22%;animation:walk linear infinite}
+.npc{width:28px;text-align:center;font-size:22px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.25))}
+@keyframes walk{from{left:-60px}to{left:calc(100vw+60px)}}
+@keyframes walkr{from{right:-60px}to{right:calc(100vw+60px)}}
+
+/* Clouds */
+.cloud{position:absolute;background:#fff;border-radius:40px;opacity:.9;animation:cloudmove linear infinite}
+.cloud::before,.cloud::after{content:'';position:absolute;background:#fff;border-radius:50%}
+.cloud::before{width:60%;height:130%;top:-50%;left:15%}
+.cloud::after{width:50%;height:110%;top:-40%;right:10%}
+@keyframes cloudmove{from{transform:translateX(-200px)}to{transform:translateX(calc(100vw+200px))}}
+
+/* Card */
+.card{position:relative;z-index:2;width:min(420px,calc(100vw - 32px));
+  background:var(--paper);border:5px solid var(--wood);border-radius:24px;
+  box-shadow:0 10px 0 var(--wood-dark),var(--shadow);
+  padding:32px 28px 28px;animation:popIn .35s cubic-bezier(.34,1.56,.64,1)}
+@keyframes popIn{from{opacity:0;transform:scale(.88) translateY(24px)}to{opacity:1;transform:none}}
+
+.logo-wrap{text-align:center;margin-bottom:24px}
+.logo-icon{font-size:52px;display:block;margin-bottom:4px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.2))}
+.logo-title{font-size:26px;font-weight:800;color:var(--wood-dark);letter-spacing:.5px}
+.logo-sub{font-size:13px;font-weight:600;color:var(--ink-light);margin-top:2px}
+
+/* Tabs */
+.tabs{display:flex;gap:0;margin-bottom:22px;background:var(--paper-dark);border-radius:14px;padding:4px}
+.tab-btn{flex:1;border:none;background:transparent;font-family:var(--font);font-weight:700;font-size:15px;
+  color:var(--ink-mid);padding:7px;border-radius:11px;cursor:pointer;transition:all .2s}
+.tab-btn.active{background:var(--paper);color:var(--wood-dark);box-shadow:0 2px 6px rgba(0,0,0,.12)}
+
+/* Form */
+.form-group{margin-bottom:14px}
+label.fl{display:block;font-weight:700;font-size:14px;color:var(--ink-mid);margin-bottom:5px}
+.input-wrap{position:relative}
+.input-wrap .ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:17px;pointer-events:none}
+input[type=text],input[type=email],input[type=password]{
+  width:100%;padding:10px 12px 10px 38px;
+  border:3px solid var(--paper-dark);border-radius:12px;
+  font-family:var(--font);font-size:15px;font-weight:600;
+  background:var(--cream);color:var(--ink);
+  transition:border-color .2s,box-shadow .2s;outline:none}
+input:focus{border-color:var(--wood-light);box-shadow:0 0 0 3px rgba(122,74,36,.18)}
+input.err{border-color:var(--no)}
+.err-msg{font-size:12px;color:var(--no);font-weight:600;margin-top:4px;min-height:16px}
+
+/* Buttons */
+.btn-primary{width:100%;padding:12px;border:3px solid var(--wood-dark);border-radius:14px;
+  background:linear-gradient(180deg,var(--gold) 0%,var(--gold-dark) 100%);
+  box-shadow:0 5px 0 var(--wood-dark);color:var(--wood-dark);
+  font-family:var(--font);font-size:17px;font-weight:800;cursor:pointer;
+  transition:transform .1s,box-shadow .1s;position:relative;overflow:hidden}
+.btn-primary::after{content:'';position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.25),transparent);border-radius:11px}
+.btn-primary:hover{filter:brightness(1.07)}
+.btn-primary:active{transform:translateY(4px);box-shadow:0 1px 0 var(--wood-dark)}
+.btn-primary:disabled{background:linear-gradient(180deg,#ccc,#aaa);color:#777;cursor:not-allowed;box-shadow:0 5px 0 #888}
+
+/* Alert */
+.alert{padding:10px 14px;border-radius:12px;font-size:14px;font-weight:700;margin-bottom:14px;display:none}
+.alert.ok{background:#d4f0bc;border:2px solid var(--ok);color:var(--ok-dark)}
+.alert.err{background:#fde0dc;border:2px solid var(--no);color:var(--no-dark)}
+
+/* Decorative coin */
+.coin-strip{display:flex;justify-content:center;gap:6px;margin-top:18px}
+.coin{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffe585,var(--gold),var(--gold-dark));
+  border:2px solid var(--wood);box-shadow:0 2px 4px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.5);
+  display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--wood-dark)}
+.panel[hidden]{display:none}
+</style>
+</head>
+<body>
+
+<!-- Animated background -->
+<div class="bg-town">
+  <div class="bg-sky"></div>
+  <!-- Clouds -->
+  <div class="cloud" style="width:90px;height:28px;top:8%;animation-duration:30s;animation-delay:-8s"></div>
+  <div class="cloud" style="width:130px;height:38px;top:15%;animation-duration:45s;animation-delay:-22s"></div>
+  <div class="cloud" style="width:70px;height:22px;top:5%;animation-duration:35s;animation-delay:-15s"></div>
+
+  <!-- Buildings (pixel art style) -->
+  <div class="bld" style="left:4%;width:90px">
+    <div class="bld-roof"><svg viewBox="0 0 102 40" xmlns="http://www.w3.org/2000/svg"><polygon points="51,2 102,40 0,40" fill="#c97a50" stroke="#7a4a24" stroke-width="3"/></svg></div>
+    <div class="bld-body" style="height:90px;background:#e8d8b8;border:3px solid #7a4a24;position:relative">
+      <div class="bld-win" style="width:20px;height:22px;left:8px;top:10px"></div>
+      <div class="bld-win" style="width:20px;height:22px;right:8px;top:10px"></div>
+      <div class="bld-win" style="width:20px;height:22px;left:8px;top:42px"></div>
+      <div class="bld-win" style="width:20px;height:22px;right:8px;top:42px"></div>
+      <div class="bld-sign">TIỆM BÁNH</div>
+    </div>
+  </div>
+  <div class="bld" style="left:14%;width:120px">
+    <div class="bld-roof"><svg viewBox="0 0 132 44" xmlns="http://www.w3.org/2000/svg"><polygon points="66,2 132,44 0,44" fill="#7a9c5a" stroke="#3d5a26" stroke-width="3"/></svg></div>
+    <div class="bld-body" style="height:110px;background:#d8f0c8;border:3px solid #4a8a3a;position:relative">
+      <div class="bld-win" style="width:24px;height:26px;left:10px;top:12px"></div>
+      <div class="bld-win" style="width:24px;height:26px;right:10px;top:12px"></div>
+      <div class="bld-win" style="width:24px;height:26px;left:10px;top:50px"></div>
+      <div class="bld-win" style="width:24px;height:26px;right:10px;top:50px"></div>
+      <div class="bld-sign">TẠP HÓA</div>
+    </div>
+  </div>
+  <div class="bld" style="right:14%;width:110px">
+    <div class="bld-roof"><svg viewBox="0 0 122 42" xmlns="http://www.w3.org/2000/svg"><polygon points="61,2 122,42 0,42" fill="#9c7ac9" stroke="#5a3a8a" stroke-width="3"/></svg></div>
+    <div class="bld-body" style="height:100px;background:#e0d4f8;border:3px solid #7a5ac9;position:relative">
+      <div class="bld-win" style="width:22px;height:24px;left:10px;top:10px"></div>
+      <div class="bld-win" style="width:22px;height:24px;right:10px;top:10px"></div>
+      <div class="bld-win" style="width:22px;height:24px;left:10px;top:44px"></div>
+      <div class="bld-win" style="width:22px;height:24px;right:10px;top:44px"></div>
+      <div class="bld-sign">THỜI TRANG</div>
+    </div>
+  </div>
+  <div class="bld" style="right:3%;width:95px">
+    <div class="bld-roof"><svg viewBox="0 0 107 40" xmlns="http://www.w3.org/2000/svg"><polygon points="53,2 107,40 0,40" fill="#c97a7a" stroke="#8a3a3a" stroke-width="3"/></svg></div>
+    <div class="bld-body" style="height:85px;background:#f8d8d8;border:3px solid #c97a7a;position:relative">
+      <div class="bld-win" style="width:20px;height:22px;left:8px;top:10px"></div>
+      <div class="bld-win" style="width:20px;height:22px;right:8px;top:10px"></div>
+      <div class="bld-sign">TIỆM TRÀ</div>
+    </div>
+  </div>
+
+  <div class="bg-road"></div>
+  <div class="bg-ground"></div>
+
+  <!-- Walking NPCs -->
+  <div class="npc-wrap" style="animation-duration:12s;animation-delay:-3s;bottom:25%"><div class="npc">🚶</div></div>
+  <div class="npc-wrap" style="animation-duration:9s;animation-delay:-6s;bottom:26%"><div class="npc">🧍</div></div>
+  <div class="npc-wrap" style="animation-duration:15s;animation-delay:-10s;bottom:24%"><div class="npc">🛍️</div></div>
+</div>
+
+<!-- Login/Register Card -->
+<div class="card" role="main">
+  <div class="logo-wrap">
+    <span class="logo-icon">🏙️</span>
+    <div class="logo-title">STARTUP STREET</div>
+    <div class="logo-sub">Xây dựng đế chế kinh doanh của bạn</div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab-btn active" id="tab-login-btn" role="tab" aria-selected="true" aria-controls="panel-login" onclick="switchTab('login')">🔑 Đăng nhập</button>
+    <button class="tab-btn" id="tab-register-btn" role="tab" aria-selected="false" aria-controls="panel-register" onclick="switchTab('register')">✨ Đăng ký</button>
+  </div>
+
+  <div id="main-alert" class="alert" role="alert"></div>
+
+  <!-- LOGIN PANEL -->
+  <div id="panel-login" role="tabpanel">
+    <div class="form-group">
+      <label class="fl" for="login-user">Tên đăng nhập / Email</label>
+      <div class="input-wrap">
+        <span class="ico">👤</span>
+        <input type="text" id="login-user" placeholder="Nhập username hoặc email" autocomplete="username">
+      </div>
+      <div class="err-msg" id="login-user-err"></div>
+    </div>
+    <div class="form-group">
+      <label class="fl" for="login-pass">Mật khẩu</label>
+      <div class="input-wrap">
+        <span class="ico">🔒</span>
+        <input type="password" id="login-pass" placeholder="Mật khẩu của bạn" autocomplete="current-password">
+      </div>
+      <div class="err-msg" id="login-pass-err"></div>
+    </div>
+    <button class="btn-primary" id="btn-login" onclick="doLogin()">🚀 Vào game ngay!</button>
+  </div>
+
+  <!-- REGISTER PANEL -->
+  <div id="panel-register" hidden role="tabpanel">
+    <div class="form-group">
+      <label class="fl" for="reg-username">Tên người dùng</label>
+      <div class="input-wrap">
+        <span class="ico">🏷️</span>
+        <input type="text" id="reg-username" placeholder="Chỉ chữ cái, số, dấu _" maxlength="32" autocomplete="username">
+      </div>
+      <div class="err-msg" id="reg-username-err"></div>
+    </div>
+    <div class="form-group">
+      <label class="fl" for="reg-email">Email</label>
+      <div class="input-wrap">
+        <span class="ico">📧</span>
+        <input type="email" id="reg-email" placeholder="email@example.com" autocomplete="email">
+      </div>
+      <div class="err-msg" id="reg-email-err"></div>
+    </div>
+    <div class="form-group">
+      <label class="fl" for="reg-pass">Mật khẩu <small style="font-weight:600;color:var(--ink-light)">(tối thiểu 6 ký tự)</small></label>
+      <div class="input-wrap">
+        <span class="ico">🔒</span>
+        <input type="password" id="reg-pass" placeholder="Tạo mật khẩu mạnh" autocomplete="new-password">
+      </div>
+      <div class="err-msg" id="reg-pass-err"></div>
+    </div>
+    <button class="btn-primary" id="btn-register" onclick="doRegister()">🎉 Tạo tài khoản & Bắt đầu!</button>
+  </div>
+
+  <div class="coin-strip">
+    <div class="coin">💰</div><div class="coin">🏪</div><div class="coin">💰</div>
+    <small style="color:var(--ink-light);font-weight:600;font-size:12px;align-self:center">Vốn ban đầu: 1,000,000,000đ</small>
+    <div class="coin">💰</div><div class="coin">🏪</div><div class="coin">💰</div>
+  </div>
+</div>
+
+<script>
+const API = 'api/auth/';
+
+function switchTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('panel-login').hidden    = !isLogin;
+  document.getElementById('panel-register').hidden =  isLogin;
+  document.getElementById('tab-login-btn').classList.toggle('active', isLogin);
+  document.getElementById('tab-register-btn').classList.toggle('active', !isLogin);
+  hideAlert();
+  clearErrors();
+}
+
+function showAlert(msg, type) {
+  const el = document.getElementById('main-alert');
+  el.textContent = msg;
+  el.className = 'alert ' + type;
+  el.style.display = 'block';
+}
+function hideAlert() {
+  document.getElementById('main-alert').style.display = 'none';
+}
+function setErr(id, msg) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = msg;
+  if (msg) document.getElementById(id.replace('-err',''))?.classList.add('err');
+  else document.getElementById(id.replace('-err',''))?.classList.remove('err');
+}
+function clearErrors() {
+  document.querySelectorAll('.err-msg').forEach(e => e.textContent = '');
+  document.querySelectorAll('input.err').forEach(e => e.classList.remove('err'));
+}
+
+async function doLogin() {
+  clearErrors(); hideAlert();
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  let ok = true;
+  if (!user) { setErr('login-user-err', 'Vui lòng nhập tên đăng nhập.'); ok = false; }
+  if (!pass) { setErr('login-pass-err', 'Vui lòng nhập mật khẩu.'); ok = false; }
+  if (!ok) return;
+
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = '⏳ Đang đăng nhập...';
+
+  try {
+    const res = await fetch(API + 'login.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username_or_email: user, password: pass })
+    }).then(r => r.json());
+
+    if (!res.success) {
+      showAlert('❌ ' + res.message, 'err');
+    } else {
+      showAlert('✅ Đăng nhập thành công! Đang vào game...', 'ok');
+      setTimeout(() => { window.location.href = 'map.php'; }, 900);
+    }
+  } catch {
+    showAlert('❌ Không kết nối được server. Vui lòng thử lại.', 'err');
+  }
+  btn.disabled = false; btn.textContent = '🚀 Vào game ngay!';
+}
+
+async function doRegister() {
+  clearErrors(); hideAlert();
+  const username = document.getElementById('reg-username').value.trim();
+  const email    = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-pass').value;
+  let ok = true;
+
+  if (username.length < 3) { setErr('reg-username-err', 'Tên người dùng phải từ 3 ký tự.'); ok = false; }
+  else if (!/^[a-zA-Z0-9_]+$/.test(username)) { setErr('reg-username-err', 'Chỉ chữ cái, số và _'); ok = false; }
+  if (!email.includes('@')) { setErr('reg-email-err', 'Email không hợp lệ.'); ok = false; }
+  if (password.length < 6) { setErr('reg-pass-err', 'Mật khẩu phải ít nhất 6 ký tự.'); ok = false; }
+  if (!ok) return;
+
+  const btn = document.getElementById('btn-register');
+  btn.disabled = true; btn.textContent = '⏳ Đang tạo tài khoản...';
+
+  try {
+    const res = await fetch(API + 'register.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password })
+    }).then(r => r.json());
+
+    if (!res.success) {
+      showAlert('❌ ' + res.message, 'err');
+    } else {
+      showAlert('🎉 ' + res.message, 'ok');
+      setTimeout(() => { window.location.href = 'map.php'; }, 1200);
+    }
+  } catch {
+    showAlert('❌ Không kết nối được server. Vui lòng thử lại.', 'err');
+  }
+  btn.disabled = false; btn.textContent = '🎉 Tạo tài khoản & Bắt đầu!';
+}
+
+// Enter key support
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (!document.getElementById('panel-login').hidden) doLogin();
+  else doRegister();
+});
+
+// Check if already logged in
+fetch(API + 'me.php').then(r => r.json()).then(d => {
+  if (d.success) window.location.href = 'map.php';
+}).catch(() => {});
+</script>
+</body>
+</html>

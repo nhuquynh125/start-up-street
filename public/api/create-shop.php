@@ -7,7 +7,7 @@ require_once dirname(__DIR__, 2) . '/lib/shop_helpers.php';
 
 requireMethod('POST');
 
-// ── Bảng thuê mặt bằng của Thành viên 2. Nếu tên bảng/cột khác thì chỉ sửa 3 dòng này ──
+// ── Bảng thuê mặt bằng. Nếu tên bảng/cột khác thì chỉ sửa 3 dòng này ──
 const RENTALS_TABLE        = 'rentals';
 const RENTALS_PROPERTY_COL = 'property_id';
 const RENTALS_USER_COL     = 'user_id';

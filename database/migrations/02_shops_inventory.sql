@@ -1,5 +1,5 @@
 -- ====================================================
--- STARTUP STREET — Thành viên 3: Cửa hàng & Kho hàng
+-- STARTUP STREET — Cửa hàng & Kho hàng
 -- Chạy được nhiều lần (idempotent): bảng đã có thì giữ nguyên, dữ liệu mẫu chỉ thêm nếu chưa có.
 -- ====================================================
 

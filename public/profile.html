@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hồ sơ cá nhân — Startup Street</title>
+<meta name="description" content="Quản lý hồ sơ, tùy chỉnh avatar và theo dõi chi tiêu cá nhân trong Startup Street.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --wood-dark:#3d1f0a;--wood:#7a4a24;--wood-light:#b07040;
+  --paper:#fdf5e4;--paper-dark:#ede0c4;--cream:#fff9ee;
+  --sky:#c9e9f6;--leaf:#4a8a3a;
+  --ok:#5aa83a;--ok-dark:#3d7a26;--no:#c94040;--no-dark:#932828;
+  --gold:#f0b832;--gold-dark:#c8922a;
+  --ink:#2a1800;--ink-mid:#5a3c1a;--ink-light:#8a6040;
+  --purple:#7a5ac9;--purple-dark:#4a2a8a;
+  --blue:#5a8dd9;--blue-dark:#2a5aa8;
+  --radius:14px;--font:'Baloo 2',Nunito,system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;font-family:var(--font);background:#d9eed0;color:var(--ink)}
+button,input,select{font-family:inherit;cursor:pointer}
+
+/* HUD */
+.hud{position:fixed;top:0;left:0;right:0;height:54px;background:var(--paper);
+  border-bottom:4px solid var(--wood);z-index:50;
+  display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:10px}
+.hud-logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:17px;color:var(--wood-dark)}
+.hud-logo span{font-size:22px}
+.hud-actions{display:flex;gap:8px;align-items:center}
+.hud-balance{background:var(--cream);border:3px solid var(--gold-dark);border-radius:12px;
+  padding:4px 12px;font-weight:800;font-size:14px;color:var(--wood-dark)}
+.btn-back,.btn-logout{border:3px solid var(--wood-dark);border-radius:12px;padding:5px 14px;
+  font-weight:800;font-size:14px;background:var(--wood);color:#fff;
+  box-shadow:0 3px 0 var(--wood-dark);transition:transform .1s,box-shadow .1s}
+.btn-back:hover{background:var(--wood-light)}
+.btn-logout{background:var(--no);border-color:var(--no-dark);box-shadow:0 3px 0 var(--no-dark)}
+.btn-back:active,.btn-logout:active{transform:translateY(2px);box-shadow:none}
+
+/* Layout */
+.page{margin-top:54px;padding:20px;max-width:1100px;margin-left:auto;margin-right:auto}
+.section-title{font-size:20px;font-weight:800;color:var(--wood-dark);
+  display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.section-title::after{content:'';flex:1;height:3px;background:var(--paper-dark);border-radius:2px}
+
+/* Cards */
+.card{background:var(--paper);border:4px solid var(--wood);border-radius:18px;
+  padding:20px;box-shadow:0 5px 0 var(--wood-dark),0 12px 24px rgba(0,0,0,.1)}
+.card+.card{margin-top:18px}
+
+/* Profile header */
+.profile-header{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.avatar-stage{flex-shrink:0;text-align:center}
+.avatar-canvas{width:120px;height:160px;border:4px solid var(--wood);border-radius:14px;
+  background:linear-gradient(180deg,#d4eef8 0%,#c8e8c8 60%,#a8d098 100%);
+  position:relative;overflow:hidden;margin-bottom:8px}
+.profile-info{flex:1;min-width:200px}
+.profile-name{font-size:24px;font-weight:800;color:var(--wood-dark)}
+.profile-since{font-size:13px;color:var(--ink-light);margin-top:2px}
+.balance-big{background:linear-gradient(135deg,#ffe080,#f0b832);border:4px solid var(--gold-dark);
+  border-radius:14px;padding:12px 18px;margin-top:12px;display:inline-block}
+.balance-label{font-size:12px;font-weight:700;color:var(--wood-dark);opacity:.8}
+.balance-amount{font-size:28px;font-weight:800;color:var(--wood-dark);line-height:1}
+
+/* Tabs nav */
+.tab-nav{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.tab-nav-btn{border:3px solid var(--wood);border-radius:12px;padding:7px 16px;
+  font-weight:700;font-size:14px;background:var(--paper-dark);color:var(--ink-mid);
+  box-shadow:0 3px 0 var(--wood);transition:all .15s}
+.tab-nav-btn.active{background:var(--wood);color:#fff;border-color:var(--wood-dark)}
+.tab-nav-btn:hover:not(.active){background:var(--cream)}
+.tab-pane{display:none}.tab-pane.active{display:block}
+
+/* Avatar customizer */
+.avatar-cols{display:grid;grid-template-columns:200px 1fr;gap:16px}
+.ava-preview{position:sticky;top:74px;text-align:center}
+.ava-preview-box{width:180px;height:240px;border:5px solid var(--wood);border-radius:18px;
+  background:linear-gradient(180deg,#d4eef8 0%,#c8e8c8 60%,#a8d098 100%);
+  margin:0 auto 10px;position:relative;overflow:hidden;box-shadow:0 6px 0 var(--wood-dark)}
+.ava-label{font-weight:700;font-size:14px;color:var(--ink-mid)}
+.age-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.age-btn{border:3px solid var(--paper-dark);border-radius:10px;padding:7px 8px;
+  background:var(--cream);font-size:12px;font-weight:700;color:var(--ink-mid);
+  display:flex;align-items:center;gap:6px;transition:all .15s}
+.age-btn.sel{background:#ffe08a;border-color:var(--gold-dark);color:var(--wood-dark)}
+.ava-section{margin-bottom:14px}
+.ava-section h4{font-size:13px;font-weight:800;color:var(--ink-mid);margin-bottom:6px}
+.swatch-row{display:flex;gap:6px;flex-wrap:wrap}
+.swatch{width:36px;height:36px;border-radius:10px;border:3px solid var(--paper-dark);
+  cursor:pointer;transition:transform .12s,border-color .12s}
+.swatch:hover{transform:scale(1.12)}
+.swatch.sel{border-color:var(--gold-dark);box-shadow:0 0 0 3px rgba(240,184,50,.5)}
+.style-btn{min-width:44px;height:44px;border:3px solid var(--paper-dark);border-radius:10px;
+  background:var(--cream);font-size:20px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .12s}
+.style-btn.sel{background:#ffe08a;border-color:var(--gold-dark)}
+.style-btn:hover{transform:scale(1.1)}
+
+/* Outfit picker */
+.outfit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.outfit-card{border:3px solid var(--paper-dark);border-radius:10px;padding:6px;
+  background:var(--cream);text-align:center;cursor:pointer;transition:all .12s;font-size:11px;font-weight:700}
+.outfit-card .oc-icon{font-size:28px;display:block;margin-bottom:2px}
+.outfit-card.sel{background:#ffe08a;border-color:var(--gold-dark)}
+.outfit-card:hover{transform:scale(1.05)}
+
+/* Color picker strip */
+.color-strip{display:flex;gap:5px}
+.color-swatch{width:30px;height:30px;border-radius:8px;border:3px solid var(--paper-dark);
+  cursor:pointer;transition:transform .12s}
+.color-swatch.sel{border-color:var(--gold-dark);box-shadow:0 0 0 3px rgba(240,184,50,.5)}
+
+/* Save btn */
+.btn-save{background:linear-gradient(180deg,var(--gold),var(--gold-dark));
+  border:3px solid var(--wood-dark);border-radius:14px;padding:10px 28px;
+  font-weight:800;font-size:16px;color:var(--wood-dark);box-shadow:0 4px 0 var(--wood-dark);
+  width:100%;margin-top:14px;transition:transform .1s,box-shadow .1s}
+.btn-save:active{transform:translateY(3px);box-shadow:0 1px 0 var(--wood-dark)}
+.btn-save:disabled{background:linear-gradient(#ccc,#aaa);color:#777;cursor:not-allowed}
+
+/* Expense tracker */
+.exp-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.exp-form .full{grid-column:1/-1}
+.form-label{display:block;font-weight:700;font-size:13px;color:var(--ink-mid);margin-bottom:4px}
+.form-input,.form-select{width:100%;padding:9px 12px;border:3px solid var(--paper-dark);border-radius:10px;
+  background:var(--cream);font-size:14px;font-weight:600;color:var(--ink);outline:none;transition:border-color .15s}
+.form-input:focus,.form-select:focus{border-color:var(--wood-light)}
+.btn-add-exp{background:var(--ok);border:3px solid var(--ok-dark);border-radius:12px;
+  padding:10px 22px;font-weight:800;font-size:15px;color:#fff;box-shadow:0 3px 0 var(--ok-dark)}
+.btn-add-exp:active{transform:translateY(2px);box-shadow:none}
+
+.exp-month-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.exp-month-nav span{font-weight:800;font-size:16px;color:var(--wood-dark);flex:1;text-align:center}
+.btn-month{border:3px solid var(--wood);border-radius:10px;padding:5px 12px;background:var(--paper-dark);font-weight:800}
+.btn-month:hover{background:var(--wood);color:#fff}
+.exp-summary{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:18px}
+.exp-cat-card{background:var(--cream);border:3px solid var(--paper-dark);border-radius:12px;padding:10px;text-align:center}
+.exp-cat-icon{font-size:24px;display:block}
+.exp-cat-name{font-size:11px;font-weight:700;color:var(--ink-mid);margin-top:2px}
+.exp-cat-amount{font-size:14px;font-weight:800;color:var(--no-dark)}
+.exp-chart-wrap{height:220px;margin-bottom:18px}
+.exp-list{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;padding-right:4px}
+.exp-item{display:flex;align-items:center;gap:10px;background:var(--cream);
+  border:3px solid var(--paper-dark);border-radius:12px;padding:8px 12px}
+.exp-item-icon{font-size:22px;flex-shrink:0}
+.exp-item-info{flex:1}
+.exp-item-desc{font-weight:700;font-size:14px;color:var(--ink)}
+.exp-item-meta{font-size:12px;color:var(--ink-light);font-weight:600}
+.exp-item-amt{font-weight:800;font-size:15px;color:var(--no-dark);flex-shrink:0}
+.btn-del{border:2px solid var(--no);border-radius:8px;padding:3px 8px;background:#fdeaea;color:var(--no-dark);font-size:13px;font-weight:700}
+.btn-del:hover{background:var(--no);color:#fff}
+.empty-exp{text-align:center;padding:30px;color:var(--ink-light);font-weight:700;font-size:15px}
+
+/* Toast */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--wood-dark);color:var(--cream);padding:10px 22px;border-radius:16px;
+  border:3px solid var(--wood-light);font-weight:800;font-size:15px;z-index:999;
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none}
+#toast.show{transform:translateX(-50%) translateY(0)}
+
+/* Theme selector */
+.theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.theme-card{border:3px solid var(--paper-dark);border-radius:12px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .15s}
+.theme-card.sel{border-color:var(--gold-dark);background:#ffe08a}
+.theme-card:hover{transform:scale(1.04)}
+.theme-card .theme-preview{height:30px;border-radius:8px;margin-bottom:4px}
+.theme-card span{font-size:11px;font-weight:700;color:var(--ink-mid)}
+
+@media(max-width:640px){.avatar-cols{grid-template-columns:1fr}.ava-preview{position:static}.exp-form{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- HUD -->
+<header class="hud">
+  <div class="hud-logo"><span>🏙️</span>STARTUP STREET</div>
+  <div class="hud-actions">
+    <div class="hud-balance">💰 <span id="hud-balance">…</span></div>
+    <button class="btn-back" onclick="location.href='map.php'">🗺️ Bản đồ</button>
+    <button class="btn-logout" onclick="doLogout()">🚪 Đăng xuất</button>
+  </div>
+</header>
+
+<main class="page">
+
+  <!-- Profile Header Card -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="profile-header">
+      <div class="avatar-stage">
+        <div class="avatar-canvas" id="hdr-avatar">
+          <svg id="hdr-avatar-svg" width="120" height="160" viewBox="0 0 120 160"></svg>
+        </div>
+        <div style="font-size:12px;color:var(--ink-light);font-weight:700">Avatar</div>
+      </div>
+      <div class="profile-info">
+        <div class="profile-name" id="prof-displayname">Đang tải…</div>
+        <div class="profile-since">👤 <span id="prof-username"></span> · Tham gia <span id="prof-since"></span></div>
+        <div class="balance-big">
+          <div class="balance-label">💰 Số dư ví hiện tại</div>
+          <div class="balance-amount" id="prof-balance">…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Nav -->
+  <div class="tab-nav">
+    <button class="tab-nav-btn active" onclick="showTab('tab-avatar')">🎭 Tùy chỉnh Avatar</button>
+    <button class="tab-nav-btn" onclick="showTab('tab-account')">⚙️ Tài khoản</button>
+    <button class="tab-nav-btn" onclick="showTab('tab-expenses')">📊 Quản lý Chi tiêu</button>
+  </div>
+
+  <!-- ═══ TAB AVATAR ═══ -->
+  <div id="tab-avatar" class="tab-pane active">
+    <div class="card">
+      <div class="section-title">🎭 Tùy chỉnh nhân vật</div>
+      <div class="avatar-cols">
+
+        <!-- Left: Big preview -->
+        <div class="ava-preview">
+          <div class="ava-preview-box">
+            <svg id="ava-svg" width="180" height="240" viewBox="0 0 180 240"></svg>
+          </div>
+          <div class="ava-label">Xem trước nhân vật</div>
+          <button class="btn-save" id="btn-save-avatar" onclick="saveAvatar()">💾 Lưu Avatar</button>
+        </div>
+
+        <!-- Right: Controls -->
+        <div>
+          <!-- Age group -->
+          <div class="ava-section">
+            <h4>👥 Nhóm tuổi</h4>
+            <div class="age-grid" id="age-grid">
+              <button class="age-btn" data-age="teen">🧒 Thiếu niên<br><small>12–18</small></button>
+              <button class="age-btn" data-age="young">🧑 Thanh niên<br><small>18–25</small></button>
+              <button class="age-btn sel" data-age="adult">👨 Người lớn<br><small>25–35</small></button>
+              <button class="age-btn" data-age="middle">🧔 Trung niên<br><small>35–50</small></button>
+              <button class="age-btn" data-age="senior">👴 Cao tuổi<br><small>50+</small></button>
+              <button class="age-btn" data-age="elder">🧓 Người cao tuổi<br><small>65+</small></button>
+            </div>
+          </div>
+
+          <!-- Skin tone -->
+          <div class="ava-section">
+            <h4>🎨 Màu da</h4>
+            <div class="swatch-row" id="skin-swatches"></div>
+          </div>
+
+          <!-- Hair style -->
+          <div class="ava-section">
+            <h4>💇 Kiểu tóc</h4>
+            <div class="swatch-row" id="hair-style-btns"></div>
+          </div>
+
+          <!-- Hair color -->
+          <div class="ava-section">
+            <h4>🖌️ Màu tóc</h4>
+            <div class="swatch-row" id="hair-color-swatches"></div>
+          </div>
+
+          <!-- Eye style -->
+          <div class="ava-section">
+            <h4>👁️ Kiểu mắt</h4>
+            <div class="swatch-row" id="eye-style-btns"></div>
+          </div>
+
+          <!-- Outfit -->
+          <div class="ava-section">
+            <h4>👗 Trang phục</h4>
+            <div class="outfit-grid" id="outfit-grid"></div>
+          </div>
+
+          <!-- Outfit color -->
+          <div class="ava-section">
+            <h4>🎨 Màu trang phục</h4>
+            <div class="color-strip" id="outfit-colors"></div>
+          </div>
+
+          <!-- Accessories -->
+          <div class="ava-section">
+            <h4>🎩 Phụ kiện</h4>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--ink-light);margin-bottom:4px">Mũ</div>
+                <div class="swatch-row" id="hat-btns"></div>
+              </div>
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--ink-light);margin-bottom:4px">Kính</div>
+                <div class="swatch-row" id="glasses-btns"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB ACCOUNT ═══ -->
+  <div id="tab-account" class="tab-pane">
+    <div class="card">
+      <div class="section-title">⚙️ Thông tin tài khoản</div>
+      <div style="display:grid;gap:14px;max-width:480px">
+        <div>
+          <label class="form-label" for="acc-displayname">Tên hiển thị</label>
+          <input type="text" id="acc-displayname" class="form-input" maxlength="50" placeholder="Tên hiển thị của bạn">
+        </div>
+        <div>
+          <div class="form-label">Giao diện màu sắc</div>
+          <div class="theme-grid" id="theme-grid">
+            <div class="theme-card sel" data-theme="warm" onclick="selectTheme('warm')">
+              <div class="theme-preview" style="background:linear-gradient(135deg,#f0b832,#c97a50)"></div>
+              <span>☀️ Ấm áp</span>
+            </div>
+            <div class="theme-card" data-theme="cool" onclick="selectTheme('cool')">
+              <div class="theme-preview" style="background:linear-gradient(135deg,#5a8dd9,#3a6ab0)"></div>
+              <span>❄️ Mát mẻ</span>
+            </div>
+            <div class="theme-card" data-theme="forest" onclick="selectTheme('forest')">
+              <div class="theme-preview" style="background:linear-gradient(135deg,#4a8a3a,#2a5a1a)"></div>
+              <span>🌿 Rừng xanh</span>
+            </div>
+            <div class="theme-card" data-theme="night" onclick="selectTheme('night')">
+              <div class="theme-preview" style="background:linear-gradient(135deg,#2a2a4a,#1a1a2a)"></div>
+              <span>🌙 Đêm tối</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn-save" onclick="saveAccount()" style="max-width:220px">💾 Lưu thay đổi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB EXPENSES ═══ -->
+  <div id="tab-expenses" class="tab-pane">
+    <div class="card">
+      <div class="section-title">📊 Quản lý Chi tiêu Cá nhân</div>
+
+      <!-- Add expense form -->
+      <div style="background:var(--cream);border:3px solid var(--paper-dark);border-radius:14px;padding:16px;margin-bottom:20px">
+        <div style="font-weight:800;font-size:15px;color:var(--wood-dark);margin-bottom:12px">➕ Thêm khoản chi tiêu mới</div>
+        <div class="exp-form">
+          <div>
+            <label class="form-label" for="exp-cat">Danh mục</label>
+            <select id="exp-cat" class="form-select">
+              <option value="food">🍜 Ăn uống</option>
+              <option value="transport">🚗 Đi lại</option>
+              <option value="entertainment">🎮 Giải trí</option>
+              <option value="shopping">🛍️ Mua sắm</option>
+              <option value="utilities">⚡ Điện nước</option>
+              <option value="health">💊 Sức khỏe</option>
+              <option value="education">📚 Giáo dục</option>
+              <option value="other">📦 Khác</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" for="exp-amount">Số tiền (đ)</label>
+            <input type="number" id="exp-amount" class="form-input" placeholder="VD: 50000" min="1">
+          </div>
+          <div>
+            <label class="form-label" for="exp-date">Ngày</label>
+            <input type="date" id="exp-date" class="form-input">
+          </div>
+          <div>
+            <label class="form-label" for="exp-desc">Mô tả</label>
+            <input type="text" id="exp-desc" class="form-input" placeholder="VD: Cà phê sáng" maxlength="100">
+          </div>
+          <div class="full">
+            <button class="btn-add-exp" onclick="addExpense()">➕ Thêm chi tiêu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Month navigation -->
+      <div class="exp-month-nav">
+        <button class="btn-month" onclick="changeMonth(-1)">◀</button>
+        <span id="month-label">Tháng …</span>
+        <button class="btn-month" onclick="changeMonth(1)">▶</button>
+      </div>
+
+      <!-- Category summary cards -->
+      <div class="exp-summary" id="exp-summary"></div>
+
+      <!-- Chart -->
+      <div class="exp-chart-wrap">
+        <canvas id="exp-chart"></canvas>
+      </div>
+
+      <!-- Total -->
+      <div style="text-align:right;font-weight:800;font-size:18px;color:var(--no-dark);margin-bottom:14px">
+        Tổng tháng này: <span id="exp-total">0đ</span>
+      </div>
+
+      <!-- List -->
+      <div class="exp-list" id="exp-list">
+        <div class="empty-exp">📭 Chưa có khoản chi tiêu nào. Hãy thêm khoản đầu tiên!</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+// ────── Config ──────
+const API      = 'api/auth/';
+const CAT_INFO = {
+  food:          { icon:'🍜', name:'Ăn uống',    color:'#e76f51' },
+  transport:     { icon:'🚗', name:'Đi lại',     color:'#5a8dd9' },
+  entertainment: { icon:'🎮', name:'Giải trí',   color:'#9c7ac9' },
+  shopping:      { icon:'🛍️', name:'Mua sắm',    color:'#f0b832' },
+  utilities:     { icon:'⚡', name:'Điện nước',  color:'#4a8a3a' },
+  health:        { icon:'💊', name:'Sức khỏe',   color:'#c94040' },
+  education:     { icon:'📚', name:'Giáo dục',   color:'#3a6ab0' },
+  other:         { icon:'📦', name:'Khác',        color:'#8a6040' },
+};
+const SKIN_TONES   = ['#ffd6a5','#e8b88a','#c68a5e','#8d5a3b','#5a3018'];
+const HAIR_COLORS  = ['#2b1b12','#5b3a1e','#c0860c','#d4c075','#f0f0f0','#c87878'];
+const HAIR_STYLES  = ['👱','🧑','👩','🧔','💇','🪮'];
+const EYE_STYLES   = ['😊','👀','🙂','😎'];
+const OUTFITS      = [
+  {icon:'👔',label:'Sơ mi'},
+  {icon:'👗',label:'Váy đầm'},
+  {icon:'🧥',label:'Áo khoác'},
+  {icon:'👕',label:'Áo thun'},
+  {icon:'🥻',label:'Truyền thống'},
+  {icon:'🩱',label:'Thể thao'},
+];
+const OUTFIT_COLORS= ['#5b8dd9','#e76f51','#4a8a3a','#9c7ac9','#f0b832','#c94040','#fff','#2a1800'];
+const HATS         = ['⬜','🧢','👒','🎩'];
+const GLASSES      = ['⬜','🕶️','👓'];
+
+// ────── State ──────
+let profile = {};
+let expMonth = new Date().toISOString().slice(0,7);
+let expChart = null;
+
+// ────── Init ──────
+(async () => {
+  try {
+    const res = await fetch(API + 'me.php').then(r => r.json());
+    if (!res.success) { location.href = 'login.html'; return; }
+    const d = res.data;
+    profile = { ...d.profile };
+
+    document.getElementById('hud-balance').textContent = fmt(d.balance);
+    document.getElementById('prof-balance').textContent = fmt(d.balance);
+    document.getElementById('prof-displayname').textContent = d.profile.display_name || d.username;
+    document.getElementById('prof-username').textContent = '@' + d.username;
+    document.getElementById('prof-since').textContent = new Date(d.created_at).toLocaleDateString('vi-VN');
+    document.getElementById('acc-displayname').value = d.profile.display_name || '';
+
+    buildAvatarUI();
+    renderAvatar('ava-svg', profile, 180, 240);
+    renderAvatar('hdr-avatar-svg', profile, 120, 160);
+    loadExpenses();
+  } catch { location.href = 'login.html'; }
+})();
+
+function fmt(n) { return Number(n).toLocaleString('vi-VN') + 'đ'; }
+
+// ────── Tabs ──────
+function showTab(id) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tab-nav-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['tab-avatar','tab-account','tab-expenses'][i] === id);
+  });
+}
+
+// ────── Avatar Builder ──────
+function buildAvatarUI() {
+  // Skin
+  const skinWrap = document.getElementById('skin-swatches');
+  SKIN_TONES.forEach((c,i) => {
+    const b = el('div','swatch' + (i===profile.avatar_skin_tone?' sel':''));
+    b.style.background = c; b.title = 'Tông da '+(i+1);
+    b.onclick = () => { profile.avatar_skin_tone = i; pick('skin-swatches',i); redraw(); };
+    skinWrap.appendChild(b);
+  });
+  // Hair style
+  const hairStyleWrap = document.getElementById('hair-style-btns');
+  HAIR_STYLES.forEach((h,i) => {
+    const b = el('button','style-btn' + (i===profile.avatar_hair_style?' sel':''));
+    b.textContent = h;
+    b.onclick = () => { profile.avatar_hair_style = i; pickBtn('hair-style-btns',i); redraw(); };
+    hairStyleWrap.appendChild(b);
+  });
+  // Hair color
+  const hairColorWrap = document.getElementById('hair-color-swatches');
+  HAIR_COLORS.forEach((c,i) => {
+    const b = el('div','swatch' + (i===profile.avatar_hair_color?' sel':''));
+    b.style.background = c; b.style.border = i===4?'3px solid #ccc':undefined;
+    b.onclick = () => { profile.avatar_hair_color = i; pick('hair-color-swatches',i); redraw(); };
+    hairColorWrap.appendChild(b);
+  });
+  // Eye style
+  const eyeWrap = document.getElementById('eye-style-btns');
+  EYE_STYLES.forEach((e,i) => {
+    const b = el('button','style-btn' + (i===profile.avatar_eye_style?' sel':''));
+    b.textContent = e;
+    b.onclick = () => { profile.avatar_eye_style = i; pickBtn('eye-style-btns',i); redraw(); };
+    eyeWrap.appendChild(b);
+  });
+  // Outfit
+  const outfitWrap = document.getElementById('outfit-grid');
+  OUTFITS.forEach((o,i) => {
+    const b = el('div','outfit-card' + (i===profile.avatar_outfit?' sel':''));
+    b.innerHTML = `<span class="oc-icon">${o.icon}</span>${o.label}`;
+    b.onclick = () => { profile.avatar_outfit = i; pickCard('outfit-grid',i); redraw(); };
+    outfitWrap.appendChild(b);
+  });
+  // Outfit color
+  const outfitColorWrap = document.getElementById('outfit-colors');
+  OUTFIT_COLORS.forEach((c,i) => {
+    const b = el('div','color-swatch' + (c===profile.avatar_outfit_color?' sel':''));
+    b.style.background = c; if(c==='#fff') b.style.border='3px solid #ccc';
+    b.onclick = () => { profile.avatar_outfit_color = c; pickColor('outfit-colors',c); redraw(); };
+    outfitColorWrap.appendChild(b);
+  });
+  // Hats
+  const hatWrap = document.getElementById('hat-btns');
+  HATS.forEach((h,i) => {
+    const b = el('button','style-btn' + (i===profile.avatar_hat?' sel':''));
+    b.textContent = h||'∅';
+    b.onclick = () => { profile.avatar_hat = i; pickBtn('hat-btns',i); redraw(); };
+    hatWrap.appendChild(b);
+  });
+  // Glasses
+  const glassWrap = document.getElementById('glasses-btns');
+  GLASSES.forEach((g,i) => {
+    const b = el('button','style-btn' + (i===profile.avatar_glasses?' sel':''));
+    b.textContent = g||'∅';
+    b.onclick = () => { profile.avatar_glasses = i; pickBtn('glasses-btns',i); redraw(); };
+    glassWrap.appendChild(b);
+  });
+  // Age group
+  document.querySelectorAll('#age-grid .age-btn').forEach(b => {
+    b.classList.toggle('sel', b.dataset.age === profile.avatar_age_group);
+    b.onclick = () => {
+      profile.avatar_age_group = b.dataset.age;
+      document.querySelectorAll('#age-grid .age-btn').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel'); redraw();
+    };
+  });
+}
+
+function el(tag, cls) { const e = document.createElement(tag); e.className=cls; return e; }
+function pick(wrapId, idx) {
+  document.querySelectorAll('#'+wrapId+' .swatch').forEach((b,i) => b.classList.toggle('sel', i===idx));
+}
+function pickBtn(wrapId, idx) {
+  document.querySelectorAll('#'+wrapId+' button').forEach((b,i) => b.classList.toggle('sel', i===idx));
+}
+function pickCard(wrapId, idx) {
+  document.querySelectorAll('#'+wrapId+' .outfit-card').forEach((b,i) => b.classList.toggle('sel', i===idx));
+}
+function pickColor(wrapId, color) {
+  document.querySelectorAll('#'+wrapId+' .color-swatch').forEach(b => b.classList.toggle('sel', b.style.background===color||getComputedStyle(b).backgroundColor===color));
+}
+function redraw() {
+  renderAvatar('ava-svg', profile, 180, 240);
+  renderAvatar('hdr-avatar-svg', profile, 120, 160);
+}
+
+// ────── SVG Avatar Renderer ──────
+function renderAvatar(svgId, p, w, h) {
+  const svg = document.getElementById(svgId);
+  if (!svg) return;
+  const skin      = SKIN_TONES[p.avatar_skin_tone ?? 2] ?? SKIN_TONES[2];
+  const hairCol   = HAIR_COLORS[p.avatar_hair_color ?? 0] ?? HAIR_COLORS[0];
+  const outfitCol = p.avatar_outfit_color ?? '#5b8dd9';
+  const age       = p.avatar_age_group ?? 'adult';
+  const hairStyle = p.avatar_hair_style ?? 0;
+  const eyeStyle  = p.avatar_eye_style ?? 0;
+  const outfit    = p.avatar_outfit ?? 0;
+  const hat       = p.avatar_hat ?? 0;
+  const glasses   = p.avatar_glasses ?? 0;
+
+  // Scale factor
+  const sc   = w / 180;
+  const cx   = 90, headY = 55, bodyY = 110;
+
+  // Body height varies by age
+  const bodyH   = age==='teen'?75 : age==='elder'||age==='senior'?65 : 80;
+  const headR   = age==='teen'?22 : age==='elder'||age==='senior'?24 : 26;
+
+  // Hair path by style
+  const hairPaths = [
+    // 0: short back
+    `<ellipse cx="${cx}" cy="${headY-headR*.6}" rx="${headR+4}" ry="${headR*.7}" fill="${hairCol}"/>`,
+    // 1: medium
+    `<path d="M${cx-headR-2} ${headY} Q${cx-headR-6} ${headY-headR*2} ${cx} ${headY-headR-6} Q${cx+headR+6} ${headY-headR*2} ${cx+headR+2} ${headY}" fill="${hairCol}"/>`,
+    // 2: long
+    `<path d="M${cx-headR} ${headY+10} Q${cx-headR-10} ${headY-headR*1.8} ${cx} ${headY-headR-4} Q${cx+headR+10} ${headY-headR*1.8} ${cx+headR} ${headY+10}" fill="${hairCol}"/>
+     <rect x="${cx-headR+2}" y="${headY}" width="${(headR-2)*2}" height="30" rx="8" fill="${hairCol}"/>`,
+    // 3: bun
+    `<ellipse cx="${cx}" cy="${headY-headR}" rx="${headR*.8}" ry="${headR*.5}" fill="${hairCol}"/>
+     <circle cx="${cx}" cy="${headY-headR*1.5}" r="${headR*.45}" fill="${hairCol}"/>`,
+    // 4: curly
+    `<ellipse cx="${cx}" cy="${headY-headR*.7}" rx="${headR+6}" ry="${headR*.75}" fill="${hairCol}" opacity=".9"/>
+     <circle cx="${cx-headR}" cy="${headY-headR*.3}" r="8" fill="${hairCol}"/>
+     <circle cx="${cx+headR}" cy="${headY-headR*.3}" r="8" fill="${hairCol}"/>`,
+    // 5: mohawk
+    `<rect x="${cx-4}" y="${headY-headR-18}" width="8" height="22" rx="4" fill="${hairCol}"/>
+     <ellipse cx="${cx}" cy="${headY-headR*.4}" rx="${headR+2}" ry="${headR*.4}" fill="${hairCol}"/>`,
+  ];
+
+  // Eye shapes by style
+  const eyeL = cx - headR*.42, eyeR = cx + headR*.42, eyeY = headY;
+  const eyeShapes = [
+    // 0: simple round
+    `<circle cx="${eyeL}" cy="${eyeY}" r="4" fill="#2a1800"/><circle cx="${eyeR}" cy="${eyeY}" r="4" fill="#2a1800"/>
+     <circle cx="${eyeL+1.5}" cy="${eyeY-1.5}" r="1.5" fill="#fff"/><circle cx="${eyeR+1.5}" cy="${eyeY-1.5}" r="1.5" fill="#fff"/>`,
+    // 1: wide
+    `<ellipse cx="${eyeL}" cy="${eyeY}" rx="5" ry="4" fill="#2a1800"/><ellipse cx="${eyeR}" cy="${eyeY}" rx="5" ry="4" fill="#2a1800"/>
+     <circle cx="${eyeL+2}" cy="${eyeY-1.5}" r="2" fill="#fff"/><circle cx="${eyeR+2}" cy="${eyeY-1.5}" r="2" fill="#fff"/>`,
+    // 2: cute
+    `<path d="M${eyeL-5} ${eyeY+2} Q${eyeL} ${eyeY-6} ${eyeL+5} ${eyeY+2}" fill="#2a1800"/>
+     <path d="M${eyeR-5} ${eyeY+2} Q${eyeR} ${eyeY-6} ${eyeR+5} ${eyeY+2}" fill="#2a1800"/>`,
+    // 3: squint
+    `<line x1="${eyeL-5}" y1="${eyeY}" x2="${eyeL+5}" y2="${eyeY}" stroke="#2a1800" stroke-width="3" stroke-linecap="round"/>
+     <line x1="${eyeR-5}" y1="${eyeY}" x2="${eyeR+5}" y2="${eyeY}" stroke="#2a1800" stroke-width="3" stroke-linecap="round"/>`,
+  ];
+
+  // Outfit shapes
+  const outfitIcons = OUTFITS.map(o => o.icon);
+  const outfitShapes = [
+    // 0: shirt/button-up
+    `<rect x="${cx-18}" y="${bodyY}" width="36" height="${bodyH-10}" rx="4" fill="${outfitCol}"/>
+     <rect x="${cx-2}" y="${bodyY}" width="4" height="${bodyH-10}" fill="rgba(0,0,0,.12)"/>`,
+    // 1: dress
+    `<path d="M${cx-20} ${bodyY} Q${cx} ${bodyY+20} ${cx+20} ${bodyY} L${cx+28} ${bodyY+bodyH} L${cx-28} ${bodyY+bodyH} Z" fill="${outfitCol}"/>`,
+    // 2: jacket
+    `<rect x="${cx-20}" y="${bodyY}" width="40" height="${bodyH-10}" rx="4" fill="${outfitCol}"/>
+     <rect x="${cx-8}" y="${bodyY}" width="16" height="${bodyH-10}" fill="rgba(255,255,255,.18)"/>`,
+    // 3: t-shirt
+    `<rect x="${cx-18}" y="${bodyY+8}" width="36" height="${bodyH-18}" rx="4" fill="${outfitCol}"/>
+     <rect x="${cx-28}" y="${bodyY}" width="18" height="14" rx="4" fill="${outfitCol}"/>
+     <rect x="${cx+10}" y="${bodyY}" width="18" height="14" rx="4" fill="${outfitCol}"/>`,
+    // 4: traditional ao dai
+    `<rect x="${cx-15}" y="${bodyY}" width="30" height="${bodyH}" rx="6" fill="${outfitCol}"/>
+     <path d="M${cx-15} ${bodyY+bodyH} L${cx-28} ${bodyY+bodyH+30}" stroke="${outfitCol}" stroke-width="12" stroke-linecap="round"/>
+     <path d="M${cx+15} ${bodyY+bodyH} L${cx+28} ${bodyY+bodyH+30}" stroke="${outfitCol}" stroke-width="12" stroke-linecap="round"/>`,
+    // 5: sportwear
+    `<rect x="${cx-20}" y="${bodyY}" width="40" height="${bodyH-10}" rx="6" fill="${outfitCol}"/>
+     <rect x="${cx-20}" y="${bodyY}" width="40" height="10" rx="6" fill="rgba(255,255,255,.3)"/>`,
+  ];
+
+  // Hat shapes
+  const hatShapes = [
+    '', // none
+    `<rect x="${cx-headR-4}" y="${headY-headR-8}" width="${(headR+4)*2}" height="8" rx="3" fill="#c97a50"/>
+     <rect x="${cx-headR+2}" y="${headY-headR-20}" width="${(headR-2)*2}" height="14" rx="5" fill="#e89a60"/>`,
+    `<ellipse cx="${cx}" cy="${headY-headR-6}" rx="${headR+8}" ry="7" fill="${hairCol}"/>
+     <rect x="${cx-headR+2}" y="${headY-headR-18}" width="${(headR-2)*2}" height="14" rx="3" fill="${hairCol}"/>`,
+    `<rect x="${cx-headR}" y="${headY-headR-22}" width="${headR*2}" height="20" rx="2" fill="#2a1800"/>
+     <rect x="${cx-headR-6}" y="${headY-headR-6}" width="${headR*2+12}" height="6" rx="2" fill="#2a1800"/>`,
+  ];
+
+  // Glasses shapes
+  const glassShapes = [
+    '',
+    `<rect x="${eyeL-7}" y="${eyeY-6}" width="14" height="10" rx="5" fill="none" stroke="#2a1800" stroke-width="2.5"/>
+     <rect x="${eyeR-7}" y="${eyeY-6}" width="14" height="10" rx="5" fill="none" stroke="#2a1800" stroke-width="2.5"/>
+     <line x1="${eyeL+7}" y1="${eyeY-2}" x2="${eyeR-7}" y2="${eyeY-2}" stroke="#2a1800" stroke-width="2"/>`,
+    `<ellipse cx="${eyeL}" cy="${eyeY}" rx="7" ry="6" fill="rgba(100,160,255,.35)" stroke="#555" stroke-width="2"/>
+     <ellipse cx="${eyeR}" cy="${eyeY}" rx="7" ry="6" fill="rgba(100,160,255,.35)" stroke="#555" stroke-width="2"/>
+     <line x1="${eyeL+7}" y1="${eyeY-1}" x2="${eyeR-7}" y2="${eyeY-1}" stroke="#555" stroke-width="2"/>`,
+  ];
+
+  // Pants
+  const pantsCol = outfit===1 ? outfitCol : '#3a2a50';
+
+  svg.setAttribute('width', w);
+  svg.setAttribute('height', h);
+  svg.setAttribute('viewBox', `0 0 180 240`);
+  svg.innerHTML = `
+    <!-- Shadow -->
+    <ellipse cx="${cx}" cy="230" rx="30" ry="8" fill="rgba(0,0,0,.15)"/>
+    <!-- Legs/pants -->
+    <rect x="${cx-14}" y="${bodyY+bodyH-10}" width="12" height="40" rx="5" fill="${pantsCol}"/>
+    <rect x="${cx+2}"  y="${bodyY+bodyH-10}" width="12" height="40" rx="5" fill="${pantsCol}"/>
+    <!-- Shoes -->
+    <ellipse cx="${cx-8}"  cy="${bodyY+bodyH+30}" rx="10" ry="5" fill="#2a1800"/>
+    <ellipse cx="${cx+8}"  cy="${bodyY+bodyH+30}" rx="10" ry="5" fill="#2a1800"/>
+    <!-- Body/outfit -->
+    ${outfitShapes[outfit] ?? outfitShapes[0]}
+    <!-- Neck -->
+    <rect x="${cx-5}" y="${headY+headR-4}" width="10" height="14" rx="4" fill="${skin}"/>
+    <!-- Hair back -->
+    ${hairPaths[hairStyle] ?? hairPaths[0]}
+    <!-- Head -->
+    <ellipse cx="${cx}" cy="${headY}" rx="${headR}" ry="${headR}" fill="${skin}" stroke="${skin}" stroke-width="1"/>
+    <!-- Ears -->
+    <ellipse cx="${cx-headR+2}" cy="${headY+2}" rx="5" ry="7" fill="${skin}"/>
+    <ellipse cx="${cx+headR-2}" cy="${headY+2}" rx="5" ry="7" fill="${skin}"/>
+    <!-- Eyes -->
+    ${eyeShapes[eyeStyle] ?? eyeShapes[0]}
+    <!-- Eyebrows -->
+    <path d="M${eyeL-5} ${eyeY-8} Q${eyeL} ${eyeY-11} ${eyeL+5} ${eyeY-8}" stroke="${hairCol}" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M${eyeR-5} ${eyeY-8} Q${eyeR} ${eyeY-11} ${eyeR+5} ${eyeY-8}" stroke="${hairCol}" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- Nose -->
+    <circle cx="${cx}" cy="${headY+8}" r="2.5" fill="${skin}" stroke="rgba(0,0,0,.2)" stroke-width="1"/>
+    <!-- Mouth -->
+    <path d="M${cx-8} ${headY+16} Q${cx} ${headY+22} ${cx+8} ${headY+16}" stroke="#c97a7a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <!-- Glasses overlay -->
+    ${glassShapes[glasses] ?? ''}
+    <!-- Hat -->
+    ${hatShapes[hat] ?? ''}
+    <!-- Cheeks -->
+    <circle cx="${cx-headR+8}" cy="${headY+10}" r="6" fill="rgba(240,140,120,.25)"/>
+    <circle cx="${cx+headR-8}" cy="${headY+10}" r="6" fill="rgba(240,140,120,.25)"/>
+  `;
+}
+
+// ────── Save Avatar ──────
+async function saveAvatar() {
+  const btn = document.getElementById('btn-save-avatar');
+  btn.disabled = true; btn.textContent = '⏳ Đang lưu...';
+  try {
+    const res = await fetch(API + 'update-profile.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        avatar_age_group:    profile.avatar_age_group,
+        avatar_skin_tone:    profile.avatar_skin_tone,
+        avatar_hair_style:   profile.avatar_hair_style,
+        avatar_hair_color:   profile.avatar_hair_color,
+        avatar_eye_style:    profile.avatar_eye_style,
+        avatar_outfit:       profile.avatar_outfit,
+        avatar_outfit_color: profile.avatar_outfit_color,
+        avatar_hat:          profile.avatar_hat,
+        avatar_glasses:      profile.avatar_glasses,
+      })
+    }).then(r => r.json());
+    toast(res.success ? '✅ Đã lưu avatar!' : '❌ ' + res.message);
+  } catch { toast('❌ Lỗi kết nối server.'); }
+  btn.disabled = false; btn.textContent = '💾 Lưu Avatar';
+}
+
+// ────── Account ──────
+let selectedTheme = 'warm';
+function selectTheme(t) {
+  selectedTheme = t;
+  document.querySelectorAll('#theme-grid .theme-card').forEach(c =>
+    c.classList.toggle('sel', c.dataset.theme === t)
+  );
+}
+async function saveAccount() {
+  const displayName = document.getElementById('acc-displayname').value.trim();
+  try {
+    const res = await fetch(API + 'update-profile.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ display_name: displayName, theme: selectedTheme })
+    }).then(r => r.json());
+    if (res.success) {
+      toast('✅ Đã cập nhật tài khoản!');
+      document.getElementById('prof-displayname').textContent = displayName || '@' + document.getElementById('prof-username').textContent;
+    } else {
+      toast('❌ ' + res.message);
+    }
+  } catch { toast('❌ Lỗi kết nối server.'); }
+}
+
+// ────── Expenses ──────
+async function loadExpenses() {
+  try {
+    const res = await fetch(API + 'expenses.php?month=' + expMonth).then(r => r.json());
+    if (!res.success) return;
+    const d = res.data;
+    renderExpMonth(d);
+  } catch { toast('❌ Không tải được dữ liệu chi tiêu.'); }
+}
+
+function renderExpMonth(d) {
+  document.getElementById('month-label').textContent = fmtMonth(expMonth);
+  document.getElementById('exp-total').textContent = fmt(d.total);
+
+  // Summary cards
+  const sumWrap = document.getElementById('exp-summary');
+  sumWrap.innerHTML = '';
+  Object.entries(CAT_INFO).forEach(([k, v]) => {
+    if (!d.totals[k]) return;
+    const c = document.createElement('div');
+    c.className = 'exp-cat-card';
+    c.innerHTML = `<span class="exp-cat-icon">${v.icon}</span>
+      <div class="exp-cat-name">${v.name}</div>
+      <div class="exp-cat-amount">${fmt(d.totals[k])}</div>`;
+    sumWrap.appendChild(c);
+  });
+
+  // Chart
+  if (expChart) expChart.destroy();
+  const cats = Object.keys(d.totals);
+  if (cats.length) {
+    expChart = new Chart(document.getElementById('exp-chart'), {
+      type: 'doughnut',
+      data: {
+        labels: cats.map(k => CAT_INFO[k]?.name || k),
+        datasets: [{ data: cats.map(k => d.totals[k]), backgroundColor: cats.map(k => CAT_INFO[k]?.color || '#aaa'), borderWidth: 3 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { family: "'Baloo 2'", weight: '700', size: 13 } } } } }
+    });
+  }
+
+  // List
+  const listWrap = document.getElementById('exp-list');
+  if (!d.items.length) {
+    listWrap.innerHTML = '<div class="empty-exp">📭 Không có khoản chi tiêu nào trong tháng này.</div>';
+    return;
+  }
+  listWrap.innerHTML = '';
+  d.items.forEach(item => {
+    const info = CAT_INFO[item.category] || CAT_INFO.other;
+    const div = document.createElement('div');
+    div.className = 'exp-item';
+    div.innerHTML = `
+      <span class="exp-item-icon">${info.icon}</span>
+      <div class="exp-item-info">
+        <div class="exp-item-desc">${item.description || info.name}</div>
+        <div class="exp-item-meta">${info.name} · ${item.expense_date}</div>
+      </div>
+      <span class="exp-item-amt">${fmt(item.amount)}</span>
+      <button class="btn-del" onclick="deleteExpense(${item.id})">🗑️</button>
+    `;
+    listWrap.appendChild(div);
+  });
+}
+
+function fmtMonth(m) {
+  const [y,mo] = m.split('-');
+  return `Tháng ${parseInt(mo)}/${y}`;
+}
+
+function changeMonth(delta) {
+  const d = new Date(expMonth + '-01');
+  d.setMonth(d.getMonth() + delta);
+  expMonth = d.toISOString().slice(0,7);
+  loadExpenses();
+}
+
+async function addExpense() {
+  const cat    = document.getElementById('exp-cat').value;
+  const amount = parseFloat(document.getElementById('exp-amount').value);
+  const date   = document.getElementById('exp-date').value;
+  const desc   = document.getElementById('exp-desc').value.trim();
+  if (!amount || amount <= 0) { toast('⚠️ Nhập số tiền hợp lệ.'); return; }
+  if (!date) { toast('⚠️ Chọn ngày chi tiêu.'); return; }
+  try {
+    const res = await fetch(API + 'expenses.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category: cat, amount, description: desc, expense_date: date })
+    }).then(r => r.json());
+    if (res.success) { toast('✅ Đã thêm chi tiêu!'); loadExpenses(); }
+    else toast('❌ ' + res.message);
+  } catch { toast('❌ Lỗi kết nối.'); }
+}
+
+async function deleteExpense(id) {
+  if (!confirm('Xóa khoản chi tiêu này?')) return;
+  try {
+    const res = await fetch(API + 'expenses.php?id=' + id, { method: 'DELETE' }).then(r => r.json());
+    if (res.success) { toast('🗑️ Đã xóa.'); loadExpenses(); }
+    else toast('❌ ' + res.message);
+  } catch { toast('❌ Lỗi kết nối.'); }
+}
+
+// ────── Logout ──────
+async function doLogout() {
+  await fetch(API + 'logout.php', { method: 'POST' }).catch(() => {});
+  location.href = 'login.html';
+}
+
+// ────── Toast ──────
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// Set today as default date
+document.getElementById('exp-date').valueAsDate = new Date();
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 <?php
-// lib/shop_helpers.php — hàm dùng chung cho module Cửa hàng & Kho (Thành viên 3)
+// lib/shop_helpers.php — hàm dùng chung cho module Cửa hàng & Kho
 // Mỗi API chỉ cần: require_once __DIR__ . '/../../lib/shop_helpers.php';  => có sẵn $pdo + các hàm bên dưới.
 
 header('Content-Type: application/json; charset=utf-8');
@@ -12,7 +12,7 @@ if (!file_exists($dbPath)) {
 }
 require_once $dbPath; // tạo biến $pdo (db.php tự trả JSON lỗi nếu không kết nối được)
 
-// ── Cấu hình ví người chơi (Thành viên 1). Nếu bảng/cột của TV1 khác tên thì chỉ sửa 3 dòng này ──
+// ── Cấu hình ví người chơi. Nếu bảng/cột khác tên thì chỉ sửa 3 dòng này ──
 // NGUỒN SỰ THẬT DUY NHẤT của tiền: users.balance trong MySQL. Frontend (localStorage, GameState...) chỉ được HIỂN THỊ bản sao.
 const WALLET_TABLE       = 'users';
 const WALLET_ID_COL      = 'id';

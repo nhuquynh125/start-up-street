@@ -630,11 +630,11 @@ function formatMoneyShort(amount) {
   return amount.toString();
 }
 
-function switchTab(tabName) {
+function switchTab(tabName, event) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + tabName).classList.add('active');
-  event.currentTarget.classList.add('active');
+  if (event && event.currentTarget) event.currentTarget.classList.add('active');
 }
 
 function showToast(icon, message) {

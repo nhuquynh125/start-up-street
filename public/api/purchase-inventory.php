@@ -92,7 +92,8 @@ try {
 } catch (ApiException $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     apiRespond(false, $e->getMessage(), $e->data, $e->getCode());
-} catch (Exception $e) {
+} catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
-    apiRespond(false, "Lỗi xử lý kho: " . $e->getMessage(), null, 500);
+    error_log('purchase-inventory: ' . $e->getMessage());
+    apiRespond(false, "Lỗi xử lý kho", null, 500);
 }

@@ -1,9 +1,18 @@
+<?php
+// Auth guard: chuyển về login nếu chưa đăng nhập
+session_start(['cookie_httponly' => true, 'cookie_samesite' => 'Lax']);
+if (empty($_SESSION['user_id'])) {
+    header('Location: login.html');
+    exit;
+}
+$currentUserId = (int)$_SESSION['user_id'];
+?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Startup Street</title>
+<title>Startup Street — Bản đồ phố</title>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;800&display=swap" rel="stylesheet">
 <style>
 :root{--free:#7fc97f;--owned:#c9c9c9;--mine:#f2b84b;--sel:#2b6cb0;
@@ -126,7 +135,15 @@ input[type=range]{width:100%;accent-color:var(--wood)}
 </style>
 </head>
 <body>
-<div class="hud"><span>Startup Street</span><span class="keys">WASD / phím mũi tên: di chuyển · E: xem mặt bằng</span><span><i class="coin"></i>Vốn: <span id="money"></span></span></div>
+<div class="hud">
+  <span style="display:flex;align-items:center;gap:8px">🏙️ Startup Street</span>
+  <span class="keys">WASD / mũi tên: di chuyển &nbsp;·&nbsp; E: xem mặt bằng</span>
+  <span style="display:flex;align-items:center;gap:10px">
+    <span><i class="coin"></i>Vốn: <strong id="money"></strong></span>
+    <button class="btn" style="font-size:14px;padding:3px 12px" onclick="location.href='profile.html'">👤 <span id="hud-username">…</span></button>
+    <button class="btn no" style="font-size:14px;padding:3px 12px" onclick="doLogout()">🚪</button>
+  </span>
+</div>
 <div id="view"><div id="world"></div></div>
 <div id="hint"></div>
 
@@ -208,7 +225,7 @@ let businessTypes=[
 {id:5,name:'Tiệm hoa',description:'Hoa tươi và quà tặng',required_capital:8000000},
 {id:6,name:'Tạp hóa nhỏ',description:'Hàng hóa thiết yếu',required_capital:14000000}];
 let selectedBusinessType=null;
-const USER_ID=1; /* TODO: thay bằng user đang đăng nhập (TV1) */
+const USER_ID=<?= $currentUserId ?>; // Lấy từ PHP session (đã đăng nhập)
 const API='api/';
 const apiJson=async(path,opt)=>{
  let r;try{r=await fetch(API+path,opt)}catch(e){throw new Error('Không kết nối được server')}
@@ -542,6 +559,19 @@ apiJson('get-shops.php').then(res=>{
 }).catch(()=>{});
 playerEl.setAttribute('transform',`translate(${player.x} ${player.y})`);
 follow(0,true);requestAnimationFrame(frame);
+
+/* ---- đăng xuất ---- */
+async function doLogout(){
+ try{await fetch('api/auth/logout.php',{method:'POST'})}catch(e){}
+ location.href='login.html';
+}
+
+/* ---- hiển thị tên người dùng trên HUD ---- */
+fetch('api/auth/me.php').then(r=>r.json()).then(d=>{
+ if(!d.success){location.href='login.html';return}
+ const el=document.getElementById('hud-username');
+ if(el)el.textContent=(d.data.profile?.display_name)||d.data.username;
+}).catch(()=>{});
 </script>
 </body>
 </html>
