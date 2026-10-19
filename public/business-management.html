@@ -53,7 +53,11 @@
 <div class="container">
     <div class="topbar">
         <h1>🏬 Quản Lý Cửa Hàng & Kho Hàng</h1>
-        <div class="wallet">💰 Ví: <span id="wallet-balance">—</span></div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div class="wallet">💰 Ví: <span id="wallet-balance">—</span></div>
+            <a href="map.php" class="btn" style="text-decoration:none;font-size:14px;padding:6px 14px;">🗺️ Về bản đồ</a>
+            <button class="btn" id="btn-logout" style="font-size:14px;padding:6px 14px;background:#e74c3c;border-color:#c0392b;">🚪 Đăng xuất</button>
+        </div>
     </div>
 
     <!-- 0. CỬA HÀNG CỦA TÔI -->
@@ -62,7 +66,7 @@
         <div id="my-shops-list"></div>
     </div>
     <div id="section-no-property" class="section hidden">
-        <div class="error-box" role="alert">⚠️ Please select and rent a location on the map first.</div>
+        <div class="error-box" role="alert">⚠️ Vui lòng chọn và thuê một mặt bằng trên bản đồ trước.</div>
     </div>
     <!-- 1. CHỌN MÔ HÌNH KINH DOANH & TẠO CỬA HÀNG -->
     <div id="section-create-shop" class="section">
@@ -115,10 +119,9 @@
 
 <script>
     // ---------- Cấu hình ----------
-    // Chưa có đăng nhập (TV1) nên lấy user từ URL: business-management.html?user_id=1
+    // API dùng session PHP — không cần user_id trong URL nữa.
     // Từ bản đồ (map.php) sẽ mở thẳng kho bằng ?shop_id=..., hoặc tạo cửa hàng cho mặt bằng bằng ?property_id=...
     const params = new URLSearchParams(location.search);
-    const CURRENT_USER_ID = Number(params.get('user_id')) || 1;
     const MAX_PROPERTY_ID = 48; // map.php has 4 rows x 12 lots
     const rawPropertyId = Number(params.get('property_id'));
     const RENTED_PROPERTY_ID = (Number.isInteger(rawPropertyId) && rawPropertyId >= 1 && rawPropertyId <= MAX_PROPERTY_ID)
@@ -189,6 +192,17 @@
     // ---------- Khởi động ----------
 
     document.addEventListener('DOMContentLoaded', async () => {
+        // Kiểm tra đăng nhập qua session
+        try {
+            const me = await callApi('auth/me.php');
+            setBalance(me.data.balance);
+        } catch (err) {
+            if (err.status === 401) {
+                window.location.href = 'login.html';
+                return;
+            }
+        }
+
         const hasProperty = RENTED_PROPERTY_ID !== null;
         const hasShop = Number(params.get('shop_id')) > 0;
 
@@ -212,7 +226,7 @@
         const section = document.getElementById('section-my-shops');
         const list = document.getElementById('my-shops-list');
         try {
-            const json = await callApi(`get-shops.php?owner_user_id=${encodeURIComponent(CURRENT_USER_ID)}`);
+            const json = await callApi(`get-shops.php`);
             const shops = json.data.shops;
             if (!shops.length) {
                 section.classList.add('hidden');
@@ -310,7 +324,6 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    owner_user_id: CURRENT_USER_ID,
                     property_id: RENTED_PROPERTY_ID,
                     business_type_id: Number(typeId),
                     name: shopName
@@ -340,7 +353,7 @@
         tbody.innerHTML = '<tr><td colspan="6">Đang tải sản phẩm...</td></tr>';
 
         try {
-            const json = await callApi(`get-shop-products.php?shop_id=${encodeURIComponent(shopId)}&owner_user_id=${encodeURIComponent(CURRENT_USER_ID)}`);
+            const json = await callApi(`get-shop-products.php?shop_id=${encodeURIComponent(shopId)}`);
             const products = json.data.products;
             setBalance(json.data.balance);
             document.getElementById('current-shop-title').textContent = `2. Quản Lý Kho Hàng: ${json.data.shop.name}`;
@@ -425,7 +438,6 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    owner_user_id: CURRENT_USER_ID,
                     shop_id: currentShopId,
                     product_id: Number(productId),
                     quantity: qty,
@@ -441,6 +453,15 @@
             if (err.data && err.data.balance !== undefined) setBalance(err.data.balance);
             refreshRowTotals();
         }
+    }
+
+    // Đăng xuất — gọi trực tiếp thay vì DOMContentLoaded riêng vì script chạy sau DOM đã sẵn sàng
+    const logoutBtn = document.getElementById('btn-logout');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            try { await fetch('api/auth/logout.php', { method: 'POST' }); } catch(e) {}
+            window.location.href = 'login.html';
+        });
     }
 </script>
 

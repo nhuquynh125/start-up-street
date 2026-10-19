@@ -24,7 +24,7 @@ try {
         } elseif ($col === 'theme') {
             if (!in_array($v, ['warm','cool','forest','night'], true)) continue;
         } elseif ($col === 'avatar_age_group') {
-            if (!in_array($v, ['teen','young','adult','middle','senior'], true)) continue;
+            if (!in_array($v, ['teen','young','adult','middle','senior','elder'], true)) continue;
         } elseif ($col === 'avatar_outfit_color') {
             if (!preg_match('/^#[0-9a-fA-F]{6}$/', (string)$v)) continue;
         } else {

@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS `player_profiles` (
     `id`            INT AUTO_INCREMENT PRIMARY KEY,
     `user_id`       INT NOT NULL,
     -- Avatar layers
-    `avatar_age_group`   VARCHAR(20) DEFAULT 'adult',   -- teen | young | adult | middle | senior
+    `avatar_age_group`   VARCHAR(20) DEFAULT 'adult',   -- teen | young | adult | middle | senior | elder
     `avatar_skin_tone`   TINYINT     DEFAULT 2,          -- 0-4
     `avatar_hair_style`  TINYINT     DEFAULT 0,          -- 0-5
     `avatar_hair_color`  TINYINT     DEFAULT 0,          -- 0-4

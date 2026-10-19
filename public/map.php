@@ -225,8 +225,8 @@ let businessTypes=[
 {id:5,name:'Tiệm hoa',description:'Hoa tươi và quà tặng',required_capital:8000000},
 {id:6,name:'Tạp hóa nhỏ',description:'Hàng hóa thiết yếu',required_capital:14000000}];
 let selectedBusinessType=null;
-const USER_ID=<?= $currentUserId ?>; // Lấy từ PHP session (đã đăng nhập)
 const API='api/';
+
 const apiJson=async(path,opt)=>{
  let r;try{r=await fetch(API+path,opt)}catch(e){throw new Error('Không kết nối được server')}
  const j=await r.json().catch(()=>null);
@@ -254,13 +254,15 @@ const lots=[];
 rows.forEach(r=>xs.forEach((x,c)=>{
  const traffic=20+Math.floor(rnd()*76),area=30+Math.floor(rnd()*41);
  const price=Math.round((traffic*220000+area*180000)/100000)*100000;
- const status=rnd()<0.25?'owned':'available';
+ const status='available'; // trạng thái ban đầu: tất cả available, API sẽ override sau
  lots.push({id:lots.length+1,code:r.letter+(c+1),x,y:r.y,w:170,h:r.h,face:r.face,traffic,area,price,status});
 }));
 const loadDesigns=()=>JSON.parse(localStorage.getItem('startupStreetDesigns')||'{}');
 const saveDesigns=d=>localStorage.setItem('startupStreetDesigns',JSON.stringify(d));
 const d0=loadDesigns();
+// Chỉ khôi phục shopName và thiết kế tùy chỉnh từ localStorage, không khôi phục status (status do server quyết định)
 lots.forEach(l=>{if(d0[l.code]&&d0[l.code].rented)l.status='mine'});
+
 
 const fmt=n=>n.toLocaleString('vi-VN')+'đ';
 let balance=null; /* chỉ là bản sao để hiển thị; số dư thật = users.balance trong MySQL */
@@ -378,14 +380,14 @@ function showPanel(i){
  buy.disabled=l.status==='owned';
  buy.textContent=l.status==='available'?'Thuê mặt bằng ngay':l.status==='mine'?'Tùy chỉnh cửa hàng':labels[l.status];
  const mg=$('manage'),sid=(saved[l.code]||{}).shopId;mg.hidden=!(l.status==='mine'&&sid);
- if(sid)mg.href='business-management.html?user_id='+USER_ID+'&shop_id='+sid;
+ if(sid)mg.href='business-management.html?shop_id='+sid;
  $('msg').textContent='';
  panel.style.display='block';
 }
 function closePanel(){open=-1;panel.style.display='none'}
 function updateMoney(){moneyEl.textContent=balance===null?'…':fmt(balance)}
 async function refreshBalance(){
- try{balance=Number((await apiJson('get-balance.php?user_id='+USER_ID)).data.balance);updateMoney()}
+ try{balance=Number((await apiJson('get-balance.php')).data.balance);updateMoney()}
  catch(e){/* giữ nguyên số đang hiển thị, không tự đoán số dư */}}
 $('close').addEventListener('click',closePanel);
 
@@ -407,12 +409,12 @@ $('buy').addEventListener('click',async()=>{
  let shop,rent;
  try{
   rent=(await apiJson('rent-property.php',{method:'POST',headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({user_id:USER_ID,property_id:l.id})})).data;
+   body:JSON.stringify({property_id:l.id})})).data;
   balance=Number(rent.balance);updateMoney();
  }catch(err){$('msg').textContent='Không thể thuê mặt bằng: '+err.message;buyBtn.disabled=false;refreshBalance();return}
  try{
   shop=(await apiJson('create-shop.php',{method:'POST',headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({owner_user_id:USER_ID,property_id:l.id,business_type_id:selectedBusinessType.id,name:selectedBusinessType.name})})).data;
+   body:JSON.stringify({property_id:l.id,business_type_id:selectedBusinessType.id,name:selectedBusinessType.name})})).data;
  }catch(err){$('msg').textContent='Đã thuê mặt bằng nhưng chưa tạo được cửa hàng: '+err.message+'. Bấm lại để thử tiếp (không bị trừ tiền thuê lần 2).';buyBtn.disabled=false;return}
  buyBtn.disabled=false;
  /* tiền thuê đã được server trừ trong rent-property.php */
@@ -541,18 +543,28 @@ fetch('api/business-types.php').then(r=>r.json()).then(data=>{
 }).catch(()=>{});
 
 updateMoney();refreshBalance();window.addEventListener('focus',refreshBalance);updateFacadePreview();
+// Bước 1: Lấy tất cả mặt bằng đã có người thuê (is_mine = true/false) để tô màu đúng
+apiJson('get-occupied-properties.php').then(res=>{
+ const designs=loadDesigns();
+ res.data.properties.forEach(p=>{
+  const i=Number(p.property_id)-1,l=lots[i];if(!l)return;
+  l.status=p.is_mine?'mine':'owned';
+  els[i].setAttribute('class','lot '+l.status+(i===near?' near':''));
+  refreshSign(i,designs);
+ });
+}).catch(()=>{});
+
+// Bước 2: Lấy thông tin chi tiết cửa hàng của chính người chơi (shop_id, business_type, v.v.)
 apiJson('get-shops.php').then(res=>{
  const designs=loadDesigns();let changed=false;
  res.data.shops.forEach(s=>{
   const i=Number(s.property_id)-1,l=lots[i];if(!l)return;
-  if(Number(s.owner_user_id)===USER_ID){
-   l.status='mine';
-   const d=designs[l.code]||(designs[l.code]={lotCode:l.code,propertyPrice:l.price,facadeColor:styleOf(Number(s.business_type_id)).body,awningColor:'#f4c95d',decor:'plants'});
-   Object.assign(d,{rented:true,shopId:Number(s.shop_id),businessTypeId:Number(s.business_type_id),businessTypeName:s.business_type_name});
-   if(!d.shopName)d.shopName=s.name;
-   changed=true;
-  }else l.status='owned';
-  els[i].setAttribute('class','lot '+l.status+(i===near?' near':''));
+  l.status='mine'; // khẳng định lại
+  const d=designs[l.code]||(designs[l.code]={lotCode:l.code,propertyPrice:l.price,facadeColor:styleOf(Number(s.business_type_id)).body,awningColor:'#f4c95d',decor:'plants'});
+  Object.assign(d,{rented:true,shopId:Number(s.shop_id),businessTypeId:Number(s.business_type_id),businessTypeName:s.business_type_name});
+  if(!d.shopName)d.shopName=s.name;
+  changed=true;
+  els[i].setAttribute('class','lot mine'+(i===near?' near':''));
   refreshSign(i,designs);
  });
  if(changed)saveDesigns(designs);
