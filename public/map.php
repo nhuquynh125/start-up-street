@@ -473,14 +473,28 @@ $('ch').addEventListener('input',e=>{cd.counterHeight=+e.target.value;drawC()});
 $('sh').addEventListener('input',e=>{cd.shelfPos=+e.target.value;drawC()});
 $('plant-toggle').addEventListener('click',()=>{cd.plant=!cd.plant;drawC()});
 $('clear-shelf').addEventListener('click',()=>{cd.shelfGoods=[[],[],[]];drawC()});
-$('save-design').addEventListener('click',()=>{
+$('save-design').addEventListener('click',async()=>{
  const designs=loadDesigns();if(!curCode||!designs[curCode])return;
  cd.shopName=cd.shopName.trim()||'Cửa hàng của bạn';
  designs[curCode]=Object.assign(designs[curCode],cd,{designSaved:true});saveDesigns(designs);
  const li=lots.findIndex(x=>x.code===curCode);if(li>=0)refreshSign(li,designs);
  $('customizer-title').textContent='Tùy chỉnh '+cd.shopName+' · '+curCode;
- $('customizer-message').textContent='Đã lưu thiết kế trên trình duyệt.';
+ $('customizer-message').textContent='Đang lưu...';
+ // Đồng bộ tên cửa hàng lên DB nếu có shop_id
+ const shopId=designs[curCode]?.shopId;
+ if(shopId){
+  try{
+   await apiJson('update-shop-name.php',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({shop_id:shopId,name:cd.shopName})});
+   $('customizer-message').textContent='✅ Đã lưu thiết kế và cập nhật tên cửa hàng!';
+  }catch(e){
+   $('customizer-message').textContent='⚠️ Lưu thiết kế thành công nhưng chưa đồng bộ tên lên server: '+e.message;
+  }
+ }else{
+  $('customizer-message').textContent='Đã lưu thiết kế trên trình duyệt.';
+ }
 });
+
 const closeC=()=>$('customizer').style.display='none';
 $('customizer-close').addEventListener('click',closeC);$('cancel-design').addEventListener('click',closeC);
 
