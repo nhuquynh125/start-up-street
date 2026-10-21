@@ -1,15 +1,34 @@
 <?php
 // POST api/auth/logout.php
-require_once dirname(__DIR__, 3) . '/lib/shop_helpers.php';
+// Đăng xuất: huỷ session phía server + xoá cookie phiên phía trình duyệt.
+// Idempotent: chưa đăng nhập / session đã hết hạn vẫn trả success.
+//
+// Cố ý KHÔNG require lib/shop_helpers.php (kéo theo db.php -> kết nối MySQL):
+// đăng xuất không cần DB, và người chơi vẫn phải đăng xuất được khi DB đang lỗi.
+declare(strict_types=1);
 
-requireMethod('POST');
-if (session_status() === PHP_SESSION_NONE) {
-    session_start(['cookie_httponly' => true, 'cookie_samesite' => 'Lax']);
+require_once dirname(__DIR__, 3) . '/lib/auth_session.php';
+
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
+
+/** Trả JSON cùng định dạng với apiRespond() ở các API khác rồi dừng. */
+function logoutRespond(bool $success, string $message, int $status = 200): void
+{
+    http_response_code($status);
+    echo json_encode(["success" => $success, "message" => $message, "data" => null], JSON_UNESCAPED_UNICODE);
+    exit;
 }
-$_SESSION = [];
-if (ini_get('session.use_cookies')) {
-    $p = session_get_cookie_params();
-    setcookie(session_name(), '', time() - 42000, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
+
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    header('Allow: POST');
+    logoutRespond(false, "Method Not Allowed. Vui lòng dùng POST.", 405);
 }
-session_destroy();
-apiRespond(true, "Đã đăng xuất.");
+
+try {
+    destroyAuthSession();
+    logoutRespond(true, "Đã đăng xuất.");
+} catch (Throwable $e) {
+    error_log('logout: ' . $e->getMessage());
+    logoutRespond(false, "Lỗi server khi đăng xuất.", 500);
+}
