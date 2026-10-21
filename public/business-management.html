@@ -119,7 +119,7 @@
 
 <script>
     // ---------- Cấu hình ----------
-    // API dùng session PHP — không cần user_id trong URL nữa.
+    // Người chơi do server xác định qua session ($_SESSION['user_id']); trang này không gửi user id.
     // Từ bản đồ (map.php) sẽ mở thẳng kho bằng ?shop_id=..., hoặc tạo cửa hàng cho mặt bằng bằng ?property_id=...
     const params = new URLSearchParams(location.search);
     const MAX_PROPERTY_ID = 48; // map.php has 4 rows x 12 lots
@@ -133,6 +133,8 @@
 
     let currentShopId = null;
     let currentBalance = null;
+    let myShops = [];       // bản sao danh sách cửa hàng của tôi (dùng để tìm shop theo property_id khi gặp 409)
+    let shopLoadSeq = 0;    // đánh số mỗi lần tải kho: kết quả của lần tải cũ (đến muộn) sẽ bị bỏ qua
 
     // ---------- Tiện ích ----------
 
@@ -163,6 +165,12 @@
         document.getElementById('wallet-balance').textContent = currentBalance === null ? '—' : formatVnd(currentBalance);
     }
 
+    // Chuyển giá trị bất kỳ thành id nguyên dương, hoặc null nếu không hợp lệ
+    function toId(value) {
+        const n = Number(value);
+        return (Number.isInteger(n) && n > 0) ? n : null;
+    }
+
     // Gọi API, luôn trả về object { success, message, data } hoặc ném lỗi có thông điệp rõ ràng
     async function callApi(path, options) {
         let res;
@@ -181,7 +189,7 @@
         }
 
         if (!json.success) {
-            const err = new Error(json.message || `API ${path} báo lỗi (HTTP ${res.status})`);
+            const err = new Error(res.status === 401 ? 'Bạn chưa đăng nhập' : (json.message || `API ${path} báo lỗi (HTTP ${res.status})`));
             err.status = res.status;
             err.data = json.data;
             throw err;
@@ -201,6 +209,9 @@
                 window.location.href = 'login.html';
                 return;
             }
+            // Lỗi khác (mạng, server...): không chặn trang, nhưng báo để người chơi biết ví chưa tải được
+            console.error('Lỗi kiểm tra đăng nhập:', err);
+            showToast('Không tải được số dư ví: ' + err.message, false);
         }
 
         const hasProperty = RENTED_PROPERTY_ID !== null;
@@ -217,20 +228,21 @@
         }
         await loadMyShops();
 
-        const shopIdParam = Number(params.get('shop_id'));
+        const shopIdParam = toId(params.get('shop_id'));
         if (shopIdParam) openShop(shopIdParam);
     });
 
-    // 0. Danh sách cửa hàng của tôi (GET api/get-shops.php)
+    // 0. Danh sách cửa hàng của tôi (GET api/get-shops.php). Trả về mảng cửa hàng (rỗng nếu lỗi).
     async function loadMyShops() {
         const section = document.getElementById('section-my-shops');
         const list = document.getElementById('my-shops-list');
         try {
-            const json = await callApi(`get-shops.php`);
+            const json = await callApi('get-shops.php');
             const shops = json.data.shops;
+            myShops = shops;
             if (!shops.length) {
                 section.classList.add('hidden');
-                return;
+                return shops;
             }
             section.classList.remove('hidden');
             list.innerHTML = shops.map(s => `
@@ -243,19 +255,34 @@
             list.querySelectorAll('button[data-shop-id]').forEach(btn => {
                 btn.addEventListener('click', () => openShop(Number(btn.dataset.shopId)));
             });
+            return shops;
         } catch (err) {
             console.error('Lỗi load cửa hàng của tôi:', err);
+            myShops = [];
             section.classList.remove('hidden');
             list.innerHTML = `<div class="error-box">❌ ${escapeHtml(err.message)}</div>`;
+            return [];
         }
     }
 
-    // Mở khu vực quản lý kho của 1 cửa hàng
+    // Tìm shop_id của cửa hàng đang đứng trên một mặt bằng (từ danh sách cửa hàng của tôi)
+    function findShopIdByProperty(propertyId) {
+        const shop = myShops.find(s => Number(s.property_id) === Number(propertyId));
+        return shop ? toId(shop.shop_id) : null;
+    }
+
+    // Mở khu vực quản lý kho của 1 cửa hàng. Trả về true nếu tải được kho.
     async function openShop(shopId) {
-        currentShopId = shopId;
-        document.getElementById('section-inventory').classList.remove('hidden');
-        await loadShopProducts(shopId);
-        document.getElementById('section-inventory').scrollIntoView({ behavior: 'smooth' });
+        const id = toId(shopId);
+        if (id === null) return false;
+
+        currentShopId = id;
+        const section = document.getElementById('section-inventory');
+        section.classList.remove('hidden');
+        const loaded = await loadShopProducts(id);
+        // Chỉ cuộn khi kho của đúng cửa hàng này đã hiện ra (không bị lần mở khác ghi đè)
+        if (loaded) section.scrollIntoView({ behavior: 'smooth' });
+        return loaded;
     }
 
     // 1. Lấy loại hình kinh doanh (GET api/business-types.php)
@@ -337,31 +364,45 @@
             await openShop(json.data.shop_id);
         } catch (err) {
             console.error('Lỗi tạo cửa hàng:', err);
-            showToast('Lỗi: ' + err.message, false);
-            // Mặt bằng đã có cửa hàng (409): mở luôn kho của cửa hàng đó nếu là của mình
-            if (err.status === 409 && err.data && err.data.shop_id) {
-                await loadMyShops();
-                await openShop(err.data.shop_id);
+
+            // 409 = mặt bằng đã có cửa hàng. Đây không phải lỗi cần dọa người chơi:
+            // tìm cửa hàng đó (ưu tiên shop_id server trả về, nếu không có thì tra theo property_id
+            // trong danh sách cửa hàng của tôi) rồi mở thẳng kho của nó.
+            if (err.status === 409) {
+                await loadMyShops(); // làm mới danh sách trước để bước tra cứu dự phòng có dữ liệu mới
+                const existingId = toId(err.data && err.data.shop_id) || findShopIdByProperty(RENTED_PROPERTY_ID);
+                if (existingId) {
+                    showToast('Mặt bằng này đã có cửa hàng — đang mở kho hàng.', true);
+                    document.getElementById('create-shop-form').classList.add('hidden');
+                    await openShop(existingId);
+                    return; // finally bên dưới vẫn chạy
+                }
             }
+
+            showToast('Lỗi: ' + err.message, false);
         } finally {
+            // Luôn mở lại nút, dù thành công, lỗi 409 hay lỗi bất kỳ
             btn.disabled = false;
         }
     }
 
-    // 3. Load sản phẩm và tồn kho (GET api/get-shop-products.php)
+    // 3. Load sản phẩm và tồn kho (GET api/get-shop-products.php). Trả về true nếu tải xong.
     async function loadShopProducts(shopId) {
+        const requestId = ++shopLoadSeq;
         const tbody = document.getElementById('inventory-table-body');
         tbody.innerHTML = '<tr><td colspan="6">Đang tải sản phẩm...</td></tr>';
 
         try {
             const json = await callApi(`get-shop-products.php?shop_id=${encodeURIComponent(shopId)}`);
+            if (requestId !== shopLoadSeq) return false; // đã có lần tải mới hơn, bỏ kết quả cũ
+
             const products = json.data.products;
             setBalance(json.data.balance);
             document.getElementById('current-shop-title').textContent = `2. Quản Lý Kho Hàng: ${json.data.shop.name}`;
 
             if (!products.length) {
                 tbody.innerHTML = '<tr><td colspan="6">Loại hình này chưa có sản phẩm nào trong database.</td></tr>';
-                return;
+                return true;
             }
 
             tbody.innerHTML = products.map(p => `
@@ -389,9 +430,12 @@
                 inp.addEventListener('input', refreshRowTotals);
             });
             refreshRowTotals();
+            return true;
         } catch (err) {
+            if (requestId !== shopLoadSeq) return false;
             console.error('Lỗi load sản phẩm:', err);
             tbody.innerHTML = `<tr><td colspan="6"><div class="error-box">❌ ${escapeHtml(err.message)}</div></td></tr>`;
+            return false;
         }
     }
 
@@ -433,13 +477,14 @@
             return;
         }
 
+        const shopId = currentShopId;
         if (btn) btn.disabled = true;
         try {
             const json = await callApi('purchase-inventory.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    shop_id: currentShopId,
+                    shop_id: shopId,
                     product_id: Number(productId),
                     quantity: qty,
                     selling_price: sellingPrice
@@ -452,6 +497,10 @@
             console.error('Lỗi nhập hàng:', err);
             showToast('Lỗi: ' + err.message, false);
             if (err.data && err.data.balance !== undefined) setBalance(err.data.balance);
+        } finally {
+            // Luôn mở lại nút (sau khi tải lại bảng, nút cũ đã bị thay thế nên dòng này vô hại),
+            // rồi áp lại quy tắc khóa theo số dư / số lượng hiện tại.
+            if (btn) btn.disabled = false;
             refreshRowTotals();
         }
     }
@@ -460,8 +509,14 @@
     const logoutBtn = document.getElementById('btn-logout');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
-            try { await fetch('api/auth/logout.php', { method: 'POST' }); } catch(e) {}
-            window.location.href = 'login.html';
+            logoutBtn.disabled = true;
+            try {
+                await fetch(API_BASE + 'auth/logout.php', { method: 'POST' });
+            } catch (e) {
+                // Mất mạng vẫn cho về trang đăng nhập
+            } finally {
+                window.location.href = 'login.html';
+            }
         });
     }
 </script>

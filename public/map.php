@@ -1,11 +1,31 @@
 <?php
-// Auth guard: chuyển về login nếu chưa đăng nhập
-session_start(['cookie_httponly' => true, 'cookie_samesite' => 'Lax']);
-if (empty($_SESSION['user_id'])) {
+// Auth guard: dùng CÙNG cấu hình session với login/register (lib/auth_session.php)
+// và CÙNG cách kiểm tra user_id với getCurrentUserId() (lib/shop_helpers.php): phải là số nguyên dương.
+// Không require shop_helpers.php ở đây vì nó kéo theo db.php (kết nối MySQL + header JSON) — trang HTML không cần.
+require_once dirname(__DIR__) . '/lib/auth_session.php';
+
+// Trang đã đăng nhập: không cho trình duyệt giữ bản cache (tránh bấm Back vẫn thấy bản đồ sau khi đăng xuất)
+header('Cache-Control: no-store');
+
+$currentUserId = null;
+// Không có cookie phiên thì khỏi mở session (không tạo session rỗng cho khách vãng lai)
+if (isset($_COOKIE[session_name()])) {
+    // read_and_close: chỉ đọc rồi nhả khóa file session ngay, để các API gọi song song từ trang này không bị xếp hàng
+    if (session_start(authSessionOptions() + ['read_and_close' => true])) {
+        $rawUserId = $_SESSION['user_id'] ?? null;
+        // Chỉ nhận int/string số (bool, mảng... bị loại) và phải >= 1
+        if (is_int($rawUserId) || is_string($rawUserId)) {
+            $validUserId = filter_var($rawUserId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if ($validUserId !== false) {
+                $currentUserId = $validUserId;
+            }
+        }
+    }
+}
+if ($currentUserId === null) {
     header('Location: login.html');
     exit;
 }
-$currentUserId = (int)$_SESSION['user_id'];
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -227,8 +247,12 @@ let businessTypes=[
 let selectedBusinessType=null;
 const API='api/';
 
+/* Chưa đăng nhập / phiên hết hạn -> về trang đăng nhập (một chỗ duy nhất để mọi nơi dùng chung) */
+const goLogin=()=>{location.href='login.html'};
+
 const apiJson=async(path,opt)=>{
  let r;try{r=await fetch(API+path,opt)}catch(e){throw new Error('Không kết nối được server')}
+ if(r.status===401){goLogin();throw new Error('Bạn chưa đăng nhập')} /* server là nơi quyết định: 401 = hết phiên */
  const j=await r.json().catch(()=>null);
  if(!j)throw new Error('Server không trả về JSON (HTTP '+r.status+')');
  if(!j.success)throw new Error(j.message||'Lỗi API');
@@ -257,6 +281,13 @@ rows.forEach(r=>xs.forEach((x,c)=>{
  const status='available'; // trạng thái ban đầu: tất cả available, API sẽ override sau
  lots.push({id:lots.length+1,code:r.letter+(c+1),x,y:r.y,w:170,h:r.h,face:r.face,traffic,area,price,status});
 }));
+
+/* Tra cứu mặt bằng theo ID (khớp property_id của server) — KHÔNG suy ra từ chỉ số mảng (property_id - 1).
+   Nếu sau này id không còn liên tục 1..N hoặc thứ tự mảng đổi, việc khớp vẫn đúng.
+   Trả về chỉ số trong `lots`, hoặc undefined nếu server gửi id không có trên bản đồ. */
+const lotIndexById=new Map(lots.map((l,i)=>[l.id,i]));
+const lotIndexOf=pid=>{const n=Number(pid);return Number.isInteger(n)?lotIndexById.get(n):undefined};
+
 const loadDesigns=()=>JSON.parse(localStorage.getItem('startupStreetDesigns')||'{}');
 const saveDesigns=d=>localStorage.setItem('startupStreetDesigns',JSON.stringify(d));
 const d0=loadDesigns();
@@ -388,7 +419,7 @@ function closePanel(){open=-1;panel.style.display='none'}
 function updateMoney(){moneyEl.textContent=balance===null?'…':fmt(balance)}
 async function refreshBalance(){
  try{balance=Number((await apiJson('get-balance.php')).data.balance);updateMoney()}
- catch(e){/* giữ nguyên số đang hiển thị, không tự đoán số dư */}}
+ catch(e){/* giữ nguyên số đang hiển thị, không tự đoán số dư (401 đã được apiJson chuyển về trang đăng nhập) */}}
 $('close').addEventListener('click',closePanel);
 
 $('business-type-select').addEventListener('change',ev=>{
@@ -558,10 +589,12 @@ fetch('api/business-types.php').then(r=>r.json()).then(data=>{
 
 updateMoney();refreshBalance();window.addEventListener('focus',refreshBalance);updateFacadePreview();
 // Bước 1: Lấy tất cả mặt bằng đã có người thuê (is_mine = true/false) để tô màu đúng
+// Khớp theo ID (lotIndexOf), không dùng property_id - 1. ID lạ (không có trên bản đồ) bị bỏ qua.
 apiJson('get-occupied-properties.php').then(res=>{
  const designs=loadDesigns();
  res.data.properties.forEach(p=>{
-  const i=Number(p.property_id)-1,l=lots[i];if(!l)return;
+  const i=lotIndexOf(p.property_id);if(i===undefined)return;
+  const l=lots[i];
   l.status=p.is_mine?'mine':'owned';
   els[i].setAttribute('class','lot '+l.status+(i===near?' near':''));
   refreshSign(i,designs);
@@ -569,10 +602,12 @@ apiJson('get-occupied-properties.php').then(res=>{
 }).catch(()=>{});
 
 // Bước 2: Lấy thông tin chi tiết cửa hàng của chính người chơi (shop_id, business_type, v.v.)
+// Cũng khớp theo ID: lot.id === shop.property_id.
 apiJson('get-shops.php').then(res=>{
  const designs=loadDesigns();let changed=false;
  res.data.shops.forEach(s=>{
-  const i=Number(s.property_id)-1,l=lots[i];if(!l)return;
+  const i=lotIndexOf(s.property_id);if(i===undefined)return;
+  const l=lots[i];
   l.status='mine'; // khẳng định lại
   const d=designs[l.code]||(designs[l.code]={lotCode:l.code,propertyPrice:l.price,facadeColor:styleOf(Number(s.business_type_id)).body,awningColor:'#f4c95d',decor:'plants'});
   Object.assign(d,{rented:true,shopId:Number(s.shop_id),businessTypeId:Number(s.business_type_id),businessTypeName:s.business_type_name});
@@ -589,12 +624,16 @@ follow(0,true);requestAnimationFrame(frame);
 /* ---- đăng xuất ---- */
 async function doLogout(){
  try{await fetch('api/auth/logout.php',{method:'POST'})}catch(e){}
- location.href='login.html';
+ goLogin();
 }
 
-/* ---- hiển thị tên người dùng trên HUD ---- */
-fetch('api/auth/me.php').then(r=>r.json()).then(d=>{
- if(!d.success){location.href='login.html';return}
+/* ---- hiển thị tên người dùng trên HUD (đồng thời xác minh phiên phía client) ---- */
+fetch('api/auth/me.php').then(r=>{
+ if(r.status===401){goLogin();return null}
+ return r.json();
+}).then(d=>{
+ if(!d)return;
+ if(!d.success){goLogin();return}
  const el=document.getElementById('hud-username');
  if(el)el.textContent=(d.data.profile?.display_name)||d.data.username;
 }).catch(()=>{});

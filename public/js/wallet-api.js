@@ -5,6 +5,11 @@
 //
 // Quy tắc: tiền + tồn kho thật nằm ở MySQL. Ở đây chỉ GỌI API rồi vẽ lại kết quả server trả về.
 // Phần còn lại của game.js (feed, toast, feedback, báo cáo) giữ nguyên — ta bọc/ghi đè đúng các hàm đụng tới tiền.
+//
+// Hai chế độ:
+//  - Có shop_id trên URL  -> chế độ THẬT: mọi đơn bán / nhập hàng đi qua API, server quyết định tiền và kho.
+//  - Không có shop_id     -> chế độ DEMO: đơn chạy hoàn toàn cục bộ bằng game.js (không gọi API, không đụng MySQL,
+//                            không đổi số dư thật). Chỉ để thử giao diện / mô phỏng.
 // ==============================================================
 (function () {
   const q = new URLSearchParams(location.search);
@@ -13,6 +18,7 @@
   const MAX_STOCK = 40; // khớp mức "đầy kho" trong game.js
 
   let walletBalance = null; // bản sao số dư server, chỉ để hiển thị
+  let demoWarned = false;
 
   // ── Gọi API: luôn trả { success, message, data } hoặc ném lỗi có status/data ──
   async function api(path, opt) {
@@ -22,7 +28,7 @@
     const json = await res.json().catch(() => null);
     if (!json) throw new Error('Server không trả về JSON (HTTP ' + res.status + ')');
     if (!json.success) {
-      const err = new Error(json.message || 'Lỗi API');
+      const err = new Error(res.status === 401 ? 'Bạn chưa đăng nhập' : (json.message || 'Lỗi API'));
       err.status = res.status;
       err.data = json.data;
       throw err;
@@ -53,10 +59,17 @@
     document.getElementById('hud-reputation').textContent = GameState.reputation + '★';
   };
 
+  // Nhắc 1 lần (lúc có đơn đầu tiên) rằng đang ở chế độ demo, tránh người chơi tưởng tiền được lưu
+  function warnDemoOnce() {
+    if (demoWarned) return;
+    demoWarned = true;
+    showToast('🧪', 'Chế độ demo: chưa có shop_id nên đơn chỉ chạy cục bộ, KHÔNG ghi vào MySQL.');
+  }
+
   // ── Nạp sản phẩm / tồn kho / giá từ MySQL (khớp theo tên món) ──
   async function loadShop() {
     if (!SHOP_ID) {
-      showToast('⚠️', 'Thiếu shop_id trên URL. Mở: index.html?user_id=1&shop_id=<id cửa hàng>');
+      showToast('⚠️', 'Thiếu shop_id trên URL nên đang ở chế độ demo. Mở: startup-street-ui.html?shop_id=<id cửa hàng>');
       paintBalance();
       return;
     }
@@ -82,10 +95,11 @@
   // Bọc hàm gốc: gọi server TRƯỚC, thành công mới cho game.js ghi feed/feedback/ledger như cũ.
   const originalProcess = window.processIncomingOrder;
 
+  // Chế độ thật (đã có SHOP_ID). Chế độ demo không đi qua hàm này.
   async function doSale(productId) {
     const product = Products.find(p => p.id === productId);
     if (!product) return false;
-    if (!SHOP_ID || !product.dbId) {
+    if (!product.dbId) {
       showToast('⚠️', 'Món này chưa liên kết với kho trong MySQL.');
       return false;
     }
@@ -113,8 +127,15 @@
   // Xếp hàng các đơn (giờ cao điểm bắn liên tục) để kết quả server được áp dụng đúng thứ tự
   let chain = Promise.resolve();
   window.processIncomingOrder = function (productId) {
-    chain = chain.then(() => doSale(productId));
-    return chain;
+    // Không có shop_id → chế độ demo: chạy thẳng logic cục bộ của game.js, không gọi API.
+    if (!SHOP_ID) {
+      warnDemoOnce();
+      return originalProcess(productId);
+    }
+    const run = chain.then(() => doSale(productId));
+    // Nếu 1 đơn ném lỗi bất ngờ, hàng đợi vẫn đi tiếp thay vì kẹt vĩnh viễn ở trạng thái rejected
+    chain = run.catch(() => false);
+    return run;
   };
 
   // ── NHẬP HÀNG: dùng purchase-inventory.php (server trừ ví + cộng kho trong 1 transaction) ──
@@ -163,6 +184,6 @@
   const originalEndDay = window.endDayAndSettle;
   window.endDayAndSettle = function () {
     originalEndDay();
-    syncBalance();
+    if (SHOP_ID) syncBalance(); // demo: không có số dư server để đồng bộ
   };
 })();

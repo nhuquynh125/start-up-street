@@ -25,6 +25,7 @@
   --font:'Baloo 2','Nunito',system-ui,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
 html,body{height:100%;font-family:var(--font);background:var(--bg-main);color:var(--ink)}
 button,input,select{font-family:inherit;cursor:pointer}
 :focus-visible{outline:3px solid #ffb703;outline-offset:2px}
@@ -33,12 +34,14 @@ button,input,select{font-family:inherit;cursor:pointer}
 .hud{position:fixed;top:0;left:0;right:0;height:54px;background:var(--paper);
   border-bottom:4px solid var(--wood);z-index:100;
   display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:12px}
-.hud-logo{font-weight:800;font-size:17px;color:var(--wood-dark);display:flex;align-items:center;gap:8px}
-.hud-stats{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.hud-logo{font-weight:800;font-size:17px;color:var(--wood-dark);display:flex;align-items:center;gap:8px;white-space:nowrap}
+.hud-stats{display:flex;gap:10px;align-items:center;flex-wrap:nowrap;overflow:hidden}
 .hud-pill{background:var(--cream);border:3px solid var(--wood);border-radius:12px;
   padding:3px 12px;font-weight:800;font-size:14px;white-space:nowrap}
 .hud-pill .label{font-weight:600;opacity:.75;font-size:12px;margin-right:4px}
 #hud-balance{color:var(--accent-green)}
+.shop-select{max-width:220px;border:3px solid var(--wood);border-radius:12px;padding:3px 10px;
+  font-weight:700;font-size:13px;background:var(--cream);color:var(--ink)}
 .hud-actions{display:flex;gap:8px}
 .btn-hud{border:3px solid var(--wood-dark);border-radius:10px;padding:4px 12px;
   font-weight:800;font-size:13px;background:var(--wood);color:#fff;
@@ -87,6 +90,13 @@ button,input,select{font-family:inherit;cursor:pointer}
 /* ── Content area ── */
 .content{overflow-y:auto;display:flex;flex-direction:column}
 
+/* Thông báo cửa hàng (chưa có shop, shop không hợp lệ, menu không khớp) */
+.notice{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 16px;font-weight:700;font-size:14px;
+  border-bottom:3px solid var(--wood);background:var(--bg-highlight)}
+.notice.warn{background:#fff0c9;color:#6b4a08;border-bottom-color:var(--accent-orange)}
+.notice.error{background:#fde0dc;color:#8a2a2a;border-bottom-color:var(--no)}
+.notice a{color:inherit;text-decoration:underline;font-weight:800}
+
 /* Nav tabs */
 .tab-nav{display:flex;gap:0;background:var(--wood);border-bottom:4px solid var(--wood-dark)}
 .nav-tab{flex:1;border:none;background:transparent;color:rgba(255,255,255,.7);
@@ -105,6 +115,7 @@ button,input,select{font-family:inherit;cursor:pointer}
 .panel-title{font-size:16px;font-weight:800;color:var(--wood-dark);margin-bottom:12px;
   display:flex;align-items:center;gap:8px}
 .panel-title::after{content:'';flex:1;height:2px;background:var(--line-light);border-radius:1px}
+.tab-note{font-size:12px;font-weight:600;opacity:.75;margin:-4px 0 12px;line-height:1.5}
 
 /* Inventory table */
 table{width:100%;border-collapse:collapse;font-size:13px}
@@ -168,7 +179,12 @@ tr:hover td{background:var(--bg-highlight)}
 @keyframes slideIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
 
 /* Responsive */
+@media(max-width:900px){
+  .hud-stats .hud-pill:nth-child(3){display:none}
+}
 @media(max-width:700px){
+  .hud-logo .name{display:none}
+  .shop-select{max-width:130px}
   .main{grid-template-columns:1fr;grid-template-rows:auto 1fr}
   .sidebar{flex-direction:row;flex-wrap:wrap;border-right:none;border-bottom:4px solid var(--wood);
     height:auto;overflow-x:auto;padding:10px;gap:8px}
@@ -180,18 +196,21 @@ tr:hover td{background:var(--bg-highlight)}
 </head>
 <body>
 
+<noscript>Trang này cần bật JavaScript để chạy mô phỏng.</noscript>
+
 <!-- HUD -->
 <header class="hud">
-  <div class="hud-logo">🏙️ Startup Street</div>
+  <div class="hud-logo">🏙️ <span class="name">Startup Street</span></div>
   <div class="hud-stats">
     <div class="hud-pill"><span class="label">Ngày</span><span id="hud-day">1</span></div>
     <div class="hud-pill"><span class="label">Ví</span><strong id="hud-balance">…</strong></div>
     <div class="hud-pill"><span class="label">Uy tín</span><span id="hud-reputation">100★</span></div>
+    <select id="shop-select" class="shop-select" aria-label="Chọn cửa hàng" hidden></select>
   </div>
   <div class="hud-actions">
-    <button class="btn-hud" onclick="location.href='map.php'">🗺️ Bản đồ</button>
-    <button class="btn-hud" onclick="location.href='business-management.html'">🏬 Kho hàng</button>
-    <button class="btn-hud red" onclick="doLogout()">🚪</button>
+    <button class="btn-hud" type="button" onclick="location.href='map.php'">🗺️ Bản đồ</button>
+    <button class="btn-hud" type="button" id="btn-inventory">🏬 Kho hàng</button>
+    <button class="btn-hud red" type="button" onclick="doLogout()" aria-label="Đăng xuất">🚪</button>
   </div>
 </header>
 
@@ -202,7 +221,7 @@ tr:hover td{background:var(--bg-highlight)}
 
     <!-- Today snapshot -->
     <div class="sidebar-section">
-      <h3>📊 Hôm nay — <span id="today-day-label">Ngày 1</span></h3>
+      <h3>📊 Hôm nay — Ngày <span id="today-day-label">1</span></h3>
       <div class="mini-stats">
         <div class="mini-stat"><div class="mval" id="today-order-count">0</div><div class="mlb">Đơn bán</div></div>
         <div class="mini-stat"><div class="mval" id="today-revenue" style="font-size:14px">0đ</div><div class="mlb">Doanh thu</div></div>
@@ -221,9 +240,9 @@ tr:hover td{background:var(--bg-highlight)}
     <!-- Controls -->
     <div class="sidebar-section">
       <h3>⚙️ Điều khiển</h3>
-      <button class="rush-btn" onclick="simulateRushHour(8)">⚡ Giờ cao điểm (8 khách)</button>
-      <button class="restock-btn" style="margin-top:8px" onclick="restockAllProducts()">📦 Nhập hàng đầy kho</button>
-      <button class="end-day-btn" onclick="endDayAndSettle()">🌙 Chốt ca / Kết thúc ngày</button>
+      <button class="rush-btn" type="button" onclick="simulateRushHour(8)">⚡ Giờ cao điểm (8 khách)</button>
+      <button class="restock-btn" type="button" style="margin-top:8px" onclick="restockAllProducts()">📦 Nhập hàng đầy kho</button>
+      <button class="end-day-btn" type="button" onclick="endDayAndSettle()">🌙 Chốt ca / Kết thúc ngày</button>
     </div>
 
   </aside>
@@ -231,13 +250,16 @@ tr:hover td{background:var(--bg-highlight)}
   <!-- CONTENT -->
   <div class="content">
 
+    <!-- Thông báo về cửa hàng đang mở -->
+    <div id="shop-notice" class="notice" role="status" hidden></div>
+
     <!-- Nav Tabs -->
     <nav class="tab-nav" role="tablist">
-      <button class="nav-tab active" role="tab" onclick="switchTab('live', event)">📋 Hoạt động</button>
-      <button class="nav-tab" role="tab" onclick="switchTab('inventory', event)">📦 Kho hàng</button>
-      <button class="nav-tab" role="tab" onclick="switchTab('report', event)">📅 Báo cáo ngày</button>
-      <button class="nav-tab" role="tab" onclick="switchTab('finance', event)">💰 Tài chính</button>
-      <button class="nav-tab" role="tab" onclick="switchTab('ledger', event)">📒 Sổ cái</button>
+      <button class="nav-tab active" type="button" role="tab" onclick="switchTab('live', event)">📋 Hoạt động</button>
+      <button class="nav-tab" type="button" role="tab" onclick="switchTab('inventory', event)">📦 Kho hàng</button>
+      <button class="nav-tab" type="button" role="tab" onclick="switchTab('report', event)">📅 Báo cáo ngày</button>
+      <button class="nav-tab" type="button" role="tab" onclick="switchTab('finance', event)">💰 Tài chính</button>
+      <button class="nav-tab" type="button" role="tab" onclick="switchTab('ledger', event)">📒 Sổ cái</button>
     </nav>
 
     <div class="tab-content">
@@ -256,20 +278,22 @@ tr:hover td{background:var(--bg-highlight)}
       <div class="tab-panel" id="tab-inventory">
         <div class="panel-card">
           <div class="panel-title">📦 Tồn kho hiện tại</div>
-          <table>
-            <thead>
-              <tr>
-                <th>Sản phẩm</th>
-                <th>Giá vốn</th>
-                <th>Giá bán</th>
-                <th>Tồn kho</th>
-                <th>Đã bán</th>
-              </tr>
-            </thead>
-            <tbody id="inventory-table-body">
-              <tr><td colspan="5" style="text-align:center;padding:20px;opacity:.6">Đang tải...</td></tr>
-            </tbody>
-          </table>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Sản phẩm</th>
+                  <th>Giá vốn</th>
+                  <th>Giá bán</th>
+                  <th>Tồn kho</th>
+                  <th>Đã bán</th>
+                </tr>
+              </thead>
+              <tbody id="inventory-table-body">
+                <tr><td colspan="5" style="text-align:center;padding:20px;opacity:.6">Đang tải...</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -291,6 +315,7 @@ tr:hover td{background:var(--bg-highlight)}
 
       <!-- TAB: Finance Dashboard -->
       <div class="tab-panel" id="tab-finance">
+        <p class="tab-note">Doanh thu, chi phí và lợi nhuận được tính trong phiên này và sẽ mất khi tải lại trang. Số dư ví là số dư thật lưu trên server. Chi phí cố định (mặt bằng, lương, điện nước) mới chỉ nằm trong báo cáo, chưa trừ vào ví.</p>
         <div class="stat-grid">
           <div class="stat-card">
             <div class="stat-label">Tổng doanh thu</div>
@@ -314,11 +339,11 @@ tr:hover td{background:var(--bg-highlight)}
         <div class="chart-row">
           <div class="chart-box">
             <h4>📈 Doanh thu vs Chi phí theo ngày</h4>
-            <div class="chart-wrap"><canvas id="chart-finance-trend"></canvas></div>
+            <div class="chart-wrap"><canvas id="chart-finance-trend" role="img" aria-label="Biểu đồ doanh thu và chi phí theo ngày"></canvas></div>
           </div>
           <div class="chart-box">
             <h4>🍩 Cơ cấu chi phí</h4>
-            <div class="chart-wrap"><canvas id="chart-expense-donut"></canvas></div>
+            <div class="chart-wrap"><canvas id="chart-expense-donut" role="img" aria-label="Biểu đồ cơ cấu chi phí"></canvas></div>
           </div>
         </div>
       </div>
@@ -327,6 +352,7 @@ tr:hover td{background:var(--bg-highlight)}
       <div class="tab-panel" id="tab-ledger">
         <div class="panel-card">
           <div class="panel-title">📒 Sổ cái giao dịch</div>
+          <p class="tab-note">Sổ cái này chỉ ghi các giao dịch của phiên hiện tại. Lịch sử thuê mặt bằng và nhập hàng được lưu ở server trong bảng giao dịch.</p>
           <div style="overflow-x:auto">
             <table>
               <thead>
@@ -351,7 +377,84 @@ tr:hover td{background:var(--bg-highlight)}
 </div><!-- end main -->
 
 <!-- Toast container -->
-<div id="toast-container"></div>
+<div id="toast-container" role="status" aria-live="polite"></div>
+
+<!-- Xác định cửa hàng đang xem: chạy TRƯỚC wallet-api.js vì file đó đọc shop_id từ URL ngay khi nạp -->
+<script>
+(function () {
+  const currentId = Number(new URL(location.href).searchParams.get('shop_id')) || null;
+  const sel = document.getElementById('shop-select');
+  const notice = document.getElementById('shop-notice');
+
+  // Nút Kho hàng mở đúng cửa hàng đang xem
+  document.getElementById('btn-inventory').addEventListener('click', () => {
+    location.href = 'business-management.html' + (currentId ? '?shop_id=' + currentId : '');
+  });
+
+  function showNotice(kind, text, href, linkText) {
+    notice.className = 'notice ' + kind;
+    notice.textContent = text;
+    if (href) {
+      notice.append(' ');
+      const a = document.createElement('a');
+      a.href = href;
+      a.textContent = linkText;
+      notice.append(a);
+    }
+    notice.hidden = false;
+  }
+
+  function goToShop(id, replace) {
+    const u = new URL(location.href);
+    u.searchParams.set('shop_id', id);
+    if (replace) location.replace(u.toString()); else location.href = u.toString();
+  }
+
+  sel.addEventListener('change', () => { if (sel.value) goToShop(sel.value, false); });
+
+  fetch('api/get-shops.php')
+    .then(async r => ({ status: r.status, json: await r.json().catch(() => null) }))
+    .then(({ status, json }) => {
+      if (status === 401) { location.replace('login.html'); return; }
+      if (!json || !json.success) throw new Error((json && json.message) || 'Không tải được danh sách cửa hàng.');
+
+      const shops = json.data.shops;
+      if (!shops.length) {
+        showNotice('warn', 'Bạn chưa có cửa hàng nào. Hãy thuê mặt bằng và mở cửa hàng trên bản đồ.', 'map.php', 'Mở bản đồ');
+        return;
+      }
+      // Không có shop_id trên URL: mở cửa hàng đầu tiên của người chơi
+      if (!currentId) { goToShop(shops[0].shop_id, true); return; }
+
+      sel.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = '– Chọn cửa hàng –';
+      sel.append(placeholder);
+      shops.forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.shop_id;
+        o.textContent = s.name + ' (' + s.business_type_name + ')';
+        sel.append(o);
+      });
+      sel.hidden = false;
+
+      const shop = shops.find(s => Number(s.shop_id) === currentId);
+      if (!shop) {
+        sel.value = '';
+        showNotice('error', 'Không tìm thấy cửa hàng #' + currentId + ' trong danh sách của bạn. Hãy chọn một cửa hàng ở thanh trên.');
+        return;
+      }
+      sel.value = String(shop.shop_id);
+
+      // Menu trong game.js hiện chỉ có đồ uống (loại hình id = 1)
+      if (Number(shop.business_type_id) !== 1) {
+        showNotice('warn', 'Màn hình bán hàng hiện chỉ hỗ trợ menu "Trà sữa & đồ uống". Cửa hàng "' + shop.business_type_name + '" chưa bán được ở đây, bạn vẫn nhập hàng được ở trang Kho hàng.');
+      }
+    })
+    .catch(err => showNotice('error', err.message));
+})();
+</script>
 
 <!-- Scripts: game.js TRƯỚC, wallet-api.js SAU -->
 <script src="js/game.js"></script>
@@ -363,6 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof Products !== 'undefined' && orderButtons) {
     Products.forEach(p => {
       const btn = document.createElement('button');
+      btn.type = 'button';
       btn.className = 'order-btn';
       btn.id = 'btn-order-' + p.id;
       btn.innerHTML = `${p.emoji} ${p.name} <span style="font-size:0.75rem;color:var(--line-medium)">[Còn ${p.stock}]</span>`;
@@ -371,10 +475,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // today-day-label phải sync với GameState.day
+  // Nhãn "Ngày N": game.js cập nhật chỉ phần số sau khi chốt ca
   const dayLabel = document.getElementById('today-day-label');
   if (dayLabel && typeof GameState !== 'undefined') {
-    dayLabel.textContent = 'Ngày ' + GameState.day;
+    dayLabel.textContent = GameState.day;
   }
 });
 
