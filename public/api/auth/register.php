@@ -50,6 +50,7 @@ try {
     if (session_status() === PHP_SESSION_NONE) {
         session_start(['cookie_httponly' => true, 'cookie_samesite' => 'Lax']);
     }
+    session_regenerate_id(true);
     $_SESSION['user_id'] = $userId;
 
     apiRespond(true, "Đăng ký thành công! Chào mừng " . $username . " đến Startup Street.", [

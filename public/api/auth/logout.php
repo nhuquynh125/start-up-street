@@ -2,7 +2,7 @@
 // POST api/auth/logout.php
 require_once dirname(__DIR__, 3) . '/lib/shop_helpers.php';
 
-header('Content-Type: application/json; charset=utf-8');
+requireMethod('POST');
 if (session_status() === PHP_SESSION_NONE) {
     session_start(['cookie_httponly' => true, 'cookie_samesite' => 'Lax']);
 }

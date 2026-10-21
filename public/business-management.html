@@ -341,6 +341,7 @@
             // Mặt bằng đã có cửa hàng (409): mở luôn kho của cửa hàng đó nếu là của mình
             if (err.status === 409 && err.data && err.data.shop_id) {
                 await loadMyShops();
+                await openShop(err.data.shop_id);
             }
         } finally {
             btn.disabled = false;

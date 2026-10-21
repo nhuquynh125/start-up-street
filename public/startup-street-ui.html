@@ -3,11 +3,391 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Startup Street</title>
-<meta http-equiv="refresh" content="0;url=login.html">
-<script>window.location.replace('login.html');</script>
+<title>Startup Street — Mô phỏng kinh doanh</title>
+<meta name="description" content="Dashboard mô phỏng bán hàng, quản lý kho, báo cáo tài chính Startup Street.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --wood-darker:#2d1e0a; --wood-dark:#4a2a16; --wood:#8a5a3b; --wood-medium:#b9835a; --wood-light:#d4a874;
+  --paper:#f7e8c8; --paper-dark:#e6cb98; --cream:#fff6dd;
+  --sky:#bfe3f5; --grass:#cfe0bd; --leaf:#4f8f3a;
+  --ok:#6fb23f; --ok-dark:#4c8a26;
+  --no:#d95b4f; --no-dark:#a63a31;
+  --accent-green:#4f8f3a; --accent-red:#d95b4f; --accent-orange:#e8a020; --accent-blue:#4a7bb0;
+  --bg-main:#f0e6c8; --bg-card:#fffbf5; --bg-highlight:#f5edda;
+  --line-light:#e6d8b8; --line-medium:#c8b890;
+  --ink:#4a2a16;
+  --radius-sm:8px; --radius-md:12px; --radius-lg:18px;
+  --shadow-sm:0 2px 8px rgba(74,42,22,.12);
+  --shadow-md:0 4px 16px rgba(74,42,22,.18);
+  --font:'Baloo 2','Nunito',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--font);background:var(--bg-main);color:var(--ink)}
+button,input,select{font-family:inherit;cursor:pointer}
+:focus-visible{outline:3px solid #ffb703;outline-offset:2px}
+
+/* ── HUD ── */
+.hud{position:fixed;top:0;left:0;right:0;height:54px;background:var(--paper);
+  border-bottom:4px solid var(--wood);z-index:100;
+  display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:12px}
+.hud-logo{font-weight:800;font-size:17px;color:var(--wood-dark);display:flex;align-items:center;gap:8px}
+.hud-stats{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.hud-pill{background:var(--cream);border:3px solid var(--wood);border-radius:12px;
+  padding:3px 12px;font-weight:800;font-size:14px;white-space:nowrap}
+.hud-pill .label{font-weight:600;opacity:.75;font-size:12px;margin-right:4px}
+#hud-balance{color:var(--accent-green)}
+.hud-actions{display:flex;gap:8px}
+.btn-hud{border:3px solid var(--wood-dark);border-radius:10px;padding:4px 12px;
+  font-weight:800;font-size:13px;background:var(--wood);color:#fff;
+  box-shadow:0 3px 0 var(--wood-dark);transition:transform .1s,box-shadow .1s}
+.btn-hud:active{transform:translateY(2px);box-shadow:none}
+.btn-hud.red{background:var(--no);border-color:var(--no-dark);box-shadow:0 3px 0 var(--no-dark)}
+
+/* ── Layout ── */
+.main{margin-top:54px;display:grid;grid-template-columns:280px 1fr;height:calc(100vh - 54px);overflow:hidden}
+
+/* ── Sidebar (menu + POS) ── */
+.sidebar{background:var(--paper-dark);border-right:4px solid var(--wood);
+  display:flex;flex-direction:column;overflow-y:auto;padding:14px 10px;gap:10px}
+.sidebar-section{background:var(--cream);border:3px solid var(--wood);border-radius:var(--radius-md);padding:10px}
+.sidebar-section h3{font-size:14px;font-weight:800;color:var(--wood-dark);margin-bottom:10px;
+  display:flex;align-items:center;gap:6px}
+.rush-btn{width:100%;border:3px solid var(--ok-dark);border-radius:var(--radius-md);padding:9px;
+  font-weight:800;font-size:16px;background:var(--ok);color:#fff;
+  box-shadow:0 4px 0 var(--ok-dark);transition:transform .08s,box-shadow .08s}
+.rush-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ok-dark)}
+.rush-btn:disabled{background:#a0c080;border-color:#6a9040;box-shadow:0 4px 0 #6a9040;cursor:not-allowed}
+.end-day-btn{width:100%;border:3px solid var(--no-dark);border-radius:var(--radius-md);padding:9px;
+  font-weight:800;font-size:15px;background:var(--no);color:#fff;
+  box-shadow:0 4px 0 var(--no-dark);margin-top:8px;transition:transform .08s,box-shadow .08s}
+.end-day-btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--no-dark)}
+.restock-btn{width:100%;border:3px solid #b07808;border-radius:var(--radius-md);padding:7px;
+  font-weight:800;font-size:14px;background:#e8a020;color:#fff;
+  box-shadow:0 3px 0 #b07808;transition:transform .08s,box-shadow .08s}
+.restock-btn:active{transform:translateY(2px);box-shadow:none}
+
+/* Nút gọi món */
+.order-btn{width:100%;border:3px solid var(--wood-medium);border-radius:var(--radius-sm);
+  padding:7px 8px;font-weight:700;font-size:13px;background:var(--paper);color:var(--ink);
+  text-align:left;box-shadow:0 2px 0 var(--wood-medium);margin-bottom:5px;
+  transition:background .1s,transform .08s,box-shadow .08s;line-height:1.3}
+.order-btn:hover{background:var(--cream)}
+.order-btn:active{transform:translateY(2px);box-shadow:none}
+
+/* Today mini stats */
+.mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mini-stat{background:var(--bg-highlight);border:2px solid var(--line-medium);border-radius:var(--radius-sm);
+  padding:6px 8px;text-align:center}
+.mini-stat .mval{font-size:18px;font-weight:800;color:var(--wood-dark)}
+.mini-stat .mlb{font-size:10px;font-weight:700;color:var(--ink);opacity:.7;margin-top:2px}
+
+/* ── Content area ── */
+.content{overflow-y:auto;display:flex;flex-direction:column}
+
+/* Nav tabs */
+.tab-nav{display:flex;gap:0;background:var(--wood);border-bottom:4px solid var(--wood-dark)}
+.nav-tab{flex:1;border:none;background:transparent;color:rgba(255,255,255,.7);
+  font-family:var(--font);font-weight:700;font-size:13px;padding:10px 4px;
+  transition:background .15s,color .15s;border-bottom:4px solid transparent;margin-bottom:-4px}
+.nav-tab.active{background:var(--paper-dark);color:var(--wood-dark);border-bottom-color:var(--paper-dark)}
+.nav-tab:hover:not(.active){background:rgba(255,255,255,.15);color:#fff}
+
+.tab-content{flex:1;overflow-y:auto;padding:16px}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── Panel styles ── */
+.panel-card{background:var(--bg-card);border:3px solid var(--wood);border-radius:var(--radius-lg);
+  padding:16px;margin-bottom:14px;box-shadow:var(--shadow-sm)}
+.panel-title{font-size:16px;font-weight:800;color:var(--wood-dark);margin-bottom:12px;
+  display:flex;align-items:center;gap:8px}
+.panel-title::after{content:'';flex:1;height:2px;background:var(--line-light);border-radius:1px}
+
+/* Inventory table */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--wood);color:#fff;padding:8px 10px;text-align:left;font-weight:700;font-size:12px}
+td{padding:8px 10px;border-bottom:1px solid var(--line-light);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg-highlight)}
+.product-emoji{font-size:20px;margin-right:6px}
+.stock-bar{height:5px;background:var(--line-light);border-radius:3px;margin-top:3px;overflow:hidden}
+.stock-bar-fill{height:100%;border-radius:3px;transition:width .3s}
+.stock-high{background:var(--accent-green)}
+.stock-medium{background:var(--accent-orange)}
+.stock-low{background:var(--accent-red)}
+.status-badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.status-badge.open{background:#d4f0bc;color:#2f6012}
+.status-badge.closed{background:#fde0dc;color:#8a2a2a}
+
+/* Activity feed */
+.activity-feed{display:flex;flex-direction:column;gap:4px;max-height:380px;overflow-y:auto;padding-right:4px}
+.activity-item{display:flex;align-items:center;gap:8px;padding:6px 10px;
+  background:var(--bg-highlight);border:1.5px solid var(--line-light);border-radius:var(--radius-sm);font-size:13px}
+.act-time{font-size:11px;color:var(--ink);opacity:.55;min-width:48px;font-weight:600}
+.act-text{flex:1;font-weight:600}
+.act-amount{font-weight:800;white-space:nowrap}
+.act-amount.income{color:var(--accent-green)}
+.act-amount.expense{color:var(--accent-red)}
+.empty-state{text-align:center;padding:30px;color:var(--ink);opacity:.5}
+.empty-icon{font-size:36px;margin-bottom:8px}
+
+/* Dashboard stats */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.stat-card{background:var(--bg-highlight);border:2px solid var(--line-medium);border-radius:var(--radius-md);padding:14px}
+.stat-label{font-size:11px;font-weight:700;color:var(--ink);opacity:.65;text-transform:uppercase;letter-spacing:.5px}
+.stat-value{font-size:22px;font-weight:800;color:var(--wood-dark);margin:4px 0}
+.stat-change{font-size:12px;font-weight:700}
+.stat-change.up{color:var(--accent-green)}
+.stat-change.down{color:var(--accent-red)}
+
+/* Charts */
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.chart-box{background:var(--bg-card);border:3px solid var(--wood);border-radius:var(--radius-md);padding:14px}
+.chart-box h4{font-size:14px;font-weight:800;color:var(--wood-dark);margin-bottom:10px}
+.chart-wrap{height:200px;position:relative}
+
+/* Transaction table */
+.tx-type{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700}
+.tx-type.sale{background:#d4f0bc;color:#2f6012}
+.tx-type.cost{background:#fde0dc;color:#8a2a2a}
+.tx-type.rent{background:#e0d4f8;color:#4a2a8a}
+
+/* Daily report */
+#daily-report-content{font-size:14px}
+#feedback-list{display:flex;flex-direction:column;gap:8px}
+
+/* Toast */
+#toast-container{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column-reverse;gap:8px;z-index:999}
+.toast{background:var(--wood-dark);color:var(--cream);padding:10px 16px;border-radius:var(--radius-md);
+  border:3px solid var(--wood-medium);font-weight:700;font-size:14px;
+  box-shadow:var(--shadow-md);display:flex;align-items:center;gap:10px;
+  animation:slideIn .25s ease-out;max-width:320px}
+@keyframes slideIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+
+/* Responsive */
+@media(max-width:700px){
+  .main{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .sidebar{flex-direction:row;flex-wrap:wrap;border-right:none;border-bottom:4px solid var(--wood);
+    height:auto;overflow-x:auto;padding:10px;gap:8px}
+  .sidebar-section{flex:1;min-width:200px}
+  .chart-row{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
 </head>
 <body>
-<p>Đang chuyển hướng... <a href="login.html">Bấm vào đây nếu không tự chuyển</a></p>
+
+<!-- HUD -->
+<header class="hud">
+  <div class="hud-logo">🏙️ Startup Street</div>
+  <div class="hud-stats">
+    <div class="hud-pill"><span class="label">Ngày</span><span id="hud-day">1</span></div>
+    <div class="hud-pill"><span class="label">Ví</span><strong id="hud-balance">…</strong></div>
+    <div class="hud-pill"><span class="label">Uy tín</span><span id="hud-reputation">100★</span></div>
+  </div>
+  <div class="hud-actions">
+    <button class="btn-hud" onclick="location.href='map.php'">🗺️ Bản đồ</button>
+    <button class="btn-hud" onclick="location.href='business-management.html'">🏬 Kho hàng</button>
+    <button class="btn-hud red" onclick="doLogout()">🚪</button>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- SIDEBAR: POS + Controls -->
+  <aside class="sidebar">
+
+    <!-- Today snapshot -->
+    <div class="sidebar-section">
+      <h3>📊 Hôm nay — <span id="today-day-label">Ngày 1</span></h3>
+      <div class="mini-stats">
+        <div class="mini-stat"><div class="mval" id="today-order-count">0</div><div class="mlb">Đơn bán</div></div>
+        <div class="mini-stat"><div class="mval" id="today-revenue" style="font-size:14px">0đ</div><div class="mlb">Doanh thu</div></div>
+        <div class="mini-stat" style="grid-column:1/-1"><div class="mval" id="today-material-cost" style="font-size:14px">0đ</div><div class="mlb">Chi phí nguyên liệu</div></div>
+      </div>
+    </div>
+
+    <!-- Order panel -->
+    <div class="sidebar-section">
+      <h3>🛎️ Gọi món thủ công</h3>
+      <div id="order-buttons">
+        <!-- Sinh bởi JS (Products array) -->
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="sidebar-section">
+      <h3>⚙️ Điều khiển</h3>
+      <button class="rush-btn" onclick="simulateRushHour(8)">⚡ Giờ cao điểm (8 khách)</button>
+      <button class="restock-btn" style="margin-top:8px" onclick="restockAllProducts()">📦 Nhập hàng đầy kho</button>
+      <button class="end-day-btn" onclick="endDayAndSettle()">🌙 Chốt ca / Kết thúc ngày</button>
+    </div>
+
+  </aside>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- Nav Tabs -->
+    <nav class="tab-nav" role="tablist">
+      <button class="nav-tab active" role="tab" onclick="switchTab('live', event)">📋 Hoạt động</button>
+      <button class="nav-tab" role="tab" onclick="switchTab('inventory', event)">📦 Kho hàng</button>
+      <button class="nav-tab" role="tab" onclick="switchTab('report', event)">📅 Báo cáo ngày</button>
+      <button class="nav-tab" role="tab" onclick="switchTab('finance', event)">💰 Tài chính</button>
+      <button class="nav-tab" role="tab" onclick="switchTab('ledger', event)">📒 Sổ cái</button>
+    </nav>
+
+    <div class="tab-content">
+
+      <!-- TAB: Live Activity -->
+      <div class="tab-panel active" id="tab-live">
+        <div class="panel-card">
+          <div class="panel-title">📝 Nhật ký hoạt động</div>
+          <div class="activity-feed" id="activity-feed">
+            <div class="empty-state"><div class="empty-icon">☕</div><p>Chưa có giao dịch. Bấm <b>Giờ cao điểm</b> để bắt đầu!</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Inventory -->
+      <div class="tab-panel" id="tab-inventory">
+        <div class="panel-card">
+          <div class="panel-title">📦 Tồn kho hiện tại</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Sản phẩm</th>
+                <th>Giá vốn</th>
+                <th>Giá bán</th>
+                <th>Tồn kho</th>
+                <th>Đã bán</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-table-body">
+              <tr><td colspan="5" style="text-align:center;padding:20px;opacity:.6">Đang tải...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB: Daily Report -->
+      <div class="tab-panel" id="tab-report">
+        <div class="panel-card">
+          <div class="panel-title">📅 Tổng kết ngày gần nhất</div>
+          <div id="daily-report-content">
+            <div class="empty-state"><div class="empty-icon">🌙</div><p>Bấm <b>Chốt ca / Kết thúc ngày</b> để xem báo cáo.</p></div>
+          </div>
+        </div>
+        <div class="panel-card">
+          <div class="panel-title">💬 Nhận xét khách hàng</div>
+          <div id="feedback-list">
+            <div class="empty-state"><p>Chưa có nhận xét nào.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Finance Dashboard -->
+      <div class="tab-panel" id="tab-finance">
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">Tổng doanh thu</div>
+            <div class="stat-value" id="dash-total-revenue">0đ</div>
+            <div class="stat-change up" id="dash-revenue-margin">0 đơn</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Tổng chi phí</div>
+            <div class="stat-value" id="dash-total-expenses">0đ</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Lợi nhuận ròng</div>
+            <div class="stat-value" id="dash-net-profit">0đ</div>
+            <div class="stat-change up" id="dash-margin-rate">Margin: 0%</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Số dư ví hiện tại</div>
+            <div class="stat-value" id="dash-current-balance">…</div>
+          </div>
+        </div>
+        <div class="chart-row">
+          <div class="chart-box">
+            <h4>📈 Doanh thu vs Chi phí theo ngày</h4>
+            <div class="chart-wrap"><canvas id="chart-finance-trend"></canvas></div>
+          </div>
+          <div class="chart-box">
+            <h4>🍩 Cơ cấu chi phí</h4>
+            <div class="chart-wrap"><canvas id="chart-expense-donut"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Ledger -->
+      <div class="tab-panel" id="tab-ledger">
+        <div class="panel-card">
+          <div class="panel-title">📒 Sổ cái giao dịch</div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mã GD</th>
+                  <th>Loại</th>
+                  <th>Mô tả</th>
+                  <th>Số tiền</th>
+                  <th>Số dư sau</th>
+                </tr>
+              </thead>
+              <tbody id="tx-table-body">
+                <tr><td colspan="5" style="text-align:center;padding:20px;opacity:.6">Chưa có giao dịch nào.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end tab-content -->
+  </div><!-- end content -->
+</div><!-- end main -->
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Scripts: game.js TRƯỚC, wallet-api.js SAU -->
+<script src="js/game.js"></script>
+<script src="js/wallet-api.js"></script>
+<script>
+// Khởi tạo nút gọi món từ Products array (được khai báo trong game.js)
+document.addEventListener('DOMContentLoaded', () => {
+  const orderButtons = document.getElementById('order-buttons');
+  if (typeof Products !== 'undefined' && orderButtons) {
+    Products.forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = 'order-btn';
+      btn.id = 'btn-order-' + p.id;
+      btn.innerHTML = `${p.emoji} ${p.name} <span style="font-size:0.75rem;color:var(--line-medium)">[Còn ${p.stock}]</span>`;
+      btn.onclick = () => processIncomingOrder(p.id);
+      orderButtons.appendChild(btn);
+    });
+  }
+
+  // today-day-label phải sync với GameState.day
+  const dayLabel = document.getElementById('today-day-label');
+  if (dayLabel && typeof GameState !== 'undefined') {
+    dayLabel.textContent = 'Ngày ' + GameState.day;
+  }
+});
+
+// Đăng xuất
+async function doLogout() {
+  try { await fetch('api/auth/logout.php', { method: 'POST' }); } catch(e) {}
+  location.href = 'login.html';
+}
+
+// Kiểm tra đăng nhập khi mở trang
+fetch('api/auth/me.php').then(r => r.json()).then(d => {
+  if (!d.success) { location.href = 'login.html'; }
+}).catch(() => {});
+</script>
 </body>
 </html>

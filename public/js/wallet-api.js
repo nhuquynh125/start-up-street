@@ -1,14 +1,13 @@
 // ==============================================================
 // STARTUP STREET — Cầu nối game.js (Member 4) với MySQL
 // Nạp SAU game.js:  <script src="js/game.js"></script><script src="js/wallet-api.js"></script>
-// Mở bằng:  index.html?user_id=1&shop_id=5   (chưa có đăng nhập TV1 nên lấy từ URL, giống business-management.html)
+// Mở bằng:  startup-street-ui.html?shop_id=5  (session PHP xác thực người dùng, SHOP_ID lấy từ URL)
 //
 // Quy tắc: tiền + tồn kho thật nằm ở MySQL. Ở đây chỉ GỌI API rồi vẽ lại kết quả server trả về.
 // Phần còn lại của game.js (feed, toast, feedback, báo cáo) giữ nguyên — ta bọc/ghi đè đúng các hàm đụng tới tiền.
 // ==============================================================
 (function () {
   const q = new URLSearchParams(location.search);
-  const USER_ID = Number(q.get('user_id')) || 1;
   const SHOP_ID = Number(q.get('shop_id')) || null;
   const API = 'api/';
   const MAX_STOCK = 40; // khớp mức "đầy kho" trong game.js
