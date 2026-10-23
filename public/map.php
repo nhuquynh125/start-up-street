@@ -266,7 +266,17 @@ const STYLES={
 4:{body:'#5f7d9c',a1:'#9bb4cf',a2:'#fff3d6',goods:['👗','👒','👕','🧣','👖','🧢','👜','👟']},
 5:{body:'#c98aa5',a1:'#e9a7bd',a2:'#fff3d6',goods:['💐','🌷','🌹','🌻','🪴','🌸','🎁','🌼']},
 6:{body:'#d9b57a',a1:'#e8894a',a2:'#6fb0d6',goods:['🥕','🍎','🥫','🧺','🥬','🧅','🍋','🥚']}};
-const styleOf=id=>STYLES[id]||STYLES[3];
+/* DB có thể đánh id khác với bảng STYLES ở trên -> ưu tiên nhận diện theo TÊN mô hình, id chỉ là phương án dự phòng */
+const normName=s=>String(s||'').toLowerCase().replace(/đ/g,'d').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const styleIdByName=n=>{n=normName(n);if(!n)return null;
+ if(/tap hoa/.test(n))return 6;            /* phải xét trước 'hoa' */
+ if(/tra sua|do uong/.test(n))return 1;
+ if(/quan an|do an|an nho/.test(n))return 2;
+ if(/banh/.test(n))return 3;
+ if(/quan ao|thoi trang/.test(n))return 4;
+ if(/hoa/.test(n))return 5;
+ return null};
+const styleOf=(id,name)=>STYLES[styleIdByName(name)]||STYLES[id]||STYLES[3];
 const DECOR={plants:['Cây xanh','🌿🪴'],lights:['Đèn','✨💡'],flowers:['Chậu hoa','🌷🌸'],none:['Tối giản','']};
 const FACADES=['#a8714c','#e9a7bd','#74b9a5','#f0c75e','#7899d4'];
 const FLOORS=['#c99567','#a8714c','#8a5a3b','#e0c9a0','#6f5a48'];
@@ -388,7 +398,7 @@ function renderShop(el,o){
 function updateFacadePreview(){
  const t=selectedBusinessType;
  if(!t){renderShop($('sceneP'),{empty:true,sign:'Cửa hàng của bạn',body:'#c9b99a',a1:'#d8cdb5',a2:'#f3e9d2',goods:[]});return}
- const s=styleOf(t.id);
+ const s=styleOf(t.id,t.name);
  renderShop($('sceneP'),{sign:t.name.toLocaleUpperCase('vi-VN').slice(0,24),body:s.body,a1:s.a1,a2:s.a2,goods:s.goods,decor:'plants'});
 }
 
@@ -450,7 +460,7 @@ $('buy').addEventListener('click',async()=>{
  buyBtn.disabled=false;
  /* tiền thuê đã được server trừ trong rent-property.php */
  l.status='mine';els[idx].setAttribute('class','lot mine'+(idx===near?' near':''));updateMoney();
- const s=styleOf(selectedBusinessType.id),designs=loadDesigns();
+ const s=styleOf(selectedBusinessType.id,selectedBusinessType.name),designs=loadDesigns();
  designs[l.code]={lotCode:l.code,propertyPrice:l.price,businessTypeId:selectedBusinessType.id,businessTypeName:selectedBusinessType.name,shopName:selectedBusinessType.name,facadeColor:s.body,awningColor:'#f4c95d',decor:'plants',rented:true,shopId:shop.shop_id};
  saveDesigns(designs);refreshSign(idx,designs);
  const code=l.code;closePanel();
@@ -466,7 +476,7 @@ function setTab(t){
  $('room').hidden=!$('sceneC').hidden;
 }
 function drawC(){
- const s=styleOf(cd.businessTypeId);
+ const s=styleOf(cd.businessTypeId,cd.businessTypeName);
  renderShop($('sceneC'),{sign:(cd.shopName||'Cửa hàng của bạn').toLocaleUpperCase('vi-VN'),body:cd.facadeColor,a1:cd.awningColor,a2:'#fff6dd',goods:s.goods,decor:cd.decor});
  const r=$('room').style;r.setProperty('--ch',cd.counterHeight);r.setProperty('--shelf',cd.shelfPos);r.setProperty('--floor',cd.floorColor);
  document.querySelectorAll('#shelf span').forEach((e,i)=>e.textContent=cd.shelfGoods[i].join(''));
@@ -479,7 +489,7 @@ function openCustomizer(code,msg){
  const saved=loadDesigns()[code];if(!saved)return;
  curCode=code;
  cd=Object.assign({counterHeight:50,shelfPos:50,floorColor:FLOORS[0],plant:false,shelfGoods:[[],[],[]]},saved);
- const s=styleOf(cd.businessTypeId);
+ const s=styleOf(cd.businessTypeId,cd.businessTypeName);
  $('customizer-title').textContent='Tùy chỉnh '+(cd.shopName||'cửa hàng')+' · '+code;
  $('shop-name-custom').value=cd.shopName||'';
  $('awning-color').value=cd.awningColor;$('ch').value=cd.counterHeight;$('sh').value=cd.shelfPos;
@@ -609,7 +619,7 @@ apiJson('get-shops.php').then(res=>{
   const i=lotIndexOf(s.property_id);if(i===undefined)return;
   const l=lots[i];
   l.status='mine'; // khẳng định lại
-  const d=designs[l.code]||(designs[l.code]={lotCode:l.code,propertyPrice:l.price,facadeColor:styleOf(Number(s.business_type_id)).body,awningColor:'#f4c95d',decor:'plants'});
+  const d=designs[l.code]||(designs[l.code]={lotCode:l.code,propertyPrice:l.price,facadeColor:styleOf(Number(s.business_type_id),s.business_type_name).body,awningColor:'#f4c95d',decor:'plants'});
   Object.assign(d,{rented:true,shopId:Number(s.shop_id),businessTypeId:Number(s.business_type_id),businessTypeName:s.business_type_name});
   if(!d.shopName)d.shopName=s.name;
   changed=true;
