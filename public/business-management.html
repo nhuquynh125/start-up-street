@@ -27,8 +27,8 @@ a{color:inherit}
 .btn.gold{background:linear-gradient(#f2b441,#e19a1f);border-color:#8a5a12;box-shadow:0 4px 0 #8a5a12;color:var(--wood-d)}
 .btn.sm{font-size:13px;padding:2px 10px;box-shadow:0 3px 0 var(--wood-d)}
 .btn:disabled{background:#c9c0ad;border-color:#8c8470;box-shadow:0 4px 0 #8c8470;color:#6d664f;cursor:not-allowed}
-/* khung */
-.wrap{max-width:1200px;margin:0 auto;padding:18px 14px 40px;display:grid;grid-template-columns:260px 1fr;gap:18px;align-items:start}
+/* khung: rộng gần full màn hình */
+.wrap{max-width:1920px;margin:0 auto;padding:18px 28px 40px;display:grid;grid-template-columns:280px 1fr;gap:20px;align-items:start}
 .panel{background:var(--paper);border:5px solid var(--wood);border-radius:20px;padding:14px;box-shadow:0 6px 0 var(--wood-d),0 18px 30px #0002}
 .side{position:sticky;top:70px}
 .tag{display:inline-block;background:var(--wood);color:var(--cream);border-radius:10px;padding:0 12px;font-weight:800;font-size:14px;margin-bottom:10px}
@@ -45,16 +45,18 @@ a{color:inherit}
 .bn h2{margin:0;font-size:clamp(20px,3.4vw,30px);line-height:1.1}
 .bn p{margin:2px 0 0;font-weight:600;opacity:.8}
 .bn .acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:14px 0}
 .st{background:var(--cream);border:3px solid var(--paper-d);border-radius:14px;padding:8px 12px}
 .st small{display:block;font-weight:600;opacity:.75;font-size:13px}.st b{font-size:20px}
 .st.al{border-color:var(--no);background:#fde0dc}
+.st.pf{border-color:var(--ok);background:#e6f4d7}.st.pf b{color:var(--ok-d)}
+.st.pf.neg{border-color:var(--no);background:#fde0dc}.st.pf.neg b{color:var(--no-d)}
 .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
 .bar input[type=search]{flex:1;min-width:150px;font-size:15px;font-weight:600;padding:6px 12px;border:3px solid var(--wood);border-radius:12px;background:var(--cream);color:var(--ink)}
 .ch{border:3px solid var(--wood);border-radius:999px;padding:1px 12px;font-weight:800;font-size:14px;background:var(--paper-d);color:var(--ink)}
 .ch.on{background:var(--wood);color:#fff}
 /* thẻ sản phẩm */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
 .pc{background:var(--cream);border:4px solid var(--paper-d);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px}
 .pc.low{border-color:var(--warn)}.pc.out{border-color:var(--no)}
 .pt{display:flex;gap:10px;align-items:center}
@@ -96,11 +98,27 @@ input[type=number]{width:92px;font-size:15px;font-weight:700;padding:3px 8px;bor
 .toast{max-width:340px;background:var(--wood-d);color:var(--cream);border:3px solid var(--wood-l);border-radius:14px;padding:8px 14px;font-weight:800;box-shadow:0 6px 16px #0004;animation:pop .2s ease-out}
 .toast.ok{border-color:var(--ok)}.toast.err{border-color:var(--no)}
 @keyframes pop{from{transform:translateX(30px);opacity:0}}
-@media(max-width:860px){.wrap{grid-template-columns:1fr}.side{position:static}.stats{grid-template-columns:1fr 1fr}.bn .acts{margin-left:0}#shops{display:flex;gap:8px;overflow-x:auto}#shops .sc{min-width:200px;margin:0}.hud .nm{display:none}}
+@media(max-width:1200px){.stats{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:860px){.wrap{grid-template-columns:1fr;padding:18px 14px 40px}.side{position:static}.stats{grid-template-columns:1fr 1fr}.bn .acts{margin-left:0}#shops{display:flex;gap:8px;overflow-x:auto}#shops .sc{min-width:200px;margin:0}.hud .nm{display:none}}
 .dl .fl{display:block;font-weight:800;margin:8px 0}
 .dl input[type=text]{width:100%;margin-top:4px;font-size:16px;font-weight:600;padding:7px 10px;border:3px solid var(--wood);border-radius:12px;background:#fff;color:var(--ink)}
 .dl .fl input[type=number]{width:100%;margin-top:4px;text-align:left}
 .cu{font-size:11px;font-weight:800;color:var(--coin)}
+/* hộp thoại thêm mặt hàng: icon + giá vốn + giá bán */
+#npd .dl{width:min(580px,100%);max-height:94vh;overflow:auto}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.epv{display:flex;gap:12px;align-items:center;margin-top:6px}
+.epbig{flex:none;width:64px;height:64px;display:grid;place-items:center;font-size:38px;background:var(--cream);border:4px solid var(--wood);border-radius:16px}
+.epv small{display:block;font-weight:600;opacity:.75;margin-bottom:4px}
+.eps,.ep{display:flex;flex-wrap:wrap;gap:6px}
+.ep{margin-top:8px}
+.eb{width:40px;height:40px;padding:0;font-size:22px;line-height:1;border:3px solid var(--paper-d);border-radius:10px;background:var(--cream)}
+.eb:hover{border-color:var(--wood-l)}
+.eb[aria-pressed=true]{background:#ffe08a;border-color:var(--warn)}
+#npemo{margin-top:8px}
+.npm{margin:2px 0 0;font-weight:800;font-size:14px;min-height:20px}
+.npm.up{color:var(--ok-d)}.npm.dn{color:var(--no-d)}.npm.wn{color:#7a4d00}
+@media(max-width:520px){.two{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -175,9 +193,21 @@ input[type=number]{width:92px;font-size:15px;font-weight:700;padding:3px 8px;bor
 <div class="ov" id="npd" hidden>
   <div class="panel dl" role="dialog" aria-modal="true" aria-labelledby="npt">
     <span class="tag" id="npt">Thêm mặt hàng mới</span>
-    <label class="fl">Tên mặt hàng<input type="text" id="npname" maxlength="100" placeholder="Ví dụ: Trà vải"></label>
-    <label class="fl">Giá vốn mỗi món (đ)<input type="number" id="npcost" min="1000" max="200000" step="500" value="10000"></label>
-    <p class="note">Thêm món không tốn tiền. Món mới có tồn kho 0 cho tới khi bạn nhập hàng; giá bán mặc định = giá vốn × 1.5 và chỉnh được ở thẻ sản phẩm.</p>
+    <label class="fl">Tên mặt hàng<input type="text" id="npname" maxlength="100" placeholder="Ví dụ: Gạo ST25"></label>
+    <div class="fl">Icon minh họa
+      <div class="epv">
+        <span class="epbig" id="npprev" aria-hidden="true">📦</span>
+        <div><small>Gợi ý theo tên món:</small><div class="eps" id="npsug"></div></div>
+      </div>
+      <div class="ep" id="nppal" aria-label="Chọn icon"></div>
+      <input type="text" id="npemo" maxlength="8" placeholder="Hoặc dán emoji khác (Windows: Win + .)" aria-label="Emoji tự nhập">
+    </div>
+    <div class="two">
+      <label class="fl">Giá vốn mỗi món (đ)<input type="number" id="npcost" min="1000" max="200000" step="500" value="10000"></label>
+      <label class="fl">Giá bán ra (đ)<input type="number" id="npprice" min="1" max="1000000" step="500" value="15000"></label>
+    </div>
+    <p class="npm" id="npmg" role="status"></p>
+    <p class="note">Thêm món không tốn tiền. Món mới có tồn kho 0 cho tới khi bạn nhập hàng; giá bán gợi ý = giá vốn × 1,5 và vẫn chỉnh được ở thẻ sản phẩm.</p>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
       <button class="btn no" id="npno" type="button">Hủy</button>
       <button class="btn ok" id="npyes" type="button">Thêm</button>
@@ -199,6 +229,29 @@ const TYPES=[[/tap hoa/,'🛒','#d9b57a'],[/tra sua|do uong/,'🧋','#8fb87a'],[
 const tInfo=n=>{n=norm(n);const t=TYPES.find(x=>x[0].test(n));return t?{e:t[1],c:t[2]}:{e:'🏪',c:'#b9835a'}};
 const PE=[[/tra sua/,'🧋'],[/tra dao/,'🍑'],[/matcha/,'🍵'],[/ca phe/,'☕'],[/bun bo|mi goi/,'🍜'],[/com/,'🍗'],[/banh trang/,'🥟'],[/nuoc ngot/,'🥤'],[/banh mi/,'🥖'],[/banh kem/,'🎂'],[/croissant/,'🥐'],[/cookie/,'🍪'],[/\bao /,'👕'],[/quan/,'👖'],[/vay/,'👗'],[/non/,'👒'],[/hoa hong/,'🌹'],[/huong duong/,'🌻'],[/chau cay/,'🪴'],[/hop qua/,'🎁'],[/gao/,'🍚'],[/dau an/,'🫒'],[/nuoc suoi/,'💧']];
 const pEmoji=(n,fb)=>{n=norm(n);const p=PE.find(x=>x[0].test(n));return p?p[1]:fb};
+
+/* ── gợi ý icon theo tên món (tên đã bỏ dấu, viết thường) ── */
+const SUG=[[/\bgao\b|\bnep\b/,'🍚'],[/tra sua|milk tea/,'🧋'],[/matcha/,'🍵'],[/\btra\b|\btea\b/,'🍵'],[/ca phe|coffee|cafe/,'☕'],
+ [/nuoc ngot|soda|coca|pepsi|nuoc co ga/,'🥤'],[/nuoc ep|sinh to|smoothie|juice/,'🧃'],[/nuoc suoi|nuoc loc|\bnuoc\b/,'💧'],[/\bsua\b|milk/,'🥛'],
+ [/\bbia\b|beer/,'🍺'],[/ruou|wine/,'🍷'],[/dau an|dau oliu/,'🫒'],[/\bmuoi\b/,'🧂'],[/duong|\bkeo\b/,'🍬'],[/mat ong/,'🍯'],[/\btrung\b/,'🥚'],
+ [/\bthit\b|\bbo bit tet\b|\bbo\b/,'🥩'],[/\bga\b|com ga/,'🍗'],[/\btom\b|hai san/,'🦐'],[/\bca (hoi|basa|ngu|thu|kho)\b|^ca$/,'🐟'],
+ [/\brau\b|\bcai\b/,'🥬'],[/ca rot/,'🥕'],[/ca chua/,'🍅'],[/\bhanh\b|\btoi\b/,'🧅'],[/khoai/,'🥔'],[/\btao\b/,'🍎'],[/\bcam\b|quyt/,'🍊'],
+ [/chuoi/,'🍌'],[/xoai/,'🥭'],[/dau tay/,'🍓'],[/\bnho\b/,'🍇'],[/\bdao\b/,'🍑'],[/chanh/,'🍋'],[/dua hau/,'🍉'],[/\bdua\b/,'🥥'],
+ [/banh mi/,'🥖'],[/banh kem|sinh nhat/,'🎂'],[/banh trang/,'🥟'],[/banh|cake/,'🍰'],[/cookie|\bquy\b/,'🍪'],[/croissant/,'🥐'],[/donut|banh ran/,'🍩'],
+ [/\bkem\b|ice cream/,'🍦'],[/socola|chocolate/,'🍫'],[/pizza/,'🍕'],[/burger/,'🍔'],[/sushi/,'🍣'],[/mi goi|\bmi\b|\bbun\b|\bpho\b|hu tieu|mien/,'🍜'],
+ [/\blau\b|\bcanh\b|\bsup\b/,'🍲'],[/\bxoi\b|\bcom\b/,'🍚'],[/ao thun|\bao\b|shirt/,'👕'],[/\bquan\b|jean/,'👖'],[/\bvay\b|\bdam\b/,'👗'],[/\bnon\b|\bmu\b/,'🧢'],
+ [/giay|\bdep\b/,'👟'],[/\btui\b|balo/,'👜'],[/khan/,'🧣'],[/\bkinh\b/,'🕶️'],[/hoa hong/,'🌹'],[/huong duong/,'🌻'],[/\bhoa\b/,'💐'],[/\bchau\b|\bcay\b/,'🪴'],
+ [/xuong rong/,'🌵'],[/\bqua\b|gift|\bhop\b/,'🎁'],[/\bgau\b/,'🧸'],[/\bnen\b|sap thom/,'🕯️'],[/giay ve sinh|khan giay/,'🧻'],[/xa phong|nuoc rua/,'🧼'],
+ [/dau goi|sua tam/,'🧴'],[/\bpin\b/,'🔋'],[/\bbut\b|\bvo\b|\btap\b/,'✏️']];
+/* bảng icon để chọn tay, theo loại hình của cửa hàng (khóa = icon của loại hình trong tInfo) */
+const PAL={
+ '🧋':['🧋','🍵','☕','🥤','🍹','🧃','🥛','🫖','🍑','🍓','🍋','🍊','🥭','🍇','🧊','🍯','🍫','🥥'],
+ '🍜':['🍜','🍲','🍛','🍚','🍙','🍗','🍖','🥟','🍤','🍢','🥗','🍳','🥩','🍕','🌭','🥪','🥤','🍟'],
+ '🥐':['🥐','🍞','🥖','🥯','🍰','🎂','🧁','🥧','🍪','🍩','🍫','🍮','🥨','🧇','🥞','🍯','☕','🍓'],
+ '👗':['👗','👕','👖','👚','🧥','🧣','🧢','👒','👜','👟','👠','🧦','🕶️','👔','🩳','🧤','👘','🎒'],
+ '🌷':['🌷','🌹','🌻','🌸','🌼','💐','🪴','🌵','🌿','🍀','🎁','🎀','🌺','🌱','🌾','🧸','🕯️','💝'],
+ '🛒':['🍚','🫒','🍜','💧','🥫','🧂','🥚','🥛','🍞','🧻','🧼','🧴','🥕','🍎','🥬','🍋','🧅','🧃'],
+ '🏪':['📦','🎁','🛍️','🍚','🍜','🥤','👕','🌷','🧴','🧸','✏️','🔋','🧻','🍪','☕','🎒','🕯️','🧂']};
 
 let balance=null,shops=[],types=[],cur=null,prods=[],filt='all',sel=null;
 const S=()=>shops.find(s=>+s.shop_id===cur);
@@ -238,17 +291,18 @@ function renderShop(){
  $('bn').innerHTML=`<div class="be">${t.e}</div><div><h2>${esc(s.name)}</h2><p>${esc(s.business_type_name)} · Mặt bằng ${lotCode(+s.property_id)}</p></div>
   <div class="acts"><a class="btn gold" href="startup-street-ui.html?shop_id=${+s.shop_id}">🎮 Vận hành</a><a class="btn" href="map.php">🗺️ Bản đồ</a><button class="btn no" id="closeShop" type="button">🔒 Đóng vĩnh viễn</button></div>`;
  const units=prods.reduce((a,p)=>a+ +p.stock_quantity,0),costV=prods.reduce((a,p)=>a+p.stock_quantity*p.base_cost,0),
-  revV=prods.reduce((a,p)=>a+p.stock_quantity*p.selling_price,0),alerts=prods.filter(p=>state(p)!=='ok').length;
+  revV=prods.reduce((a,p)=>a+p.stock_quantity*p.selling_price,0),profit=revV-costV,alerts=prods.filter(p=>state(p)!=='ok').length;
  $('stats').innerHTML=`<div class="st"><small>📦 Tổng tồn kho</small><b>${units} món</b></div>
   <div class="st"><small>🧾 Vốn đang nằm trong kho</small><b>${vnd(costV)}</b></div>
   <div class="st"><small>💵 Doanh thu nếu bán hết</small><b>${vnd(revV)}</b></div>
+  <div class="st pf${profit<0?' neg':''}" title="Doanh thu nếu bán hết trừ vốn đang nằm trong kho"><small>📈 Lợi nhuận thu được</small><b>${vnd(profit)}</b></div>
   <div class="st${alerts?' al':''}"><small>⚠️ Cần nhập thêm</small><b>${alerts} sản phẩm</b></div>`;
  const cnt=k=>prods.filter(p=>state(p)===k).length;
  $('chips').innerHTML=[['all','Tất cả',prods.length],['low','Sắp hết',cnt('low')],['out','Hết hàng',cnt('out')]]
   .map(c=>`<button type="button" class="ch${filt===c[0]?' on':''}" data-f="${c[0]}">${c[1]} (${c[2]})</button>`).join(' ');
  $('grid').innerHTML=prods.length?prods.map(p=>{const st=state(p),pct=Math.min(100,p.stock_quantity/MAXS*100);
   return `<article class="pc ${st}" data-id="${+p.product_id}" data-st="${st}" data-name="${esc(norm(p.product_name))}" data-label="${esc(p.product_name)}" data-cost="${+p.base_cost}" data-stock="${+p.stock_quantity}">
- <div class="pt"><span class="pe">${pEmoji(p.product_name,t.e)}</span><h4>${esc(p.product_name)}${+p.is_custom?' <span class="cu">✨ riêng</span>':''}</h4><span class="bg">${stLabel[st]}</span></div>
+ <div class="pt"><span class="pe">${esc(p.emoji||pEmoji(p.product_name,t.e))}</span><h4>${esc(p.product_name)}${+p.is_custom?' <span class="cu">✨ riêng</span>':''}</h4><span class="bg">${stLabel[st]}</span></div>
  <div class="meter"><i style="width:${pct}%"></i></div>
  <div class="ml"><span>Tồn kho: <b>${+p.stock_quantity}</b> / ${MAXS}</span><span>Giá vốn: <b>${vnd(p.base_cost)}</b></span></div>
  <label class="fld"><span>Giá bán</span><input type="number" class="price" min="1" step="500" value="${Math.round(p.selling_price)}"><b class="mg"></b></label>
@@ -288,10 +342,10 @@ async function buy(c,b){
   await loadShop(cur);
  }catch(e){toast('❌ '+e.message);if(e.data&&e.data.balance!==undefined)setBal(e.data.balance);b.disabled=false;refresh(c)}}
 
-/* ── nhập đầy kho hàng loạt (giữ nguyên giá bán hiện tại) ── */
+/* ── nhập đầy kho hàng loạt (giữ nguyên giá bán hiện tại; món chưa có kho dùng giá bán đã chọn lúc thêm món) ── */
 let plan=[];
 $('bulk').addEventListener('click',()=>{
- plan=prods.filter(p=>p.stock_quantity<MAXS).map(p=>({id:+p.product_id,n:p.product_name,q:MAXS-p.stock_quantity,c:p.base_cost*(MAXS-p.stock_quantity)}));
+ plan=prods.filter(p=>p.stock_quantity<MAXS).map(p=>({id:+p.product_id,n:p.product_name,q:MAXS-p.stock_quantity,c:p.base_cost*(MAXS-p.stock_quantity),price:Number(p.selling_price)}));
  if(!plan.length){toast('📦 Kho đã đầy!',1);return}
  const tot=plan.reduce((a,x)=>a+x.c,0);
  $('dlist').innerHTML=plan.map(x=>`<li><span>${esc(x.n)} × ${x.q}</span><span>${vnd(x.c)}</span></li>`).join('');
@@ -304,7 +358,7 @@ $('dyes').addEventListener('click',async()=>{
  /* 1 request = 1 transaction ở server: nhập đủ cả đơn hoặc không đổi gì (restock-bulk.php) */
  const btn=$('dyes');btn.disabled=true;
  try{
-  const j=await call('restock-bulk.php',post({shop_id:cur,items:plan.map(x=>({product_id:x.id,quantity:x.q}))}));
+  const j=await call('restock-bulk.php',post({shop_id:cur,items:plan.map(x=>({product_id:x.id,quantity:x.q,selling_price:x.price>0?x.price:undefined}))}));
   setBal(j.data.balance);
   toast('✅ Đã nhập '+j.data.items.length+' sản phẩm · −'+vnd(j.data.total_cost),1);
  }catch(e){
@@ -314,16 +368,49 @@ $('dyes').addEventListener('click',async()=>{
  btn.disabled=false;$('dlg').hidden=true;
  try{await loadShop(cur)}catch(e){}});
 
-/* ── thêm mặt hàng mới (món riêng của cửa hàng, do server kiểm tra giới hạn) ── */
-$('addp').addEventListener('click',()=>{$('npname').value='';$('npcost').value=10000;$('npd').hidden=false;$('npname').focus()});
+/* ── thêm mặt hàng mới: chọn icon, giá vốn, giá bán (món riêng của cửa hàng, server kiểm tra giới hạn) ── */
+let npEmoji='',npEmoManual=false,npPriceManual=false;
+const npSug=name=>{const n=norm(name),out=[];SUG.forEach(([re,e])=>{if(re.test(n)&&!out.includes(e))out.push(e)});return out.slice(0,6)};
+function npRender(){
+ const t=tInfo(S().business_type_name),sug=npSug($('npname').value);
+ if(!npEmoManual)npEmoji=sug[0]||'';
+ $('npprev').textContent=npEmoji||t.e;
+ const btn=e=>`<button type="button" class="eb" data-e="${e}" aria-pressed="${e===npEmoji}" aria-label="Icon ${e}">${e}</button>`;
+ $('npsug').innerHTML=sug.length?sug.map(btn).join(''):'<small style="margin:0">Nhập tên để có gợi ý…</small>';
+ $('nppal').innerHTML=(PAL[t.e]||PAL['🏪']).map(btn).join('')}
+function npCalc(){
+ const cost=parseFloat($('npcost').value),pe=$('npprice');
+ if(!npPriceManual&&cost>0)pe.value=Math.max(500,Math.round(cost*1.5/500)*500);
+ const price=parseFloat(pe.value),m=$('npmg');
+ if(!(cost>0)||!(price>0)){m.textContent='';m.className='npm';return}
+ const pct=(price-cost)/cost*100,d=price-cost;
+ if(price<cost){m.textContent='⚠️ Bán lỗ '+vnd(-d)+' mỗi món ('+Math.abs(Math.round(pct))+'%)';m.className='npm dn'}
+ else if(price>cost*2.7){m.textContent='⚠️ Lãi '+Math.round(pct)+'% nhưng giá cao quá, khách sẽ chê đắt và rất ít người mua';m.className='npm wn'}
+ else{m.textContent='✅ Lãi '+vnd(d)+' mỗi món ('+Math.round(pct)+'%)';m.className='npm up'}}
+$('addp').addEventListener('click',()=>{
+ npEmoji='';npEmoManual=false;npPriceManual=false;
+ $('npname').value='';$('npemo').value='';$('npcost').value=10000;
+ npRender();npCalc();$('npd').hidden=false;$('npname').focus()});
+$('npname').addEventListener('input',npRender);
+$('npcost').addEventListener('input',npCalc);
+$('npprice').addEventListener('input',()=>{npPriceManual=true;npCalc()});
+$('npemo').addEventListener('input',e=>{
+ const v=e.target.value.trim();
+ if(!v){npEmoManual=false;npRender();return}
+ if(/^[^\x00-\x7F]{1,8}$/u.test(v)){npEmoji=v;npEmoManual=true;npRender()}});
+$('npd').addEventListener('click',e=>{
+ const b=e.target.closest('.eb');if(!b)return;
+ npEmoji=b.dataset.e;npEmoManual=true;$('npemo').value='';npRender()});
 $('npno').addEventListener('click',()=>$('npd').hidden=true);
 $('npyes').addEventListener('click',async()=>{
- const name=$('npname').value.trim(),cost=parseFloat($('npcost').value);
+ const name=$('npname').value.trim(),cost=parseFloat($('npcost').value),price=parseFloat($('npprice').value);
  if(!name)return toast('Hãy đặt tên cho mặt hàng.');
  if(!(cost>0))return toast('Giá vốn phải lớn hơn 0.');
+ if(!(price>0))return toast('Giá bán phải lớn hơn 0.');
+ if(price<cost&&!confirm('Giá bán thấp hơn giá vốn nên mỗi món bán ra bạn sẽ bị lỗ. Vẫn thêm mặt hàng này?'))return;
  const b=$('npyes');b.disabled=true;
  try{
-  await call('add-product.php',post({shop_id:cur,name,base_cost:cost}));
+  await call('add-product.php',post({shop_id:cur,name,base_cost:cost,selling_price:price,emoji:npEmoji}));
   toast('✅ Đã thêm "'+name+'". Hãy nhập hàng để bắt đầu bán.',1);
   $('npd').hidden=true;await loadShop(cur);
  }catch(e){toast('❌ '+e.message)}

@@ -50,6 +50,7 @@ $migrations = [
     '04_shop_runtime.sql',
     '05_custom_products.sql',
     '06_settlement.sql',
+    '07_product_emoji.sql',
 ];
 
 $migrationDir = $root . '/database/migrations/';

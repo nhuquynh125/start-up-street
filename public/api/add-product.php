@@ -1,12 +1,15 @@
 <?php
-// POST api/add-product.php  {shop_id, name, base_cost}
+// POST api/add-product.php  {shop_id, name, base_cost, selling_price?, emoji?}
 // Chủ quán thêm MỘT MẶT HÀNG MỚI vào cửa hàng của mình (mặt hàng chỉ thuộc cửa hàng đó: products.shop_id).
 // Chủ quán = người đang đăng nhập, KHÔNG nhận owner_user_id từ client.
 //
 // - Thêm mặt hàng KHÔNG tốn tiền và KHÔNG tạo dòng kho: tồn kho = 0 cho tới khi người chơi nhập hàng
-//   (purchase-inventory.php / restock-bulk.php), lúc đó mới đặt giá bán. Nhờ vậy khách không "đòi" món chưa có hàng.
-// - Giá vốn do người chơi đặt nhưng bị chặn trần (CUSTOM_PRODUCT_MAX_COST) để không tự bịa ra món lãi khổng lồ.
-// Cần chạy database/migrations/05_custom_products.sql (cột products.shop_id) trước.
+//   (purchase-inventory.php / restock-bulk.php). Nhờ vậy khách không "đòi" món chưa có hàng.
+// - Giá vốn và giá bán do người chơi chọn. Giá bán được lưu ở products.default_price và được dùng làm giá bán
+//   mặc định khi nhập hàng lần đầu (get-shop-products.php trả giá này, frontend gửi lại lúc nhập hàng).
+//   Không gửi selling_price thì mặc định = giá vốn x DEFAULT_MARKUP.
+// - emoji: icon minh họa (tùy chọn). Chỉ nhận ký tự ngoài ASCII (tối đa 8 ký tự) nên không chèn được HTML.
+// Cần chạy database/migrations/05_custom_products.sql và 07_product_emoji.sql trước.
 require_once dirname(__DIR__, 2) . '/lib/shop_helpers.php';
 
 requireMethod('POST');
@@ -14,7 +17,9 @@ requireMethod('POST');
 const CUSTOM_PRODUCT_MAX_PER_SHOP = 20;       // mỗi cửa hàng tối đa 20 món tự thêm
 const CUSTOM_PRODUCT_MIN_COST     = 1000;     // giá vốn tối thiểu
 const CUSTOM_PRODUCT_MAX_COST     = 200000;   // giá vốn tối đa (món có sẵn cao nhất hiện là 120.000đ). Đổi ở đây để cân bằng game
+const CUSTOM_PRODUCT_MAX_PRICE    = 1000000;  // giá bán tối đa
 const CUSTOM_PRODUCT_MAX_NAME_LEN = 100;      // khớp products.name VARCHAR(100)
+const CUSTOM_PRODUCT_MAX_EMOJI    = 8;        // số ký tự tối đa của icon (emoji ghép có thể gồm nhiều ký tự)
 
 try {
     $ownerId = getCurrentUserId(); // 401 nếu chưa đăng nhập
@@ -45,6 +50,33 @@ try {
         );
     }
 
+    // Giá bán: không gửi thì lấy giá vốn x hệ số mặc định
+    $hasPrice = array_key_exists('selling_price', $input) && $input['selling_price'] !== null && $input['selling_price'] !== '';
+    $price = $hasPrice ? toPositiveNumber($input['selling_price']) : round($cost * DEFAULT_MARKUP, 2);
+    if ($price === null) {
+        throw new ApiException("Giá bán phải là số lớn hơn 0", 400);
+    }
+    $price = round($price, 2);
+    if ($price > CUSTOM_PRODUCT_MAX_PRICE) {
+        throw new ApiException("Giá bán tối đa " . number_format(CUSTOM_PRODUCT_MAX_PRICE, 0, ',', '.') . "đ", 400);
+    }
+
+    // Icon minh họa (tùy chọn)
+    $emoji = null;
+    $rawEmoji = $input['emoji'] ?? null;
+    if ($rawEmoji !== null && $rawEmoji !== '') {
+        if (!is_string($rawEmoji)) {
+            throw new ApiException("Icon không hợp lệ", 400);
+        }
+        $rawEmoji = trim($rawEmoji);
+        if ($rawEmoji !== '') {
+            if (!preg_match('/^[^\x00-\x7F]{1,' . CUSTOM_PRODUCT_MAX_EMOJI . '}$/uD', $rawEmoji)) {
+                throw new ApiException("Icon phải là emoji (tối đa " . CUSTOM_PRODUCT_MAX_EMOJI . " ký tự)", 400);
+            }
+            $emoji = $rawEmoji;
+        }
+    }
+
     $pdo->beginTransaction();
 
     // Khóa dòng cửa hàng: 2 request thêm món cùng lúc sẽ được xếp hàng (không vượt giới hạn / không trùng tên)
@@ -64,13 +96,13 @@ try {
     }
 
     try {
-        $pdo->prepare('INSERT INTO products (business_type_id, name, base_cost, shop_id) VALUES (?, ?, ?, ?)')
-            ->execute([(int)$shop['business_type_id'], $name, $cost, $shopId]);
+        $pdo->prepare('INSERT INTO products (business_type_id, name, base_cost, shop_id, emoji, default_price) VALUES (?, ?, ?, ?, ?, ?)')
+            ->execute([(int)$shop['business_type_id'], $name, $cost, $shopId, $emoji, $price]);
     } catch (PDOException $e) {
-        // 42S22 = thiếu cột shop_id (chưa chạy migration 05)
+        // 42S22 = thiếu cột (chưa chạy migration 05 hoặc 07)
         if ($e->getCode() === '42S22') {
-            error_log('add-product: thiếu cột products.shop_id: ' . $e->getMessage());
-            throw new ApiException("Chưa có cột products.shop_id. Hãy chạy database/migrations/05_custom_products.sql", 500);
+            error_log('add-product: thiếu cột products: ' . $e->getMessage());
+            throw new ApiException("Thiếu cột products.shop_id / emoji / default_price. Hãy chạy migration 05 và 07 (php tools/run_migration.php)", 500);
         }
         throw $e;
     }
@@ -83,7 +115,8 @@ try {
         "product_id"    => $productId,
         "product_name"  => $name,
         "base_cost"     => $cost,
-        "selling_price" => round($cost * DEFAULT_MARKUP, 2), // giá bán gợi ý; giá thật được lưu khi nhập hàng
+        "selling_price" => $price,   // giá bán người chơi chọn; được dùng làm giá mặc định khi nhập hàng
+        "emoji"         => $emoji,
     ], 201);
 } catch (ApiException $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
