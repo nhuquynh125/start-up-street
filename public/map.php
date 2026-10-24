@@ -174,7 +174,7 @@ input[type=range]{width:100%;accent-color:var(--wood)}
 <div class="title"><h2 id="pTitle"></h2><span id="statusPill" class="badge">Còn trống</span></div>
 <p class="sub">Tọa lạc tại trung tâm Phố Startup</p>
 <dl>
-<div class="r"><dt>Giá thuê / mua</dt><dd id="pPrice"></dd></div>
+<div class="r"><dt>Giá thuê / tháng</dt><dd id="pPrice"></dd></div>
 <div class="r"><dt>Diện tích</dt><dd id="pArea"></dd></div>
 <div class="r"><dt>Lượng khách qua lại</dt><dd id="pTraffic"></dd></div>
 <div class="r"><dt>Tình trạng</dt><dd id="pStatus"></dd></div>
@@ -182,6 +182,7 @@ input[type=range]{width:100%;accent-color:var(--wood)}
 <label class="l" for="business-type-select">Chọn mô hình kinh doanh</label>
 <select id="business-type-select"><option value="">Đang tải mô hình...</option></select>
 <p id="business-type-note" class="note">Chọn mô hình để xem trước mặt tiền phù hợp.</p>
+<p class="note">Giá thuê tính theo THÁNG (30 ngày chơi): tháng đầu trả ngay khi thuê, các tháng sau hệ thống tự trừ vào ví khi bạn chốt ca sang tháng mới.</p>
 <button class="btn big" id="buy" type="button">Thuê mặt bằng ngay</button>
 <a class="btn" id="manage" hidden style="display:block;text-align:center;text-decoration:none;margin-top:10px">Quản lý kho hàng</a>
 <a class="btn" id="enter" hidden style="display:block;text-align:center;text-decoration:none;margin-top:10px">🏪 Vào cửa hàng</a>
@@ -410,7 +411,7 @@ function fillTypeSelect(keep){
 function showPanel(i){
  open=i;const l=lots[i];
  $('pTitle').textContent=l.code+' – Mặt bằng '+l.code;
- $('pPrice').textContent=fmt(l.price);$('pArea').textContent=l.area+' m²';$('pTraffic').textContent=l.traffic+'/100';
+ $('pPrice').textContent=fmt(l.price)+' / tháng';$('pArea').textContent=l.area+' m²';$('pTraffic').textContent=l.traffic+'/100';
  $('pStatus').textContent=labels[l.status];$('statusPill').textContent=labels[l.status];
  const saved=loadDesigns();
  fillTypeSelect(saved[l.code]?String(saved[l.code].businessTypeId||''):'');

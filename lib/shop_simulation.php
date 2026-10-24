@@ -11,10 +11,15 @@
 //    trong cùng transaction.
 //  - Người chơi vắng mặt (đóng tab) vẫn được bù khách khi quay lại, nhưng tối đa SIM_MAX_CATCHUP_SECONDS.
 //
-// Thứ tự khóa: ví -> shop_runtime -> kho (ví luôn khóa TRƯỚC, giống purchase-inventory.php) để không deadlock.
+// Ngày chơi (migration 05):
+//  - Mỗi đơn mang day_number (ngày chơi lúc phát sinh) và cost (vốn mặt hàng = giá vốn x số lượng).
+//  - shopEndDay() = "Chốt ca": chốt khách tới lúc này, lưu tổng kết ngày vào shop_daily_reports, sang ngày mới,
+//    tự trừ tiền thuê mặt bằng khi sang tháng mới (mỗi 30 ngày chơi) và xóa nhật ký khách quá 7 ngày chơi.
+//
+// Thứ tự khóa: ví -> cửa hàng -> shop_runtime -> kho (ví luôn khóa TRƯỚC, giống purchase-inventory.php) để không deadlock.
 
 require_once __DIR__ . '/shop_helpers.php';
-require_once __DIR__ . '/shop_billing.php';
+require_once __DIR__ . '/shop_reports.php';
 
 // ── Hằng số cân bằng game: chỉnh ở đây, không cần sửa logic ──
 const SIM_TIMEZONE            = 'Asia/Ho_Chi_Minh';
@@ -109,6 +114,15 @@ function simPropertyTraffic(PDO $pdo, int $propertyId): int
     }
 }
 
+/** Thiếu bảng / cột của migration 04-05 -> báo rõ cần chạy migration thay vì 500 khó hiểu. */
+function simRethrowSchemaError(Throwable $e): void
+{
+    if ($e instanceof PDOException && in_array($e->getCode(), ['42S02', '42S22'], true)) {
+        error_log('shop_simulation: thiếu bảng/cột: ' . $e->getMessage());
+        throw new ApiException("Chưa cập nhật database vận hành quán. Hãy chạy database/migrations/04_shop_runtime.sql và 05_game_days_reports.sql", 500);
+    }
+}
+
 /**
  * Mô phỏng khách từ last_tick_ts đến $now. PHẢI gọi trong transaction đã khóa ví + dòng shop_runtime.
  * @return array{balance:float, reputation:float, capped:bool, delta:array}
@@ -116,6 +130,7 @@ function simPropertyTraffic(PDO $pdo, int $propertyId): int
 function simulateCustomers(PDO $pdo, array $shop, int $ownerId, array $rt, int $now, float $balance): array
 {
     $shopId     = (int)$shop['id'];
+    $day        = (int)($rt['day_number'] ?? 1);   // ngày chơi hiện tại: gắn vào từng đơn
     $reputation = (float)$rt['reputation'];
     $elapsed    = $now - (int)$rt['last_tick_ts'];
     $capped     = $elapsed > SIM_MAX_CATCHUP_SECONDS;
@@ -141,8 +156,8 @@ function simulateCustomers(PDO $pdo, array $shop, int $ownerId, array $rt, int $
         return $noop;
     }
 
-    $stmt = $pdo->prepare('SELECT id, name, base_cost FROM products WHERE business_type_id = ? AND (shop_id IS NULL OR shop_id = ?)');
-    $stmt->execute([(int)$shop['business_type_id'], $shopId]);
+    $stmt = $pdo->prepare('SELECT id, name, base_cost FROM products WHERE business_type_id = ?');
+    $stmt->execute([(int)$shop['business_type_id']]);
     $valid = [];
     foreach ($stmt->fetchAll() as $p) {
         $pid = (int)$p['id'];
@@ -191,7 +206,7 @@ function simulateCustomers(PDO $pdo, array $shop, int $ownerId, array $rt, int $
             $delta['missed']++;
             $reputation = max(0.0, $reputation - 1.0);
             $orders[] = ['pid' => $pid, 'name' => $item['name'], 'qty' => 0, 'price' => $item['price'],
-                         'total' => 0.0, 'status' => 'missed', 'customer' => $customer, 'ts' => $ts];
+                         'total' => 0.0, 'cost' => 0.0, 'status' => 'missed', 'customer' => $customer, 'ts' => $ts];
             continue;
         }
 
@@ -200,6 +215,7 @@ function simulateCustomers(PDO $pdo, array $shop, int $ownerId, array $rt, int $
         if (simRandFloat() < 0.08)      $qty++;
         $qty   = min($qty, $item['stock']);
         $total = round($qty * $item['price'], 2);
+        $cost  = round($qty * $item['base_cost'], 2);   // vốn mặt hàng của đơn này
 
         $menu[$pid]['stock'] -= $qty;
         $sold[$pid] = ($sold[$pid] ?? 0) + $qty;
@@ -207,7 +223,7 @@ function simulateCustomers(PDO $pdo, array $shop, int $ownerId, array $rt, int $
         $delta['served']++;
         $delta['revenue'] += $total;
         $orders[] = ['pid' => $pid, 'name' => $item['name'], 'qty' => $qty, 'price' => $item['price'],
-                     'total' => $total, 'status' => 'served', 'customer' => $customer, 'ts' => $ts];
+                     'total' => $total, 'cost' => $cost, 'status' => 'served', 'customer' => $customer, 'ts' => $ts];
     }
 
     // 1) Trừ kho (điều kiện quantity >= ? là lớp bảo vệ thứ 2 ngoài khóa dòng)
@@ -219,21 +235,35 @@ function simulateCustomers(PDO $pdo, array $shop, int $ownerId, array $rt, int $
         }
     }
 
-    // 2) Doanh thu vào KÉT QUÁN (shop_runtime.till_balance, cộng ở shopRuntimeTick). Chỉ chuyển vào ví khi chốt ca (api/end-day.php).
+    // 2) Cộng doanh thu vào ví (1 lần cho cả đợt khách)
     $revenue = round($delta['revenue'], 2);
-
-    // 3) Ghi từng đơn vào shop_orders (nguồn cho bảng hoạt động của quán)
-    $ins = $pdo->prepare('INSERT INTO shop_orders (shop_id, product_id, product_name, quantity, unit_price, total, status, customer_name, arrived_ts)
-                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-    foreach ($orders as $o) {
-        $ins->execute([$shopId, $o['pid'], $o['name'], $o['qty'], $o['price'], $o['total'], $o['status'], $o['customer'], $o['ts']]);
+    if ($revenue > 0 && !creditWallet($pdo, $ownerId, $revenue)) {
+        throw new ApiException("Không thể cộng tiền vào ví", 500);
     }
 
-    // 4) Sổ cái: doanh thu bán hàng được ghi 1 dòng lúc chốt ca (api/end-day.php), không ghi từng khách ở đây
-    //    vì ví chưa đổi lúc bán (tiền nằm trong két quán).
+    // 3) Ghi từng đơn vào shop_orders (nguồn cho nhật ký hoạt động + tổng kết ngày)
+    $ins = $pdo->prepare('INSERT INTO shop_orders (shop_id, product_id, product_name, quantity, unit_price, total, cost, day_number, status, customer_name, arrived_ts)
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    foreach ($orders as $o) {
+        $ins->execute([$shopId, $o['pid'], $o['name'], $o['qty'], $o['price'], $o['total'], $o['cost'], $day, $o['status'], $o['customer'], $o['ts']]);
+    }
+
+    // 4) Ghi sổ cái cho module Tài chính (tùy chọn: lỗi ở đây không làm hỏng việc bán hàng)
+    try {
+        $led = $pdo->prepare('INSERT INTO transactions (user_id, shop_id, type, category, amount, balance_after, description)
+                              VALUES (?, ?, \'income\', \'sale\', ?, ?, ?)');
+        $running = $balance;
+        foreach ($orders as $o) {
+            if ($o['status'] !== 'served') continue;
+            $running = round($running + $o['total'], 2);
+            $led->execute([$ownerId, $shopId, $o['total'], $running, $o['customer'] . ' mua ' . $o['qty'] . ' x ' . $o['name']]);
+        }
+    } catch (Exception $e) {
+        error_log('shop_simulation: không ghi được bảng transactions: ' . $e->getMessage());
+    }
 
     return [
-        'balance'    => $balance, // ví KHÔNG đổi lúc bán: doanh thu nằm trong két quán
+        'balance'    => round($balance + $revenue, 2),
         'reputation' => $reputation,
         'capped'     => $capped,
         'delta'      => $delta,
@@ -251,8 +281,6 @@ function shopRuntimeTick(PDO $pdo, int $shopId, int $ownerId, ?bool $setOpen = n
     $now  = time();
     $delta = ['customers' => 0, 'served' => 0, 'missed' => 0, 'walkby' => 0, 'revenue' => 0.0];
     $capped = false;
-    $feesCharged = 0.0;
-    $feesOverdue = false;
 
     try {
         $pdo->beginTransaction();
@@ -263,8 +291,8 @@ function shopRuntimeTick(PDO $pdo, int $shopId, int $ownerId, ?bool $setOpen = n
             throw new ApiException("Không tìm thấy người chơi", 404);
         }
 
-        // 2) Khóa trạng thái vận hành của quán
-        $pdo->prepare('INSERT IGNORE INTO shop_runtime (shop_id) VALUES (?)')->execute([$shopId]);
+        // 2) Khóa trạng thái vận hành của quán (quán mới: Ngày 1 bắt đầu từ bây giờ)
+        $pdo->prepare('INSERT IGNORE INTO shop_runtime (shop_id, day_started_ts) VALUES (?, ?)')->execute([$shopId, $now]);
         $stmt = $pdo->prepare('SELECT * FROM shop_runtime WHERE shop_id = ? FOR UPDATE');
         $stmt->execute([$shopId]);
         $rt = $stmt->fetch();
@@ -284,20 +312,6 @@ function shopRuntimeTick(PDO $pdo, int $shopId, int $ownerId, ?bool $setOpen = n
             $lastTick   = $now;
         }
 
-        // 3b) Phí THÁNG (mặt bằng + điện nước): server tự trừ ví và ghi transactions (lib/shop_billing.php).
-        //     Ví không đủ -> quán bị buộc đóng cửa cho tới khi đủ tiền (chốt ca để lấy doanh thu từ két).
-        $bill        = chargeMonthlyFees($pdo, $shop, $ownerId, $rt, $now, $balance);
-        $balance     = $bill['balance'];
-        $lastBilled  = $bill['last_billed_ts'];
-        $feesCharged = $bill['charged'];
-        $feesOverdue = $bill['overdue'];
-        if ($feesOverdue) {
-            $isOpen = false;
-        }
-        if ($feesOverdue && $setOpen === true) {
-            throw new ApiException("Ví không đủ tiền đóng phí tháng (mặt bằng + điện nước). Hãy chốt ca để chuyển doanh thu vào ví rồi mở lại.", 409);
-        }
-
         // 4) Mở / đóng cửa
         if ($setOpen === true && !$isOpen) {
             $stmt = $pdo->prepare('SELECT COALESCE(SUM(quantity), 0) FROM inventory WHERE shop_id = ?');
@@ -315,32 +329,155 @@ function shopRuntimeTick(PDO $pdo, int $shopId, int $ownerId, ?bool $setOpen = n
         $pdo->prepare('UPDATE shop_runtime SET is_open = ?, opened_ts = ?, last_tick_ts = ?, reputation = ?,
                            customers_total = customers_total + ?, served_total = served_total + ?,
                            missed_total = missed_total + ?, walkby_total = walkby_total + ?,
-                           revenue_total = revenue_total + ?, till_balance = till_balance + ?, last_billed_ts = ?
+                           revenue_total = revenue_total + ?
                        WHERE shop_id = ?')
             ->execute([$isOpen ? 1 : 0, $openedTs, $lastTick, $reputation,
                        $delta['customers'], $delta['served'], $delta['missed'], $delta['walkby'],
-                       round($delta['revenue'], 2), round($delta['revenue'], 2), $lastBilled, $shopId]);
+                       round($delta['revenue'], 2), $shopId]);
 
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
-        if ($e instanceof PDOException && $e->getCode() === '42S22') {
-            error_log('shop_simulation: thiếu cột: ' . $e->getMessage());
-            throw new ApiException("Thiếu cột két quán / mốc thu phí. Hãy chạy database/migrations/06_settlement.sql (php tools/run_migration.php)", 500);
-        }
-        if ($e instanceof PDOException && $e->getCode() === '42S02') {
-            error_log('shop_simulation: thiếu bảng: ' . $e->getMessage());
-            throw new ApiException("Chưa có bảng vận hành quán. Hãy chạy database/migrations/04_shop_runtime.sql", 500);
-        }
+        simRethrowSchemaError($e);
         throw $e;
     }
 
-    $snapshot = shopRuntimeSnapshot($pdo, $shopId, $now, $sinceOrderId, $balance, $delta['customers'], $delta['walkby'], $capped);
-    $snapshot['fees_charged'] = round($feesCharged, 2);   // phí tháng vừa thu trong lần tick này
-    $snapshot['fees_overdue'] = $feesOverdue;             // true = ví không đủ đóng phí tháng, quán bị buộc đóng cửa
-    return $snapshot;
+    return shopRuntimeSnapshot($pdo, $shopId, $now, $sinceOrderId, $balance, $delta['customers'], $delta['walkby'], $capped);
+}
+
+/**
+ * CHỐT CA: kết thúc ngày chơi hiện tại và sang ngày mới. Tất cả trong 1 transaction (lỗi giữa chừng = không đổi gì).
+ *  1. Quán đang mở thì chốt nốt khách đến lúc này vào ngày đang kết.
+ *  2. Lưu tổng kết ngày (đơn bán, đơn lỡ, doanh thu, vốn mặt hàng, tiền thuê) vào shop_daily_reports.
+ *  3. Sang ngày mới. Nếu bước sang tháng mới (mỗi RENT_CYCLE_DAYS ngày) thì TỰ TRỪ tiền thuê mặt bằng vào ví
+ *     và ghi sổ transactions (category 'rent'). Không đủ tiền -> 409, ngày KHÔNG sang (tiền khách vừa chốt cũng không đổi).
+ *  4. Xóa nhật ký khách (shop_orders) cũ hơn ORDER_RETENTION_DAYS ngày chơi: sang Ngày 8 thì Ngày 1 bị xóa.
+ *     Báo cáo trong shop_daily_reports KHÔNG bị xóa.
+ * @return array{closed:array,new_day:int,rent_charged:float,purged_orders:int,state:array}
+ */
+function shopEndDay(PDO $pdo, int $shopId, int $ownerId, int $sinceOrderId = 0): array
+{
+    requireOwnedShop($pdo, $shopId, $ownerId); // 404 / 403 sớm, chưa khóa gì
+    $now    = time();
+    $delta  = ['customers' => 0, 'served' => 0, 'missed' => 0, 'walkby' => 0, 'revenue' => 0.0];
+    $capped = false;
+
+    try {
+        $pdo->beginTransaction();
+
+        // Thứ tự khóa: ví -> cửa hàng -> shop_runtime -> kho (giống close-shop.php)
+        $balance = getWalletBalance($pdo, $ownerId, true);
+        if ($balance === null) {
+            throw new ApiException("Không tìm thấy người chơi", 404);
+        }
+        $shop = requireOwnedShop($pdo, $shopId, $ownerId, true); // kiểm tra lại dưới khóa: quán có thể vừa bị đóng
+
+        $pdo->prepare('INSERT IGNORE INTO shop_runtime (shop_id, day_started_ts) VALUES (?, ?)')->execute([$shopId, $now]);
+        $stmt = $pdo->prepare('SELECT * FROM shop_runtime WHERE shop_id = ? FOR UPDATE');
+        $stmt->execute([$shopId]);
+        $rt = $stmt->fetch();
+
+        $day            = (int)$rt['day_number'];
+        $dayStartedTs   = (int)$rt['day_started_ts'] ?: $now;
+        $isOpen         = (int)$rt['is_open'] === 1;
+        $lastTick       = (int)$rt['last_tick_ts'];
+        $reputation     = (float)$rt['reputation'];
+        $rentPaidUntil  = (int)$rt['rent_paid_until_day'];
+
+        // 1) Chốt nốt khách đến tới lúc kết ca
+        if ($isOpen && $now - $lastTick >= SIM_MIN_TICK_SECONDS) {
+            $r = simulateCustomers($pdo, $shop, $ownerId, $rt, $now, $balance);
+            $balance    = $r['balance'];
+            $reputation = $r['reputation'];
+            $delta      = $r['delta'];
+            $capped     = $r['capped'];
+            $lastTick   = $now;
+        }
+
+        // 2) Tổng kết ngày vừa kết (tính từ shop_orders của đúng ngày này)
+        $t        = shopDayOrderTotals($pdo, $shopId, $day);
+        $existing = shopDayReportRow($pdo, $shopId, $day);
+        $rentOfDay = $existing ? (float)$existing['rent_cost'] : shopDefaultRent($pdo, $shop, $day);
+        $pdo->prepare('INSERT INTO shop_daily_reports (shop_id, day_number, started_ts, closed_ts, served, missed, revenue, cost, rent_cost)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                       ON DUPLICATE KEY UPDATE started_ts = VALUES(started_ts), closed_ts = VALUES(closed_ts),
+                           served = VALUES(served), missed = VALUES(missed), revenue = VALUES(revenue),
+                           cost = VALUES(cost), rent_cost = VALUES(rent_cost)')
+            ->execute([$shopId, $day, $dayStartedTs, $now, $t['served'], $t['missed'], $t['revenue'], $t['cost'], $rentOfDay]);
+        $closed = shopReportRowOut($day, $dayStartedTs, $now, $t['served'], $t['missed'], $t['revenue'], $t['cost'], $rentOfDay, false);
+
+        // 3) Sang ngày mới; bước sang tháng mới thì trừ tiền thuê mặt bằng
+        $newDay       = $day + 1;
+        $rentCharged  = 0.0;
+        $monthlyRent  = shopMonthlyRent($pdo, (int)$shop['property_id']);
+        while ($newDay > $rentPaidUntil) {
+            if ($monthlyRent > 0) {
+                if ($balance < $monthlyRent || !deductWallet($pdo, $ownerId, $monthlyRent)) {
+                    throw new ApiException(
+                        "Không đủ tiền trả tiền thuê mặt bằng tháng mới (cần " . number_format($monthlyRent, 0, ',', '.')
+                        . "đ, hiện có " . number_format($balance, 0, ',', '.') . "đ). Hãy bán thêm hàng rồi chốt ca lại.",
+                        409,
+                        ["required" => $monthlyRent, "balance" => $balance]
+                    );
+                }
+                $balance      = round($balance - $monthlyRent, 2);
+                $rentCharged += $monthlyRent;
+                try { // sổ cái là tùy chọn
+                    $pdo->prepare('INSERT INTO transactions (user_id, shop_id, type, category, amount, balance_after, description)
+                                   VALUES (?, ?, \'expense\', \'rent\', ?, ?, ?)')
+                        ->execute([$ownerId, $shopId, $monthlyRent, $balance,
+                                   'Tiền thuê mặt bằng #' . (int)$shop['property_id'] . ' tháng ' . (intdiv($newDay - 1, RENT_CYCLE_DAYS) + 1)
+                                   . ' (Ngày ' . $newDay . ')']);
+                } catch (Exception $e) {
+                    error_log('shop_end_day: không ghi được bảng transactions: ' . $e->getMessage());
+                }
+            }
+            $rentPaidUntil += RENT_CYCLE_DAYS;
+        }
+        $rentCharged = round($rentCharged, 2);
+
+        // Dòng báo cáo của ngày mới (closed_ts = NULL = đang diễn ra), mang theo tiền thuê vừa trừ
+        $pdo->prepare('INSERT INTO shop_daily_reports (shop_id, day_number, started_ts, rent_cost) VALUES (?, ?, ?, ?)
+                       ON DUPLICATE KEY UPDATE started_ts = VALUES(started_ts), closed_ts = NULL, rent_cost = VALUES(rent_cost)')
+            ->execute([$shopId, $newDay, $now, $rentCharged]);
+
+        $pdo->prepare('UPDATE shop_runtime SET day_number = ?, day_started_ts = ?, rent_paid_until_day = ?,
+                           last_tick_ts = ?, reputation = ?,
+                           customers_total = customers_total + ?, served_total = served_total + ?,
+                           missed_total = missed_total + ?, walkby_total = walkby_total + ?,
+                           revenue_total = revenue_total + ?
+                       WHERE shop_id = ?')
+            ->execute([$newDay, $now, $rentPaidUntil, $lastTick, $reputation,
+                       $delta['customers'], $delta['served'], $delta['missed'], $delta['walkby'],
+                       round($delta['revenue'], 2), $shopId]);
+
+        // 4) Xóa nhật ký khách quá hạn: giữ ORDER_RETENTION_DAYS ngày gần nhất (sang Ngày 8 -> xóa Ngày 1)
+        $purged = 0;
+        $oldestDeleted = $newDay - ORDER_RETENTION_DAYS;
+        if ($oldestDeleted >= 1) {
+            $del = $pdo->prepare('DELETE FROM shop_orders WHERE shop_id = ? AND day_number <= ?');
+            $del->execute([$shopId, $oldestDeleted]);
+            $purged = $del->rowCount();
+        }
+
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        simRethrowSchemaError($e);
+        throw $e;
+    }
+
+    return [
+        'closed'        => $closed,
+        'new_day'       => $newDay,
+        'rent_charged'  => $rentCharged,
+        'purged_orders' => $purged,
+        'state'         => shopRuntimeSnapshot($pdo, $shopId, $now, $sinceOrderId, $balance, $delta['customers'], $delta['walkby'], $capped),
+    ];
 }
 
 /** Đọc (không ghi) trạng thái quán để trả cho client. */
@@ -350,7 +487,7 @@ function shopRuntimeSnapshot(PDO $pdo, int $shopId, int $now, int $sinceOrderId,
     $stmt->execute([$shopId]);
     $rt = $stmt->fetch();
 
-    $cols = 'id, product_id, product_name, quantity, unit_price, total, status, customer_name, arrived_ts';
+    $cols = 'id, product_id, product_name, quantity, unit_price, total, status, customer_name, arrived_ts, day_number';
     if ($sinceOrderId > 0) {
         $stmt = $pdo->prepare("SELECT $cols FROM shop_orders WHERE shop_id = ? AND id > ? ORDER BY id ASC LIMIT " . SIM_FEED_MAX_LIMIT);
         $stmt->execute([$shopId, $sinceOrderId]);
@@ -369,6 +506,7 @@ function shopRuntimeSnapshot(PDO $pdo, int $shopId, int $now, int $sinceOrderId,
             'status'       => $o['status'],
             'customer'     => $o['customer_name'],
             'arrived_ts'   => (int)$o['arrived_ts'],
+            'day_number'   => (int)$o['day_number'],
         ];
     }, $stmt->fetchAll());
 
@@ -379,26 +517,26 @@ function shopRuntimeSnapshot(PDO $pdo, int $shopId, int $now, int $sinceOrderId,
         $stock[(int)$row['product_id']] = (int)$row['quantity'];
     }
 
-    $today = ['served' => 0, 'missed' => 0, 'revenue' => 0.0];
-    $stmt = $pdo->prepare('SELECT status, COUNT(*) AS c, COALESCE(SUM(total), 0) AS t FROM shop_orders WHERE shop_id = ? AND arrived_ts >= ? GROUP BY status');
-    $stmt->execute([$shopId, simDayStartTs($now)]);
-    foreach ($stmt->fetchAll() as $row) {
-        if ($row['status'] === 'served') {
-            $today['served']  = (int)$row['c'];
-            $today['revenue'] = (float)$row['t'];
-        } else {
-            $today['missed'] = (int)$row['c'];
-        }
-    }
+    // "Hôm nay" = NGÀY CHƠI hiện tại (không phải ngày lịch): đổi sang ngày mới khi người chơi chốt ca
+    $day   = (int)$rt['day_number'];
+    $t     = shopDayOrderTotals($pdo, $shopId, $day);
+    $today = [
+        'served'  => $t['served'],
+        'missed'  => $t['missed'],
+        'revenue' => $t['revenue'],
+        'cost'    => $t['cost'],                                // vốn mặt hàng (giá vốn của hàng đã bán)
+        'profit'  => round($t['revenue'] - $t['cost'], 2),      // lợi nhuận = doanh thu - vốn mặt hàng
+    ];
 
     return [
         'shop_id'        => $shopId,
         'is_open'        => (int)$rt['is_open'] === 1,
         'opened_ts'      => (int)$rt['opened_ts'],
         'server_ts'      => $now,
+        'day'            => $day,
+        'next_rent_day'  => (int)$rt['rent_paid_until_day'] + 1,   // ngày sẽ bị trừ tiền thuê tháng kế tiếp
         'reputation'     => round((float)$rt['reputation'], 1),
         'balance'        => round($balance, 2),
-        'till_balance'   => round((float)($rt['till_balance'] ?? 0), 2), // doanh thu chưa chuyển vào ví (chốt ca để nhận)
         'new_customers'  => $newCustomers,
         'walked_by'      => $walkedBy,
         'catchup_capped' => $capped,

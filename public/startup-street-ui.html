@@ -197,6 +197,7 @@ tr:hover td{background:var(--bg-highlight)}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
+<link rel="stylesheet" href="css/reports.css">
 </head>
 <body>
 
@@ -227,9 +228,11 @@ tr:hover td{background:var(--bg-highlight)}
     <div class="sidebar-section">
       <h3>📊 Hôm nay — Ngày <span id="today-day-label">1</span></h3>
       <div class="mini-stats">
+        <div class="mini-stat" style="grid-column:1/-1"><div class="mval" id="today-clock" style="font-size:14px">--:--:--</div><div class="mlb">Thời gian thực</div></div>
         <div class="mini-stat"><div class="mval" id="today-order-count">0</div><div class="mlb">Đơn bán</div></div>
         <div class="mini-stat"><div class="mval" id="today-revenue" style="font-size:14px">0đ</div><div class="mlb">Doanh thu</div></div>
-        <div class="mini-stat" style="grid-column:1/-1"><div class="mval" id="today-material-cost" style="font-size:14px">0đ</div><div class="mlb">Chi phí nguyên liệu</div></div>
+        <div class="mini-stat"><div class="mval" id="today-material-cost" style="font-size:14px">0đ</div><div class="mlb">Vốn mặt hàng</div></div>
+        <div class="mini-stat"><div class="mval" id="today-profit" style="font-size:14px">0đ</div><div class="mlb">Lợi nhuận</div></div>
       </div>
     </div>
 
@@ -261,7 +264,7 @@ tr:hover td{background:var(--bg-highlight)}
     <nav class="tab-nav" role="tablist">
       <button class="nav-tab active" type="button" role="tab" onclick="switchTab('live', event)">📋 Hoạt động</button>
       <button class="nav-tab" type="button" role="tab" onclick="switchTab('inventory', event)">📦 Kho hàng</button>
-      <button class="nav-tab" type="button" role="tab" onclick="switchTab('report', event)">📅 Báo cáo ngày</button>
+      <button class="nav-tab" type="button" role="tab" onclick="switchTab('report', event)">📅 Báo cáo doanh thu</button>
       <button class="nav-tab" type="button" role="tab" onclick="switchTab('finance', event)">💰 Tài chính</button>
       <button class="nav-tab" type="button" role="tab" onclick="switchTab('ledger', event)">📒 Sổ cái</button>
     </nav>
@@ -304,22 +307,28 @@ tr:hover td{background:var(--bg-highlight)}
       <!-- TAB: Daily Report -->
       <div class="tab-panel" id="tab-report">
         <div class="panel-card">
-          <div class="panel-title">📅 Tổng kết ngày gần nhất</div>
-          <div id="daily-report-content">
-            <div class="empty-state"><div class="empty-icon">🌙</div><p>Bấm <b>Chốt ca / Kết thúc ngày</b> để xem báo cáo.</p></div>
+          <div class="panel-title">📅 Báo cáo doanh thu</div>
+          <div class="report-views" role="group" aria-label="Chọn kỳ báo cáo">
+            <button type="button" class="rv-btn active" data-view="day">Theo ngày</button>
+            <button type="button" class="rv-btn" data-view="week">Theo tuần</button>
+            <button type="button" class="rv-btn" data-view="month">Theo tháng</button>
+          </div>
+          <p class="tab-note" id="report-note"></p>
+          <div style="overflow-x:auto">
+            <table>
+              <thead id="report-head"></thead>
+              <tbody id="report-body"><tr><td colspan="8" style="text-align:center;padding:20px;opacity:.6">Đang tải...</td></tr></tbody>
+            </table>
           </div>
         </div>
-        <div class="panel-card">
-          <div class="panel-title">💬 Nhận xét khách hàng</div>
-          <div id="feedback-list">
-            <div class="empty-state"><p>Chưa có nhận xét nào.</p></div>
-          </div>
-        </div>
+        <!-- game.js (chế độ demo) vẫn ghi vào 2 khung này nên giữ lại, ẩn đi -->
+        <div id="daily-report-content" hidden></div>
+        <div id="feedback-list" hidden></div>
       </div>
 
       <!-- TAB: Finance Dashboard -->
       <div class="tab-panel" id="tab-finance">
-        <p class="tab-note">Doanh thu, chi phí và lợi nhuận được tính trong phiên này và sẽ mất khi tải lại trang. Số dư ví là số dư thật lưu trên server. Nút Chốt ca chuyển doanh thu trong két quán vào ví thật. Tiền mặt bằng và điện nước do server trừ theo tháng (có ghi sổ giao dịch), nên báo cáo ngày không còn phí cố định.</p>
+        <p class="tab-note">Số liệu tài chính tổng hợp từ báo cáo doanh thu của cửa hàng này (lưu trên server, không mất khi tải lại trang). Lợi nhuận = doanh thu − vốn mặt hàng; lãi ròng = lợi nhuận − tiền thuê mặt bằng (tự trừ mỗi 30 ngày).</p>
         <div class="stat-grid">
           <div class="stat-card">
             <div class="stat-label">Tổng doanh thu</div>
@@ -327,13 +336,21 @@ tr:hover td{background:var(--bg-highlight)}
             <div class="stat-change up" id="dash-revenue-margin">0 đơn</div>
           </div>
           <div class="stat-card">
+            <div class="stat-label">Vốn mặt hàng</div>
+            <div class="stat-value" id="dash-total-cost">0đ</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Tiền thuê mặt bằng</div>
+            <div class="stat-value" id="dash-total-rent">0đ</div>
+          </div>
+          <div class="stat-card">
             <div class="stat-label">Tổng chi phí</div>
             <div class="stat-value" id="dash-total-expenses">0đ</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Lợi nhuận ròng</div>
+            <div class="stat-label">Lãi ròng</div>
             <div class="stat-value" id="dash-net-profit">0đ</div>
-            <div class="stat-change up" id="dash-margin-rate">Margin: 0%</div>
+            <div class="stat-change up" id="dash-margin-rate">Biên lãi ròng: 0%</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Số dư ví hiện tại</div>
@@ -465,6 +482,7 @@ tr:hover td{background:var(--bg-highlight)}
 <script src="js/wallet-api.js"></script>
 <script src="js/shop-scene.js"></script>
 <script src="js/shop-live.js"></script>
+<script src="js/reports.js"></script>
 <script>
 // Khởi tạo nút gọi món từ Products array (được khai báo trong game.js)
 document.addEventListener('DOMContentLoaded', () => {

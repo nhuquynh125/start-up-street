@@ -191,7 +191,7 @@
     const r = (await api('restock-bulk.php', post({ shop_id: SHOP_ID, items }))).data;
     r.items.forEach(it => { const p = Products.find(x => x.dbId === it.product_id); if (p) p.stock = it.stock_quantity; });
     walletBalance = r.balance; GameState.balance = r.balance;
-    GameState.today.materialCost += r.total_cost;
+    /* vốn mặt hàng = giá vốn hàng ĐÃ BÁN do server tính (shop-tick); tiền nhập kho đã trừ vào ví, không cộng vào đây */
     addActivityFeed('📥 Nhập nguyên liệu kho', '-' + formatMoney(r.total_cost), 'expense');
     showToast('✅', 'Đã nhập hàng: -' + formatMoney(r.total_cost));
   } catch (e) { showToast('❌', e.message); }

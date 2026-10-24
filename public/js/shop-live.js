@@ -1,10 +1,14 @@
 // ==============================================================
 // STARTUP STREET — Quán chạy "thật": khách tự động đến khi quán mở cửa
-// Nạp SAU game.js và wallet-api.js:
-//   <script src="js/game.js"></script><script src="js/wallet-api.js"></script><script src="js/shop-live.js"></script>
+// Nạp SAU game.js, wallet-api.js và shop-scene.js:
+//   <script src="js/game.js"></script><script src="js/wallet-api.js"></script><script src="js/shop-scene.js"></script>
+//   <script src="js/shop-live.js"></script><script src="js/reports.js"></script>
 //
-// Quy tắc: server (api/shop-open.php, api/shop-tick.php) quyết định có khách hay không, mua gì, bao nhiêu tiền.
-// File này chỉ GỌI API rồi VẼ kết quả. Không có shop_id trên URL -> không làm gì (giữ chế độ demo cũ).
+// Quy tắc: server (api/shop-open.php, shop-tick.php, end-day.php) quyết định có khách hay không, mua gì, bao nhiêu tiền,
+// đang là Ngày mấy. File này chỉ GỌI API rồi VẼ kết quả. Không có shop_id trên URL -> không làm gì (giữ chế độ demo cũ).
+//
+// Nhật ký hoạt động: lúc mở trang nạp lại nhật ký đã lưu ở server (7 ngày chơi gần nhất, api/get-activity-log.php).
+// Chốt ca: gọi api/end-day.php, server lưu báo cáo ngày, sang ngày mới, tự trừ tiền thuê khi sang tháng mới.
 // ==============================================================
 (function () {
   const SHOP_ID = Number(new URLSearchParams(location.search).get('shop_id')) || null;
@@ -13,6 +17,8 @@
   const API = 'api/';
   const POLL_MS = 4000;     // hỏi server mỗi 4 giây khi quán đang mở
   const STAGGER_MS = 450;   // khách hiện lần lượt trong nhật ký cho có cảm giác "đang bước vào quán"
+  const LOG_MAX = 600;      // số dòng tối đa trong khung nhật ký
+  const KEEP_DAYS = 7;      // khớp ORDER_RETENTION_DAYS ở server
 
   let isOpen = false;
   let lastOrderId = 0;
@@ -22,6 +28,8 @@
   let lastError = '';
   let warnedEmpty = false;
   let gone = false;         // cửa hàng đã bị đóng vĩnh viễn / không còn tồn tại -> dừng mọi request
+  let currentDay = 1;       // ngày chơi hiện tại (do server quyết định)
+  let nextRentDay = null;   // ngày sẽ bị trừ tiền thuê mặt bằng tháng kế tiếp
   const feedQueue = [];
   let draining = false;
 
@@ -33,11 +41,11 @@
       })
     : null;
 
-  // ── Gọi API (POST JSON) ──
-  async function post(path, body) {
+  // ── Gọi API: có body -> POST JSON, không có -> GET ──
+  async function call(path, body) {
     let res;
     try {
-      res = await fetch(API + path, {
+      res = await fetch(API + path, body === undefined ? undefined : {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -56,19 +64,62 @@
     if (!json.success) {
       const err = new Error(json.message || 'Lỗi API');
       err.status = res.status;
+      err.data = json.data;
       throw err;
     }
     return json.data;
   }
+  const post = call;
 
-  // ── Vẽ nhật ký khách ──
+  // ── Nhật ký hoạt động ──
+  const hhmm = ts => new Date(ts * 1000).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+  /** Thêm 1 dòng lên ĐẦU nhật ký. day = ngày chơi của dòng (để xóa dòng quá 7 ngày khỏi màn hình), ts = giờ khách tới. */
+  function logRow(text, amount, type, day, ts) {
+    const feed = document.getElementById('activity-feed');
+    if (!feed) return;
+    if (feed.querySelector('.empty-state')) feed.innerHTML = '';
+
+    const item = document.createElement('div');
+    item.className = 'activity-item';
+    item.dataset.day = String(day || currentDay);
+
+    const when = document.createElement('span');
+    when.className = 'act-time';
+    when.style.minWidth = '92px';
+    when.textContent = 'Ngày ' + (day || currentDay) + (ts ? ' · ' + hhmm(ts) : '');
+    const what = document.createElement('span');
+    what.className = 'act-text';
+    what.textContent = text;
+    item.append(when, what);
+    if (amount) {
+      const amt = document.createElement('span');
+      amt.className = 'act-amount ' + (type || '');
+      amt.textContent = amount;
+      item.appendChild(amt);
+    }
+    feed.insertBefore(item, feed.firstChild);
+    while (feed.children.length > LOG_MAX) feed.removeChild(feed.lastChild);
+  }
+
+  /** Bỏ khỏi màn hình các dòng thuộc ngày đã bị server xóa (giữ KEEP_DAYS ngày gần nhất). */
+  function pruneLog(day) {
+    const feed = document.getElementById('activity-feed');
+    if (!feed) return;
+    const minDay = day - KEEP_DAYS + 1;
+    [...feed.children].forEach(el => {
+      const d = Number(el.dataset.day);
+      if (d && d < minDay) el.remove();
+    });
+  }
+
   function renderOrder(o) {
-    const p = Products.find(x => x.dbId === o.product_id);
+    const p = Products.find(x => x.dbId === o.product_id) || Products.find(x => x.name === o.product_name);
     const emoji = p ? p.emoji : '🛍️';
     if (o.status === 'served') {
-      addActivityFeed(`${emoji} ${o.customer} mua ${o.quantity}× ${o.product_name}`, '+' + formatMoney(o.total), 'income');
+      logRow(`${emoji} ${o.customer} mua ${o.quantity}× ${o.product_name}`, '+' + formatMoney(o.total), 'income', o.day_number, o.arrived_ts);
     } else {
-      addActivityFeed(`😞 ${o.customer} muốn mua ${emoji} ${o.product_name} nhưng HẾT HÀNG, khách bỏ về`, '0đ', 'expense');
+      logRow(`😞 ${o.customer} muốn mua ${emoji} ${o.product_name} nhưng HẾT HÀNG, khách bỏ về`, '0đ', 'expense', o.day_number, o.arrived_ts);
     }
   }
   function drain() {
@@ -87,6 +138,18 @@
     drain();
   }
 
+  /** Nạp nhật ký đã lưu ở server (7 ngày chơi gần nhất) trước khi bắt đầu tick. */
+  async function loadSavedLog() {
+    try {
+      const d = await call('get-activity-log.php?shop_id=' + SHOP_ID);
+      d.orders.forEach(renderOrder); // server trả cũ -> mới nên đơn mới nhất nằm trên cùng
+      if (d.orders.length) lastOrderId = Math.max(lastOrderId, ...d.orders.map(o => o.id));
+      currentDay = d.current_day;
+    } catch (e) {
+      if (!gone) showToast('❌', 'Không tải được nhật ký đã lưu: ' + e.message);
+    }
+  }
+
   // ── Áp trạng thái server lên giao diện ──
   function applyState(s) {
     isOpen = s.is_open;
@@ -100,20 +163,25 @@
     });
     updateInventoryTable();
 
-    // Số liệu "Hôm nay" lấy từ server (game.js dùng GameState.today để vẽ và chốt ca)
+    // Ngày chơi + số liệu "Hôm nay" lấy từ server (game.js dùng GameState.today để vẽ)
+    currentDay = s.day;
+    nextRentDay = s.next_rent_day;
+    GameState.day = s.day;
     GameState.today.orders = s.today.served;
     GameState.today.missedOrders = s.today.missed;
     GameState.today.revenue = s.today.revenue;
+    GameState.today.materialCost = s.today.cost;      // vốn mặt hàng = giá vốn của hàng đã bán
     GameState.reputation = Math.round(s.reputation);
+    const dayLabel = document.getElementById('today-day-label');
+    if (dayLabel) dayLabel.textContent = s.day;
     updateTodayStats();
     if (typeof window.updateHUD === 'function') window.updateHUD();
 
     const st = document.getElementById('live-status');
     if (st) {
       st.textContent = (s.is_open ? '🟢 Đang mở cửa' : '🔴 Đang đóng cửa')
-        + ` · Uy tín ${s.reputation}★ · Hôm nay ${s.today.served} khách mua, ${s.today.missed} bỏ về`
-        + ` · Két ${formatMoney(s.till_balance || 0)} (bấm Chốt ca để chuyển vào ví)`;
-      if (s.fees_overdue) showToast('⚠️', 'Ví không đủ tiền đóng phí tháng nên quán bị đóng cửa. Hãy chốt ca để lấy doanh thu.');
+        + ` · Ngày ${s.day} · Uy tín ${s.reputation}★ · Hôm nay ${s.today.served} khách mua, ${s.today.missed} bỏ về`
+        + ` · Trừ tiền thuê kỳ tới: Ngày ${s.next_rent_day}`;
     }
 
     // Cảnh báo 1 lần khi hết sạch hàng lúc đang mở
@@ -145,7 +213,7 @@
       showOrders(fresh, false);
     }
     if (s.walked_by > 0) {
-      addActivityFeed(`🚶 ${s.walked_by} người ghé qua nhưng chê giá cao nên không vào quán`);
+      logRow(`🚶 ${s.walked_by} người ghé qua nhưng chê giá cao nên không vào quán`, '', '', s.day);
     }
 
     applyState(s);
@@ -199,6 +267,37 @@
     }
   }
 
+  // ── CHỐT CA: server lưu báo cáo ngày, sang ngày mới, tự trừ tiền thuê khi sang tháng mới ──
+  // Ghi đè endDayAndSettle của game.js (bản gốc chỉ tính cục bộ nên tải lại trang là về Ngày 1).
+  window.endDayAndSettle = async function () {
+    if (gone || busy) return;
+    const rentWarn = nextRentDay === currentDay + 1
+      ? '\n• Sang Ngày ' + nextRentDay + ' hệ thống sẽ TỰ TRỪ tiền thuê mặt bằng tháng mới.'
+      : '';
+    if (!confirm('Chốt ca Ngày ' + currentDay + ' và sang Ngày ' + (currentDay + 1) + '?\n'
+      + '• Báo cáo ngày được lưu lại.' + rentWarn)) return;
+
+    busy = true;
+    try {
+      const r = await call('end-day.php', { shop_id: SHOP_ID, since_id: lastOrderId });
+      handle(r.state);
+      const c = r.closed;
+      showToast(c.profit >= 0 ? '💰' : '📉', `Chốt Ngày ${c.day}: lợi nhuận ${formatMoney(c.profit)}`);
+      logRow(`🌙 Chốt ca Ngày ${c.day}: ${c.served} đơn, doanh thu ${formatMoney(c.revenue)}, vốn mặt hàng ${formatMoney(c.cost)}, lợi nhuận ${formatMoney(c.profit)}`, '', '', c.day);
+      if (r.rent_charged > 0) {
+        logRow(`🏠 Tiền thuê mặt bằng tháng mới (Ngày ${r.new_day})`, '-' + formatMoney(r.rent_charged), 'expense', r.new_day);
+        showToast('🏠', 'Đã trừ tiền thuê mặt bằng: -' + formatMoney(r.rent_charged));
+      }
+      logRow(`☀️ Bắt đầu Ngày ${r.new_day}`, '', '', r.new_day);
+      if (r.purged_orders > 0) pruneLog(r.new_day);
+      if (window.StartupReports) window.StartupReports.reload();
+    } catch (e) {
+      showToast('❌', e.message);
+    } finally {
+      busy = false;
+    }
+  };
+
   function injectUi() {
     // Chế độ thật: bỏ gọi món thủ công + giờ cao điểm giả lập (khách do server sinh ra)
     const orderBox = document.getElementById('order-buttons');
@@ -229,8 +328,9 @@
     if (hint) hint.textContent = 'Mở cửa quán để khách bắt đầu ghé mua!';
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
     injectUi();
-    tick(); // lấy trạng thái ban đầu (nếu quán đang mở sẽ bù khách trong lúc vắng mặt)
+    await loadSavedLog(); // nhật ký đã lưu hiện ra trước, rồi mới lấy trạng thái quán
+    tick();               // quán đang mở sẽ bù khách trong lúc vắng mặt (chỉ các đơn MỚI hơn nhật ký đã nạp)
   });
 })();

@@ -113,7 +113,7 @@ try {
     }
 
     // Bước 4: xóa dữ liệu của quán. Bảng vận hành (migration 04) có thể chưa tồn tại -> bỏ qua nếu 42S02.
-    foreach (['shop_orders', 'shop_runtime'] as $table) {
+    foreach (['shop_orders', 'shop_runtime', 'shop_daily_reports'] as $table) {
         try {
             $pdo->prepare("DELETE FROM $table WHERE shop_id = ?")->execute([$shopId]);
         } catch (PDOException $e) {
