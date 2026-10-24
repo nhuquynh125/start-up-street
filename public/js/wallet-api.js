@@ -186,4 +186,6 @@
     originalEndDay();
     if (SHOP_ID) syncBalance(); // demo: không có số dư server để đồng bộ
   };
+  window.StartupWallet = { setBalance(v) { walletBalance = Number(v); GameState.balance = walletBalance; paintBalance(); } };
+
 })();

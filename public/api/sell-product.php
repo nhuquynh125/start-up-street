@@ -27,7 +27,7 @@ try {
         throw new ApiException("Cỡ ly không hợp lệ (M hoặc L)", 400);
     }
 
-    requireOwnedShop($pdo, $shopId, $ownerId); // 404 / 403
+    apiRespond(false, "Bán thủ công đã tắt: khách đến mua tự động khi quán mở cửa.", null, 410); // 404 / 403
 
     $pdo->beginTransaction();
 
