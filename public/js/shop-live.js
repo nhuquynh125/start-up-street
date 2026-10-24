@@ -24,6 +24,14 @@
   const feedQueue = [];
   let draining = false;
 
+  // Cảnh quầy: cần <div id="shop-scene"> trong trang và js/shop-scene.js; thiếu một trong hai thì bỏ qua, nhật ký vẫn chạy.
+  const sceneEl = document.getElementById('shop-scene');
+  const scene = (window.ShopScene && sceneEl)
+    ? ShopScene.mount(sceneEl, {
+        emojiFor: id => { const p = Products.find(x => x.dbId === id); return p ? p.emoji : '🛍️'; }
+      })
+    : null;
+
   // ── Gọi API (POST JSON) ──
   async function post(path, body) {
     let res;
@@ -110,6 +118,12 @@
   function handle(s) {
     const fresh = s.orders.filter(o => o.id > lastOrderId);
     if (fresh.length) lastOrderId = Math.max(lastOrderId, ...fresh.map(o => o.id));
+
+    if (scene) {
+      scene.setOpen(s.is_open);
+      scene.push(fresh, { silent: firstState });   // lần tải đầu: không dựng lại khách cũ
+      if (!firstState) scene.walkBy(s.walked_by);
+    }
 
     if (firstState) {
       showOrders(fresh, true);
