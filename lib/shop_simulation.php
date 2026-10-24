@@ -140,8 +140,8 @@ function simulateCustomers(PDO $pdo, array $shop, int $ownerId, array $rt, int $
         return $noop;
     }
 
-    $stmt = $pdo->prepare('SELECT id, name, base_cost FROM products WHERE business_type_id = ?');
-    $stmt->execute([(int)$shop['business_type_id']]);
+    $stmt = $pdo->prepare('SELECT id, name, base_cost FROM products WHERE business_type_id = ? AND (shop_id IS NULL OR shop_id = ?)');
+    $stmt->execute([(int)$shop['business_type_id'], $shopId]);
     $valid = [];
     foreach ($stmt->fetchAll() as $p) {
         $pid = (int)$p['id'];

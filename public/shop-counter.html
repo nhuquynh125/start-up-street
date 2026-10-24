@@ -10,11 +10,13 @@
 --ok:#6fb23f;--ok-d:#4c8a26;--no:#d95b4f;--no-d:#a63a31;--gold:#f2b441;--ink:#4a2a16;--font:'Baloo 2',system-ui,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
 [hidden]{display:none!important}
-body{font-family:var(--font);color:var(--ink);background:#f0e6c8;min-height:100vh}
+html,body{height:100%}
+body{font-family:var(--font);color:var(--ink);background:#f0e6c8;display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
 button{font-family:inherit;cursor:pointer}
 :focus-visible{outline:3px solid #ffb703;outline-offset:2px}
-.hud{position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;
- padding:8px 14px;background:var(--paper);border-bottom:4px solid var(--wood);font-weight:800}
+
+.hud{flex:none;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;
+ padding:8px 14px;background:var(--paper);border-bottom:4px solid var(--wood);font-weight:800;z-index:10}
 .hud .r{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .pill{background:var(--cream);border:3px solid var(--wood);border-radius:12px;padding:1px 12px;font-size:14px}
 .btn{display:inline-block;border:3px solid var(--wood-d);border-radius:12px;padding:5px 14px;font-weight:800;font-size:15px;color:#fff;
@@ -23,30 +25,35 @@ button{font-family:inherit;cursor:pointer}
 .btn.ok{background:var(--ok);border-color:var(--ok-d);box-shadow:0 4px 0 var(--ok-d)}
 .btn.no{background:var(--no);border-color:var(--no-d);box-shadow:0 4px 0 var(--no-d)}
 .btn:disabled{opacity:.55;cursor:not-allowed}
-main{max-width:1100px;margin:0 auto;padding:14px}
-#notice{display:none;margin-bottom:12px;padding:10px 14px;border:3px solid #e8a020;background:#fff0c9;border-radius:12px;font-weight:700}
-/* Cảnh quầy: ghi đè chiều cao mặc định của shop-scene.js để quầy to hơn */
-#stage.ss-scene{height:clamp(280px,48vh,420px);margin-bottom:0;border-radius:18px 18px 0 0;border-bottom:0}
-.counter-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
- padding:10px 14px;background:var(--wood);border:4px solid var(--wood);border-radius:0 0 18px 18px;color:var(--cream);margin-bottom:14px;box-shadow:0 4px 0 var(--wood-d)}
-#status{font-weight:700;font-size:14px;flex:1;min-width:220px}
-.panel{background:var(--paper);border:4px solid var(--wood);border-radius:18px;padding:12px;box-shadow:0 4px 0 var(--wood-d);margin-bottom:14px}
-.panel h3{font-size:16px;margin-bottom:10px}
-.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
-.it{background:var(--cream);border:3px solid var(--paper-d);border-radius:14px;padding:8px;text-align:center;transition:transform .15s,border-color .15s}
+#notice{flex:none;display:none;padding:10px 14px;border-bottom:3px solid #e8a020;background:#fff0c9;font-weight:700}
+
+/* Cảnh quán: chiếm toàn bộ phần còn lại; mép dưới = mép trên quầy */
+#stage.ss-scene{flex:1 1 auto;height:auto;min-height:0}
+
+/* Quầy hàng ở dưới cùng */
+.counter{flex:none;position:relative;z-index:5;background:var(--wood);border-top:6px solid var(--wood-d);
+ padding:16px 14px 12px;color:var(--cream)}
+.counter::before{content:'';position:absolute;left:0;right:0;top:-20px;height:14px;background:var(--wood-l);
+ border-top:4px solid var(--wood-d);box-shadow:0 5px 0 #0003}
+.counter-head{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;margin-bottom:8px}
+.counter-head h3{font-size:16px;white-space:nowrap}
+#status{flex:1;min-width:200px;font-weight:700;font-size:14px}
+.shelf{display:flex;gap:10px;overflow-x:auto;padding:8px 2px 4px}
+.shelf>small{font-weight:600}
+.it{flex:0 0 138px;background:var(--cream);border:3px solid var(--paper-d);border-radius:14px;padding:6px 8px;text-align:center;color:var(--ink);
+ transition:transform .15s,border-color .15s}
 .it.hit{transform:translateY(-6px);border-color:var(--ok)}
 .it.out{border-color:var(--no);opacity:.75}
-.it .em{font-size:34px;display:block;line-height:1.2}
+.it .em{font-size:28px;display:block;line-height:1.15}
 .it b{display:block;font-size:13px;line-height:1.15;min-height:30px}
 .it small{display:block;font-size:12px;font-weight:600;opacity:.8}
-.bar{height:8px;background:#e6d8b8;border-radius:5px;margin:4px 0;overflow:hidden}
+.bar{height:8px;background:#e6d8b8;border-radius:5px;margin:3px 0;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--ok)}
 .it.low .bar i{background:#e8a020}.it.out .bar i{background:var(--no)}
-#feed{display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto}
-#feed div{display:flex;justify-content:space-between;gap:8px;padding:5px 10px;background:var(--cream);border-radius:10px;font-size:13px;font-weight:600}
-#feed .in b{color:var(--ok-d)}#feed .out b{color:var(--no-d)}
-#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--wood-d);color:var(--cream);padding:8px 20px;
+
+#toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:var(--wood-d);color:var(--cream);padding:8px 20px;
  border-radius:14px;border:3px solid var(--wood-l);font-weight:800;display:none;z-index:50;max-width:90vw}
+@media(max-height:620px){.it .em{font-size:22px}.it b{min-height:0}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -61,26 +68,20 @@ main{max-width:1100px;margin:0 auto;padding:14px}
     <a class="btn" href="map.php">🗺️ Bản đồ</a>
   </span>
 </header>
+<div id="notice" role="status"></div>
 
-<main>
-  <div id="notice" role="status"></div>
+<!-- Phần còn lại của màn hình: bên trong quán, nhìn từ sau quầy (chỉ thấy khách) -->
+<div id="stage" role="img" aria-label="Trong quán: khách bước vào, đến quầy mua hàng rồi ra về"></div>
 
-  <div id="stage" role="img" aria-label="Quầy hàng: bạn đứng sau quầy, khách đến mua và rời đi"></div>
-  <div class="counter-bar">
+<!-- Quầy hàng ở dưới -->
+<section class="counter" aria-label="Quầy hàng">
+  <div class="counter-head">
+    <h3>🧺 Hàng trên quầy</h3>
     <span id="status">Đang tải trạng thái quán…</span>
     <button class="btn ok" id="toggle" type="button" disabled>🔓 Mở cửa quán</button>
   </div>
-
-  <section class="panel">
-    <h3>🧺 Hàng trên quầy</h3>
-    <div class="shelf" id="shelf"><small>Đang tải…</small></div>
-  </section>
-
-  <section class="panel">
-    <h3>📝 Khách vừa ghé</h3>
-    <div id="feed"><div><span>Mở cửa quán để khách bắt đầu ghé mua.</span></div></div>
-  </section>
-</main>
+  <div class="shelf" id="shelf"><small>Đang tải…</small></div>
+</section>
 <div id="toast" role="status"></div>
 
 <script src="js/shop-scene.js"></script>
@@ -117,13 +118,13 @@ main{max-width:1100px;margin:0 auto;padding:14px}
     return json.data;
   }
 
-  // Cảnh quầy: người chơi (đầu bếp) đứng sau quầy, khách tới theo đơn do server sinh ra
+  // Cảnh quán: bạn là chủ quán đứng sau quầy (không vẽ chủ quán), khách tới theo đơn do server sinh ra
   const scene = ShopScene.mount($('stage'), {
     emojiFor: id => { const p = products.find(x => Number(x.product_id) === id); return p ? pEmoji(p.product_name) : '🛍️'; },
     onSale: e => flash(e.items[0].name)
   });
 
-  // ── Kệ hàng ──
+  // ── Hàng trên quầy ──
   function renderShelf() {
     const box = $('shelf');
     if (!products.length) { box.innerHTML = '<small>Cửa hàng chưa có sản phẩm. Hãy nhập hàng trước.</small>'; return; }
@@ -138,6 +139,7 @@ main{max-width:1100px;margin:0 auto;padding:14px}
       const q = document.createElement('small'); q.className = 'q';
       d.append(em, nm, pr, bar, q); box.appendChild(d);
     });
+    scene.setGoods(products.map(p => pEmoji(p.product_name)));   // hàng bày trên kệ sau lưng
     paintStock();
   }
   function paintStock() {
@@ -155,22 +157,6 @@ main{max-width:1100px;margin:0 auto;padding:14px}
     d.classList.add('hit'); setTimeout(() => d.classList.remove('hit'), 450);
   }
 
-  // ── Nhật ký ──
-  function log(cls, text, amount) {
-    const feed = $('feed');
-    if (!feed.querySelector('.in,.out')) feed.innerHTML = '';
-    const row = document.createElement('div'); row.className = cls;
-    const t = document.createElement('span'); t.textContent = text;
-    const a = document.createElement('b'); a.textContent = amount || '';
-    row.append(t, a); feed.insertBefore(row, feed.firstChild);
-    while (feed.children.length > 30) feed.removeChild(feed.lastChild);
-  }
-  function logOrder(o) {
-    const emoji = pEmoji(o.product_name);
-    if (o.status === 'served') log('in', `${emoji} ${o.customer} mua ${o.quantity}× ${o.product_name}`, '+' + vnd(o.total));
-    else log('out', `😞 ${o.customer} muốn ${emoji} ${o.product_name} nhưng hết hàng, khách bỏ về`, '0đ');
-  }
-
   // ── Áp trạng thái từ server ──
   function handle(s) {
     const fresh = s.orders.filter(o => o.id > lastId);
@@ -179,8 +165,6 @@ main{max-width:1100px;margin:0 auto;padding:14px}
     scene.setOpen(s.is_open);
     scene.push(fresh, { silent: first });           // lần tải đầu: không dựng lại khách cũ
     if (!first) scene.walkBy(s.walked_by);
-    (first ? fresh.slice(-5) : fresh).forEach(logOrder);
-    if (!first && s.walked_by > 0) log('out', `🚶 ${s.walked_by} người ghé qua nhưng chê giá cao`, '');
     if (first && s.is_open && s.new_customers > 0) toast('🛎️ Trong lúc bạn vắng, quán đã đón ' + s.new_customers + ' lượt khách');
     first = false;
 

@@ -23,13 +23,14 @@ try {
             p.base_cost,
             COALESCE(i.quantity, 0) AS stock_quantity,
             COALESCE(i.selling_price, p.base_cost * ' . DEFAULT_MARKUP . ') AS selling_price,
-            i.last_restocked
+            i.last_restocked,
+            (p.shop_id IS NOT NULL) AS is_custom
         FROM products p
         LEFT JOIN inventory i ON i.product_id = p.id AND i.shop_id = ?
-        WHERE p.business_type_id = ?
+        WHERE p.business_type_id = ? AND (p.shop_id IS NULL OR p.shop_id = ?)
         ORDER BY p.id
     ');
-    $stmt->execute([$shopId, $shop['business_type_id']]);
+    $stmt->execute([$shopId, $shop['business_type_id'], $shopId]);
 
     // Số dư ví để UI hiển thị; nếu bảng ví chưa khớp cấu hình thì trả null thay vì làm hỏng cả API
     $balance = null;

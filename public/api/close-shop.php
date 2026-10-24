@@ -60,8 +60,8 @@ try {
     $stmt->execute([$shopId]);
     $stock = $stmt->fetchAll();
 
-    $stmt = $pdo->prepare('SELECT id, base_cost FROM products WHERE business_type_id = ?');
-    $stmt->execute([(int)$shop['business_type_id']]);
+    $stmt = $pdo->prepare('SELECT id, base_cost FROM products WHERE business_type_id = ? AND (shop_id IS NULL OR shop_id = ?)');
+    $stmt->execute([(int)$shop['business_type_id'], $shopId]);
     $costs = [];
     foreach ($stmt->fetchAll() as $p) {
         $costs[(int)$p['id']] = (float)$p['base_cost'];
@@ -106,6 +106,7 @@ try {
         }
     }
     $pdo->prepare('DELETE FROM inventory WHERE shop_id = ?')->execute([$shopId]);
+    $pdo->prepare('DELETE FROM products WHERE shop_id = ?')->execute([$shopId]); // món do chủ quán tự thêm
 
     $stmt = $pdo->prepare('DELETE FROM shops WHERE id = ? AND owner_user_id = ?');
     $stmt->execute([$shopId, $ownerId]);

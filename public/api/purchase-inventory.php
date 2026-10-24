@@ -3,6 +3,7 @@
 // Người nhập hàng = người đang đăng nhập (getCurrentUserId), KHÔNG nhận owner_user_id từ client.
 // Nhập hàng: kiểm tra quyền -> kiểm tra đủ tiền -> trừ ví -> cộng kho. Tất cả trong 1 transaction:
 // không đủ tiền thì kho KHÔNG bị thay đổi.
+// Sản phẩm hợp lệ = món có sẵn của loại hình (products.shop_id IS NULL) HOẶC món do chính cửa hàng này tự thêm (add-product.php).
 require_once dirname(__DIR__, 2) . '/lib/shop_helpers.php';
 
 requireMethod('POST');
@@ -35,12 +36,27 @@ try {
 
     $shop = requireOwnedShop($pdo, $shopId, $ownerId, true); // 404 / 403
 
-    // Sản phẩm phải thuộc đúng loại hình của cửa hàng
-    $stmt = $pdo->prepare('SELECT id, name, base_cost FROM products WHERE id = ? AND business_type_id = ?');
-    $stmt->execute([$productId, $shop['business_type_id']]);
+    // Sản phẩm phải thuộc đúng loại hình của cửa hàng (món chung, hoặc món riêng của chính cửa hàng này)
+    $stmt = $pdo->prepare('SELECT id, name, base_cost FROM products WHERE id = ? AND business_type_id = ? AND (shop_id IS NULL OR shop_id = ?)');
+    $stmt->execute([$productId, $shop['business_type_id'], $shopId]);
     $product = $stmt->fetch();
     if (!$product) {
         throw new ApiException("Sản phẩm không thuộc loại hình kinh doanh của cửa hàng này", 404);
+    }
+
+    // Kiểm tra sức chứa kho TRƯỚC khi trừ tiền
+    $stmt = $pdo->prepare('SELECT id, quantity, selling_price FROM inventory WHERE shop_id = ? AND product_id = ? FOR UPDATE');
+    $stmt->execute([$shopId, $productId]);
+    $inv = $stmt->fetch();
+
+    $current = $inv ? (int)$inv['quantity'] : 0;
+    $newQty  = $current + $quantity;
+    if ($newQty > MAX_STOCK_PER_PRODUCT) {
+        throw new ApiException(
+            "Kho chỉ chứa tối đa " . MAX_STOCK_PER_PRODUCT . " mỗi món, hiện có $current, chỉ nhập thêm được " . max(0, MAX_STOCK_PER_PRODUCT - $current),
+            409,
+            ["current" => $current, "max_can_add" => max(0, MAX_STOCK_PER_PRODUCT - $current)]
+        );
     }
 
     $totalCost = (float)$product['base_cost'] * $quantity;
@@ -53,28 +69,14 @@ try {
     $newBalance = $balance - $totalCost;
 
     // Cộng kho (tạo dòng mới nếu chưa có)
-    $stmt = $pdo->prepare('SELECT id, quantity, selling_price FROM inventory WHERE shop_id = ? AND product_id = ? FOR UPDATE');
-    $stmt->execute([$shopId, $productId]);
-    $inv = $stmt->fetch();
-
     if ($inv) {
-        $newQty   = (int)$inv['quantity'] + $quantity;
-        if ($newQty > MAX_STOCK_PER_PRODUCT) {
-    throw new ApiException("Kho chỉ chứa tối đa " . MAX_STOCK_PER_PRODUCT . " mỗi món", 409);
         $newPrice = $sellingPrice !== null ? $sellingPrice : (float)$inv['selling_price'];
         $pdo->prepare('UPDATE inventory SET quantity = ?, selling_price = ?, last_restocked = CURRENT_TIMESTAMP WHERE id = ?')
             ->execute([$newQty, $newPrice, $inv['id']]);
-        
-}
     } else {
-        $newQty   = $quantity;
-        if ($newQty > MAX_STOCK_PER_PRODUCT) {
-    throw new ApiException("Kho chỉ chứa tối đa " . MAX_STOCK_PER_PRODUCT . " mỗi món", 409);
-}
         $newPrice = $sellingPrice !== null ? $sellingPrice : (float)$product['base_cost'] * DEFAULT_MARKUP;
-        $pdo->prepare('INSERT INTO inventory (shop_id, product_id, quantity, selling_price) VALUES (?, ?, ?, ?)')
+        $pdo->prepare('INSERT INTO inventory (shop_id, product_id, quantity, selling_price, last_restocked) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)')
             ->execute([$shopId, $productId, $newQty, $newPrice]);
-        
     }
 
     // Ghi sổ chi phí cho module Tài chính (TV4). Bảng này là tùy chọn: lỗi ở đây không làm hỏng việc nhập hàng.

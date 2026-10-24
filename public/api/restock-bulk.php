@@ -59,8 +59,8 @@ try {
     $shop = requireOwnedShop($pdo, $shopId, $ownerId, true); // 404 / 403
 
     // Mọi sản phẩm phải thuộc đúng loại hình của cửa hàng
-    $stmt = $pdo->prepare("SELECT id, name, base_cost FROM products WHERE business_type_id = ? AND id IN ($in)");
-    $stmt->execute(array_merge([(int)$shop['business_type_id']], $ids));
+    $stmt = $pdo->prepare("SELECT id, name, base_cost FROM products WHERE business_type_id = ? AND id IN ($in) AND (shop_id IS NULL OR shop_id = ?)");
+    $stmt->execute(array_merge([(int)$shop['business_type_id']], $ids, [$shopId]));
     $products = [];
     foreach ($stmt->fetchAll() as $p) {
         $products[(int)$p['id']] = $p;

@@ -97,6 +97,10 @@ input[type=number]{width:92px;font-size:15px;font-weight:700;padding:3px 8px;bor
 .toast.ok{border-color:var(--ok)}.toast.err{border-color:var(--no)}
 @keyframes pop{from{transform:translateX(30px);opacity:0}}
 @media(max-width:860px){.wrap{grid-template-columns:1fr}.side{position:static}.stats{grid-template-columns:1fr 1fr}.bn .acts{margin-left:0}#shops{display:flex;gap:8px;overflow-x:auto}#shops .sc{min-width:200px;margin:0}.hud .nm{display:none}}
+.dl .fl{display:block;font-weight:800;margin:8px 0}
+.dl input[type=text]{width:100%;margin-top:4px;font-size:16px;font-weight:600;padding:7px 10px;border:3px solid var(--wood);border-radius:12px;background:#fff;color:var(--ink)}
+.dl .fl input[type=number]{width:100%;margin-top:4px;text-align:left}
+.cu{font-size:11px;font-weight:800;color:var(--coin)}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -148,6 +152,7 @@ input[type=number]{width:92px;font-size:15px;font-weight:700;padding:3px 8px;bor
           <input type="search" id="q" placeholder="🔍 Tìm sản phẩm…" aria-label="Tìm sản phẩm">
           <span id="chips"></span>
           <button class="btn ok sm" id="bulk" type="button">📦 Bổ sung đầy kho</button>
+          <button class="btn gold sm" id="addp" type="button">➕ Thêm mặt hàng</button>
         </div>
         <div class="grid" id="grid"></div>
         <p class="note">Giá bán mới được lưu cùng lần nhập hàng. Tiền và tồn kho do server tính, trang này chỉ hiển thị.</p>
@@ -164,6 +169,18 @@ input[type=number]{width:92px;font-size:15px;font-weight:700;padding:3px 8px;bor
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn no" id="dno" type="button">Hủy</button>
       <button class="btn ok" id="dyes" type="button">Nhập hàng</button>
+    </div>
+  </div>
+</div>
+<div class="ov" id="npd" hidden>
+  <div class="panel dl" role="dialog" aria-modal="true" aria-labelledby="npt">
+    <span class="tag" id="npt">Thêm mặt hàng mới</span>
+    <label class="fl">Tên mặt hàng<input type="text" id="npname" maxlength="100" placeholder="Ví dụ: Trà vải"></label>
+    <label class="fl">Giá vốn mỗi món (đ)<input type="number" id="npcost" min="1000" max="200000" step="500" value="10000"></label>
+    <p class="note">Thêm món không tốn tiền. Món mới có tồn kho 0 cho tới khi bạn nhập hàng; giá bán mặc định = giá vốn × 1.5 và chỉnh được ở thẻ sản phẩm.</p>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+      <button class="btn no" id="npno" type="button">Hủy</button>
+      <button class="btn ok" id="npyes" type="button">Thêm</button>
     </div>
   </div>
 </div>
@@ -231,7 +248,7 @@ function renderShop(){
   .map(c=>`<button type="button" class="ch${filt===c[0]?' on':''}" data-f="${c[0]}">${c[1]} (${c[2]})</button>`).join(' ');
  $('grid').innerHTML=prods.length?prods.map(p=>{const st=state(p),pct=Math.min(100,p.stock_quantity/MAXS*100);
   return `<article class="pc ${st}" data-id="${+p.product_id}" data-st="${st}" data-name="${esc(norm(p.product_name))}" data-label="${esc(p.product_name)}" data-cost="${+p.base_cost}" data-stock="${+p.stock_quantity}">
- <div class="pt"><span class="pe">${pEmoji(p.product_name,t.e)}</span><h4>${esc(p.product_name)}</h4><span class="bg">${stLabel[st]}</span></div>
+ <div class="pt"><span class="pe">${pEmoji(p.product_name,t.e)}</span><h4>${esc(p.product_name)}${+p.is_custom?' <span class="cu">✨ riêng</span>':''}</h4><span class="bg">${stLabel[st]}</span></div>
  <div class="meter"><i style="width:${pct}%"></i></div>
  <div class="ml"><span>Tồn kho: <b>${+p.stock_quantity}</b> / ${MAXS}</span><span>Giá vốn: <b>${vnd(p.base_cost)}</b></span></div>
  <label class="fld"><span>Giá bán</span><input type="number" class="price" min="1" step="500" value="${Math.round(p.selling_price)}"><b class="mg"></b></label>
@@ -297,6 +314,21 @@ $('dyes').addEventListener('click',async()=>{
  btn.disabled=false;$('dlg').hidden=true;
  try{await loadShop(cur)}catch(e){}});
 
+/* ── thêm mặt hàng mới (món riêng của cửa hàng, do server kiểm tra giới hạn) ── */
+$('addp').addEventListener('click',()=>{$('npname').value='';$('npcost').value=10000;$('npd').hidden=false;$('npname').focus()});
+$('npno').addEventListener('click',()=>$('npd').hidden=true);
+$('npyes').addEventListener('click',async()=>{
+ const name=$('npname').value.trim(),cost=parseFloat($('npcost').value);
+ if(!name)return toast('Hãy đặt tên cho mặt hàng.');
+ if(!(cost>0))return toast('Giá vốn phải lớn hơn 0.');
+ const b=$('npyes');b.disabled=true;
+ try{
+  await call('add-product.php',post({shop_id:cur,name,base_cost:cost}));
+  toast('✅ Đã thêm "'+name+'". Hãy nhập hàng để bắt đầu bán.',1);
+  $('npd').hidden=true;await loadShop(cur);
+ }catch(e){toast('❌ '+e.message)}
+ b.disabled=false});
+
 /* ── đóng cửa vĩnh viễn ── */
 let closing=false;
 $('bn').addEventListener('click',e=>{if(e.target.closest('#closeShop'))closeShop()});
@@ -343,7 +375,7 @@ $('cgo').addEventListener('click',async()=>{
 async function reloadShops(){try{shops=(await call('get-shops.php')).data.shops}catch(e){toast('❌ '+e.message)}renderShops()}
 
 $('logout').addEventListener('click',async()=>{try{await fetch(API+'auth/logout.php',{method:'POST'})}catch(e){}location.href='login.html'});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')$('dlg').hidden=true});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('dlg').hidden=true;$('npd').hidden=true}});
 
 /* ── khởi động ── */
 (async()=>{
