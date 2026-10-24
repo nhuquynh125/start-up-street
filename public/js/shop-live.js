@@ -111,7 +111,9 @@
     const st = document.getElementById('live-status');
     if (st) {
       st.textContent = (s.is_open ? '🟢 Đang mở cửa' : '🔴 Đang đóng cửa')
-        + ` · Uy tín ${s.reputation}★ · Hôm nay ${s.today.served} khách mua, ${s.today.missed} bỏ về`;
+        + ` · Uy tín ${s.reputation}★ · Hôm nay ${s.today.served} khách mua, ${s.today.missed} bỏ về`
+        + ` · Két ${formatMoney(s.till_balance || 0)} (bấm Chốt ca để chuyển vào ví)`;
+      if (s.fees_overdue) showToast('⚠️', 'Ví không đủ tiền đóng phí tháng nên quán bị đóng cửa. Hãy chốt ca để lấy doanh thu.');
     }
 
     // Cảnh báo 1 lần khi hết sạch hàng lúc đang mở

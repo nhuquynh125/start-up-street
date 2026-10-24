@@ -7,16 +7,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--wood-d:#4a2a16;--wood:#8a5a3b;--wood-l:#b9835a;--paper:#f7e8c8;--paper-d:#e6cb98;--cream:#fff6dd;
---ok:#6fb23f;--ok-d:#4c8a26;--no:#d95b4f;--no-d:#a63a31;--gold:#f2b441;--ink:#4a2a16;--font:'Baloo 2',system-ui,sans-serif}
+--ok:#6fb23f;--ok-d:#4c8a26;--no:#d95b4f;--no-d:#a63a31;--ink:#4a2a16;--font:'Baloo 2',system-ui,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
 [hidden]{display:none!important}
 html,body{height:100%}
-body{font-family:var(--font);color:var(--ink);background:#f0e6c8;display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
+body{display:flex;flex-direction:column;overflow:hidden;font-family:var(--font);color:var(--ink);background:#f0e6c8}
 button{font-family:inherit;cursor:pointer}
 :focus-visible{outline:3px solid #ffb703;outline-offset:2px}
-
 .hud{flex:none;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;
- padding:8px 14px;background:var(--paper);border-bottom:4px solid var(--wood);font-weight:800;z-index:10}
+ padding:8px 14px;background:var(--paper);border-bottom:4px solid var(--wood);font-weight:800}
 .hud .r{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .pill{background:var(--cream);border:3px solid var(--wood);border-radius:12px;padding:1px 12px;font-size:14px}
 .btn{display:inline-block;border:3px solid var(--wood-d);border-radius:12px;padding:5px 14px;font-weight:800;font-size:15px;color:#fff;
@@ -25,35 +24,32 @@ button{font-family:inherit;cursor:pointer}
 .btn.ok{background:var(--ok);border-color:var(--ok-d);box-shadow:0 4px 0 var(--ok-d)}
 .btn.no{background:var(--no);border-color:var(--no-d);box-shadow:0 4px 0 var(--no-d)}
 .btn:disabled{opacity:.55;cursor:not-allowed}
-#notice{flex:none;display:none;padding:10px 14px;border-bottom:3px solid #e8a020;background:#fff0c9;font-weight:700}
+#notice{display:none;flex:none;padding:10px 14px;border-bottom:3px solid #e8a020;background:#fff0c9;font-weight:700}
 
-/* Cảnh quán: chiếm toàn bộ phần còn lại; mép dưới = mép trên quầy */
-#stage.ss-scene{flex:1 1 auto;height:auto;min-height:0}
+/* Quán: cảnh nội thất chiếm phần lớn màn hình, quầy hàng nằm sát đáy */
+.shop{flex:1;min-height:0;display:flex;flex-direction:column;width:100%;max-width:1280px;margin:0 auto;padding:10px 12px 0}
+#stage.ss-scene{flex:1;height:auto;min-height:240px;border-radius:18px 18px 0 0;border-bottom:0}
 
-/* Quầy hàng ở dưới cùng */
-.counter{flex:none;position:relative;z-index:5;background:var(--wood);border-top:6px solid var(--wood-d);
- padding:16px 14px 12px;color:var(--cream)}
-.counter::before{content:'';position:absolute;left:0;right:0;top:-20px;height:14px;background:var(--wood-l);
- border-top:4px solid var(--wood-d);box-shadow:0 5px 0 #0003}
-.counter-head{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;margin-bottom:8px}
-.counter-head h3{font-size:16px;white-space:nowrap}
-#status{flex:1;min-width:200px;font-weight:700;font-size:14px}
-.shelf{display:flex;gap:10px;overflow-x:auto;padding:8px 2px 4px}
-.shelf>small{font-weight:600}
-.it{flex:0 0 138px;background:var(--cream);border:3px solid var(--paper-d);border-radius:14px;padding:6px 8px;text-align:center;color:var(--ink);
- transition:transform .15s,border-color .15s}
+.counter{flex:none;position:relative;background:linear-gradient(var(--wood) 0 100%);border:4px solid var(--wood-d);border-bottom:0;
+ border-radius:0;padding:0 12px 10px;color:var(--cream)}
+.counter::before{content:'';position:absolute;left:-4px;right:-4px;top:-4px;height:14px;background:var(--wood-l);
+ border:4px solid var(--wood-d);border-radius:0}
+.bar{position:relative;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:18px 0 8px}
+.bar h3{font-size:16px}
+#status{font-weight:700;font-size:14px;flex:1;min-width:200px}
+.shelf{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 6px}
+.shelf small{color:var(--cream)}
+.it{flex:0 0 138px;background:var(--cream);color:var(--ink);border:3px solid var(--paper-d);border-radius:14px;padding:6px 8px;text-align:center;transition:transform .15s,border-color .15s}
 .it.hit{transform:translateY(-6px);border-color:var(--ok)}
 .it.out{border-color:var(--no);opacity:.75}
-.it .em{font-size:28px;display:block;line-height:1.15}
+.it .em{font-size:30px;display:block;line-height:1.2}
 .it b{display:block;font-size:13px;line-height:1.15;min-height:30px}
-.it small{display:block;font-size:12px;font-weight:600;opacity:.8}
-.bar{height:8px;background:#e6d8b8;border-radius:5px;margin:3px 0;overflow:hidden}
-.bar i{display:block;height:100%;background:var(--ok)}
-.it.low .bar i{background:#e8a020}.it.out .bar i{background:var(--no)}
-
-#toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:var(--wood-d);color:var(--cream);padding:8px 20px;
+.it small{display:block;font-size:12px;font-weight:600;color:var(--ink);opacity:.8}
+.bar2{height:8px;background:#e6d8b8;border-radius:5px;margin:3px 0;overflow:hidden}
+.bar2 i{display:block;height:100%;background:var(--ok)}
+.it.low .bar2 i{background:#e8a020}.it.out .bar2 i{background:var(--no)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--wood-d);color:var(--cream);padding:8px 20px;
  border-radius:14px;border:3px solid var(--wood-l);font-weight:800;display:none;z-index:50;max-width:90vw}
-@media(max-height:620px){.it .em{font-size:22px}.it b{min-height:0}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -70,18 +66,17 @@ button{font-family:inherit;cursor:pointer}
 </header>
 <div id="notice" role="status"></div>
 
-<!-- Phần còn lại của màn hình: bên trong quán, nhìn từ sau quầy (chỉ thấy khách) -->
-<div id="stage" role="img" aria-label="Trong quán: khách bước vào, đến quầy mua hàng rồi ra về"></div>
-
-<!-- Quầy hàng ở dưới -->
-<section class="counter" aria-label="Quầy hàng">
-  <div class="counter-head">
-    <h3>🧺 Hàng trên quầy</h3>
-    <span id="status">Đang tải trạng thái quán…</span>
-    <button class="btn ok" id="toggle" type="button" disabled>🔓 Mở cửa quán</button>
-  </div>
-  <div class="shelf" id="shelf"><small>Đang tải…</small></div>
-</section>
+<main class="shop">
+  <div id="stage" role="img" aria-label="Bên trong quán: khách bước vào, đứng trước quầy để mua hàng rồi rời đi"></div>
+  <section class="counter" aria-label="Hàng trên quầy">
+    <div class="bar">
+      <h3>🧺 Hàng trên quầy</h3>
+      <span id="status">Đang tải trạng thái quán…</span>
+      <button class="btn ok" id="toggle" type="button" disabled>🔓 Mở cửa quán</button>
+    </div>
+    <div class="shelf" id="shelf"><small>Đang tải…</small></div>
+  </section>
+</main>
 <div id="toast" role="status"></div>
 
 <script src="js/shop-scene.js"></script>
@@ -118,7 +113,7 @@ button{font-family:inherit;cursor:pointer}
     return json.data;
   }
 
-  // Cảnh quán: bạn là chủ quán đứng sau quầy (không vẽ chủ quán), khách tới theo đơn do server sinh ra
+  // Cảnh quán: bạn là chủ quán đứng sau quầy nên chỉ thấy khách
   const scene = ShopScene.mount($('stage'), {
     emojiFor: id => { const p = products.find(x => Number(x.product_id) === id); return p ? pEmoji(p.product_name) : '🛍️'; },
     onSale: e => flash(e.items[0].name)
@@ -135,11 +130,10 @@ button{font-family:inherit;cursor:pointer}
       const em = document.createElement('span'); em.className = 'em'; em.textContent = pEmoji(p.product_name);
       const nm = document.createElement('b'); nm.textContent = p.product_name;
       const pr = document.createElement('small'); pr.textContent = vnd(p.selling_price);
-      const bar = document.createElement('div'); bar.className = 'bar'; bar.innerHTML = '<i></i>';
+      const bar = document.createElement('div'); bar.className = 'bar2'; bar.innerHTML = '<i></i>';
       const q = document.createElement('small'); q.className = 'q';
       d.append(em, nm, pr, bar, q); box.appendChild(d);
     });
-    scene.setGoods(products.map(p => pEmoji(p.product_name)));   // hàng bày trên kệ sau lưng
     paintStock();
   }
   function paintStock() {
@@ -147,7 +141,7 @@ button{font-family:inherit;cursor:pointer}
       const p = products.find(x => String(x.product_id) === d.dataset.pid);
       const n = Number(p.stock_quantity);
       d.classList.toggle('out', n <= 0); d.classList.toggle('low', n > 0 && n <= 10);
-      d.querySelector('.bar i').style.width = Math.min(100, n / 40 * 100) + '%';
+      d.querySelector('.bar2 i').style.width = Math.min(100, n / 40 * 100) + '%';
       d.querySelector('.q').textContent = n <= 0 ? 'HẾT HÀNG' : 'Còn ' + n;
     });
   }

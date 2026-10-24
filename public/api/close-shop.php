@@ -48,11 +48,28 @@ try {
     $shop = requireOwnedShop($pdo, $shopId, $ownerId, true);
 
     // Giữa bước 1 và bước 2 có thể có tab khác mở lại quán -> chặn
-    $stmt = $pdo->prepare('SELECT is_open FROM shop_runtime WHERE shop_id = ? FOR UPDATE');
+    $stmt = $pdo->prepare('SELECT is_open, till_balance FROM shop_runtime WHERE shop_id = ? FOR UPDATE');
     $stmt->execute([$shopId]);
-    $isOpen = $stmt->fetchColumn();
+    $rtRow  = $stmt->fetch();
+    $isOpen = $rtRow ? $rtRow['is_open'] : false;
+    $till   = $rtRow ? round((float)$rtRow['till_balance'], 2) : 0.0; // doanh thu chưa chốt ca
     if ($isOpen !== false && (int)$isOpen === 1) {
         throw new ApiException("Quán vừa được mở lại ở nơi khác, hãy thử đóng lại", 409);
+    }
+
+    // Két quán chưa chốt ca: trả hết vào ví trước (rồi mới thanh lý kho), không để mất tiền khi xóa quán
+    if ($till > 0) {
+        if (!creditWallet($pdo, $ownerId, $till)) {
+            throw new ApiException("Không thể cộng doanh thu trong két vào ví", 500);
+        }
+        $balance = round($balance + $till, 2);
+        try {
+            $pdo->prepare('INSERT INTO transactions (user_id, shop_id, type, category, amount, balance_after, description)
+                           VALUES (?, ?, \'income\', \'sale\', ?, ?, ?)')
+                ->execute([$ownerId, $shopId, $till, $balance, "Chốt két khi đóng cửa \"" . $shop['name'] . "\""]);
+        } catch (Exception $e) {
+            error_log('close-shop: không ghi được bảng transactions: ' . $e->getMessage());
+        }
     }
 
     // Bước 3: thanh lý kho
@@ -125,6 +142,7 @@ try {
         "released_property" => (int)$shop['property_id'],
         "units_liquidated"  => $units,
         "refund"            => $refund,
+        "till_paid_out"     => $till,
         "balance"           => $newBalance,
     ]);
 } catch (ApiException $e) {

@@ -248,8 +248,8 @@ function endDayAndSettle() {
   // 1. Trừ chi phí cố định khỏi số dư ví
   GameState.balance -= todayFixed;
 
-  // 2. Ghi nhận giao dịch chi phí cố định vào sổ cái
-  GameState.transactions.push({
+  // 2. Ghi nhận giao dịch chi phí cố định vào sổ cái (bỏ qua khi = 0: chế độ thật thu phí theo THÁNG ở server)
+  if (todayFixed > 0) GameState.transactions.push({
     id: 'TX' + String(Date.now()).slice(-6),
     day: GameState.day,
     type: 'rent',

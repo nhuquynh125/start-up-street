@@ -201,10 +201,31 @@
   // ── CHỐT CA: phí cố định (mặt bằng/lương/điện nước) CHƯA có endpoint server ──
   // game.js vẫn tự trừ GameState.balance cục bộ. Bọc lại để màn hình luôn quay về số dư thật của server,
   // tránh hiển thị một số dư "ảo" đã bị trừ phí. TODO: thay bằng api/end-day.php khi nhóm chốt cách tính phí theo ngày.
+  // Chế độ thật: server chuyển doanh thu trong két vào ví (api/end-day.php) rồi trả số liệu ca để vẽ báo cáo.
+  // Phí mặt bằng/điện nước nay thu theo THÁNG ở server nên báo cáo ngày không còn phí cố định.
   const originalEndDay = window.endDayAndSettle;
-  window.endDayAndSettle = function () {
-    originalEndDay();
-    if (SHOP_ID) syncBalance(); // demo: không có số dư server để đồng bộ
+  let settling = false;
+  window.endDayAndSettle = async function () {
+    if (!SHOP_ID) { originalEndDay(); return; } // demo: giữ cách cũ
+    if (settling) return;
+    settling = true;
+    try {
+      const r = (await api('end-day.php', post({ shop_id: SHOP_ID }))).data;
+      DailyFixedCosts.rent = DailyFixedCosts.staff = DailyFixedCosts.utilities = 0;
+      GameState.today.orders       = r.orders_served;
+      GameState.today.missedOrders = r.orders_missed;
+      GameState.today.revenue      = r.revenue;
+      GameState.today.materialCost = r.cogs; // giá vốn hàng đã bán (tiền nhập hàng đã trừ ví lúc nhập)
+      originalEndDay();                      // vẽ báo cáo / biểu đồ bằng số của server
+      walletBalance = r.balance;
+      GameState.balance = r.balance;
+      paintBalance();
+      if (r.transferred > 0) showToast('💵', 'Đã chuyển ' + formatMoney(r.transferred) + ' vào ví');
+    } catch (e) {
+      showToast('❌', e.message);
+    } finally {
+      settling = false;
+    }
   };
   window.StartupWallet = { setBalance(v) { walletBalance = Number(v); GameState.balance = walletBalance; paintBalance(); } };
 
