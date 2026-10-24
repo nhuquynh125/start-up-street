@@ -47,6 +47,7 @@ $migrations = [
     '01_simulation_finance.sql',
     '02_shops_inventory.sql',
     '03_properties_rentals.sql',
+    '04_shop_runtime.sql',
 ];
 
 $migrationDir = $root . '/database/migrations/';
