@@ -170,6 +170,42 @@ button,input,select{font-family:inherit;cursor:pointer}
 .theme-card span{font-size:11px;font-weight:700;color:var(--ink-mid)}
 
 @media(max-width:640px){.avatar-cols{grid-template-columns:1fr}.ava-preview{position:static}.exp-form{grid-template-columns:1fr}}
+
+/* ===== Cozy avatar modal (theo ảnh tham chiếu) ===== */
+.cz-modal{background:#fbefd5;border:5px solid #8a5a2b;border-radius:22px;padding:34px 16px 16px;position:relative;
+  box-shadow:0 6px 0 var(--wood-dark),0 14px 28px rgba(0,0,0,.15),inset 0 0 0 3px #f3dcae}
+.cz-title{position:absolute;top:-22px;left:50%;transform:translateX(-50%);background:#fff8e6;border:4px solid #c9a56b;
+  border-radius:18px;padding:8px 30px;font-weight:800;font-size:20px;color:var(--wood-dark);letter-spacing:.5px;white-space:nowrap;
+  box-shadow:0 3px 0 #b48a4c}
+.cz-body{display:grid;grid-template-columns:230px 1fr;gap:14px}
+.cz-ages{display:flex;flex-direction:column;gap:8px;background:#f3dcae;border:3px solid #c9a56b;border-radius:16px;padding:8px}
+.cz-ages .age-btn{display:flex;align-items:center;justify-content:space-between;width:100%;border:3px solid #c9a56b;
+  border-radius:12px;background:#fff8e6;padding:10px;font-size:14px;color:var(--wood-dark);cursor:pointer}
+.cz-ages .age-btn i{font-style:normal;font-size:20px;letter-spacing:2px}
+.cz-ages .age-btn.sel{background:#ffd966;border-color:#c8922a}
+.cz-panel{background:#f3dcae;border:3px solid #c9a56b;border-radius:16px;padding:12px}
+.cz-grid{display:grid;grid-template-columns:1fr 200px 1fr;gap:12px}
+.cz-tab{background:#e8cd96;border:3px solid #c9a56b;border-bottom:0;border-radius:12px 12px 0 0;padding:5px;
+  text-align:center;font-weight:800;font-size:14px;color:var(--wood-dark);margin-top:6px}
+.cz-tab.on{background:#fff8e6}
+.cz-box{background:#fff8e6;border:3px solid #c9a56b;border-radius:0 0 12px 12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.cz-box label{font-weight:800;font-size:13px;color:var(--wood-dark)}
+.cz-box input[type=range]{width:100%;accent-color:#c8922a}
+.cz-box .swatch{width:32px;height:32px}.cz-box .style-btn{min-width:38px;height:38px;font-size:18px}
+.cz-box .outfit-grid{grid-template-columns:repeat(3,1fr)}
+.cz-mid{display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cz-stage{width:190px;height:250px;background:#f7e8c6;border:3px solid #c9a56b;border-radius:16px;display:flex;
+  align-items:flex-end;justify-content:center;overflow:hidden;position:relative}
+.cz-stage svg{transform-origin:bottom center;transition:transform .15s}
+.cz-podium{width:170px;height:34px;margin-top:-18px;border-radius:50%;background:#ecd08f;border:4px solid #c8922a;
+  box-shadow:0 6px 0 #b07a22;position:relative;z-index:2}
+.cz-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:12px}
+.cz-actions button{border:3px solid var(--wood-dark);border-radius:12px;padding:10px 28px;font-weight:800;font-size:16px;
+  color:#fff;box-shadow:0 4px 0 var(--wood-dark);cursor:pointer}
+.cz-ok{background:#6bbf4a}.cz-cancel{background:#e2574c}
+.cz-actions button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--wood-dark)}
+.cz-actions button:disabled{background:#bbb;color:#777}
+@media(max-width:900px){.cz-body,.cz-grid{grid-template-columns:1fr}.cz-ages{flex-direction:row;flex-wrap:wrap}.cz-ages .age-btn{width:auto;flex:1 1 45%}}
 </style>
 </head>
 <body>
@@ -215,83 +251,52 @@ button,input,select{font-family:inherit;cursor:pointer}
 
   <!-- ═══ TAB AVATAR ═══ -->
   <div id="tab-avatar" class="tab-pane active">
-    <div class="card">
-      <div class="section-title">🎭 Tùy chỉnh nhân vật</div>
-      <div class="avatar-cols">
-
-        <!-- Left: Big preview -->
-        <div class="ava-preview">
-          <div class="ava-preview-box">
-            <svg id="ava-svg" width="180" height="240" viewBox="0 0 180 240"></svg>
-          </div>
-          <div class="ava-label">Xem trước nhân vật</div>
-          <button class="btn-save" id="btn-save-avatar" onclick="saveAvatar()">💾 Lưu Avatar</button>
+    <div class="cz-modal">
+      <div class="cz-title"><span>TÙY CHỈNH CƯ DÂN THỊ TRẤN</span></div>
+      <div class="cz-body">
+        <!-- Trái: nhóm tuổi -->
+        <div class="cz-ages" id="age-grid">
+          <button class="age-btn" data-age="teen"><b>Thiếu niên (12–18)</b><i>🧒👧</i></button>
+          <button class="age-btn" data-age="young"><b>Thanh niên (18–25)</b><i>🧑👩</i></button>
+          <button class="age-btn sel" data-age="adult"><b>Người lớn (25–35)</b><i>👨👩</i></button>
+          <button class="age-btn" data-age="middle"><b>Trung niên (35–50)</b><i>🧔👩‍🦰</i></button>
+          <button class="age-btn" data-age="senior"><b>Cao tuổi (50+)</b><i>👴👵</i></button>
+          <button class="age-btn" data-age="elder"><b>Người cao tuổi (65+)</b><i>🧓👵</i></button>
         </div>
-
-        <!-- Right: Controls -->
-        <div>
-          <!-- Age group -->
-          <div class="ava-section">
-            <h4>👥 Nhóm tuổi</h4>
-            <div class="age-grid" id="age-grid">
-              <button class="age-btn" data-age="teen">🧒 Thiếu niên<br><small>12–18</small></button>
-              <button class="age-btn" data-age="young">🧑 Thanh niên<br><small>18–25</small></button>
-              <button class="age-btn sel" data-age="adult">👨 Người lớn<br><small>25–35</small></button>
-              <button class="age-btn" data-age="middle">🧔 Trung niên<br><small>35–50</small></button>
-              <button class="age-btn" data-age="senior">👴 Cao tuổi<br><small>50+</small></button>
-              <button class="age-btn" data-age="elder">🧓 Người cao tuổi<br><small>65+</small></button>
-            </div>
-          </div>
-
-          <!-- Skin tone -->
-          <div class="ava-section">
-            <h4>🎨 Màu da</h4>
-            <div class="swatch-row" id="skin-swatches"></div>
-          </div>
-
-          <!-- Hair style -->
-          <div class="ava-section">
-            <h4>💇 Kiểu tóc</h4>
-            <div class="swatch-row" id="hair-style-btns"></div>
-          </div>
-
-          <!-- Hair color -->
-          <div class="ava-section">
-            <h4>🖌️ Màu tóc</h4>
-            <div class="swatch-row" id="hair-color-swatches"></div>
-          </div>
-
-          <!-- Eye style -->
-          <div class="ava-section">
-            <h4>👁️ Kiểu mắt</h4>
-            <div class="swatch-row" id="eye-style-btns"></div>
-          </div>
-
-          <!-- Outfit -->
-          <div class="ava-section">
-            <h4>👗 Trang phục</h4>
-            <div class="outfit-grid" id="outfit-grid"></div>
-          </div>
-
-          <!-- Outfit color -->
-          <div class="ava-section">
-            <h4>🎨 Màu trang phục</h4>
-            <div class="color-strip" id="outfit-colors"></div>
-          </div>
-
-          <!-- Accessories -->
-          <div class="ava-section">
-            <h4>🎩 Phụ kiện</h4>
-            <div style="display:flex;gap:10px;flex-wrap:wrap">
-              <div>
-                <div style="font-size:12px;font-weight:700;color:var(--ink-light);margin-bottom:4px">Mũ</div>
-                <div class="swatch-row" id="hat-btns"></div>
+        <!-- Phải: bảng tùy chỉnh -->
+        <div class="cz-panel">
+          <div class="cz-grid">
+            <div class="cz-col">
+              <div class="cz-tab">HÌNH DÁNG</div>
+              <div class="cz-box">
+                <label>Chiều cao</label><input type="range" id="sl-h" min="90" max="110" value="100">
+                <label>Cân nặng</label><input type="range" id="sl-w" min="90" max="115" value="100">
               </div>
-              <div>
-                <div style="font-size:12px;font-weight:700;color:var(--ink-light);margin-bottom:4px">Kính</div>
-                <div class="swatch-row" id="glasses-btns"></div>
+              <div class="cz-tab">TÓC &amp; MẶT</div>
+              <div class="cz-box">
+                <label>Kiểu tóc</label><div class="swatch-row" id="hair-style-btns"></div>
+                <label>Màu tóc</label><div class="swatch-row" id="hair-color-swatches"></div>
+                <label>Kiểu mắt</label><div class="swatch-row" id="eye-style-btns"></div>
+                <label>Màu da</label><div class="swatch-row" id="skin-swatches"></div>
               </div>
             </div>
+            <div class="cz-col cz-mid">
+              <div class="cz-stage"><svg id="ava-svg" width="180" height="240" viewBox="0 0 180 240"></svg></div>
+              <div class="cz-podium"></div>
+            </div>
+            <div class="cz-col">
+              <div class="cz-tab on">TRANG PHỤC</div>
+              <div class="cz-box">
+                <label>Áo / Đầm</label><div class="outfit-grid" id="outfit-grid"></div>
+                <label>Màu trang phục</label><div class="color-strip" id="outfit-colors"></div>
+                <label>Mũ</label><div class="swatch-row" id="hat-btns"></div>
+                <label>Kính</label><div class="swatch-row" id="glasses-btns"></div>
+              </div>
+            </div>
+          </div>
+          <div class="cz-actions">
+            <button class="cz-ok" id="btn-save-avatar" onclick="saveAvatar()">XÁC NHẬN</button>
+            <button class="cz-cancel" onclick="location.reload()">HỦY</button>
           </div>
         </div>
       </div>
@@ -720,7 +725,7 @@ function renderAvatar(svgId, p, w, h) {
 // ────── Save Avatar ──────
 async function saveAvatar() {
   const btn = document.getElementById('btn-save-avatar');
-  btn.disabled = true; btn.textContent = '⏳ Đang lưu...';
+  btn.disabled = true; btn.textContent = 'ĐANG LƯU...';
   try {
     const res = await fetch(API + 'update-profile.php', {
       method: 'POST',
@@ -739,7 +744,7 @@ async function saveAvatar() {
     }).then(r => r.json());
     toast(res.success ? '✅ Đã lưu avatar!' : '❌ ' + res.message);
   } catch { toast('❌ Lỗi kết nối server.'); }
-  btn.disabled = false; btn.textContent = '💾 Lưu Avatar';
+  btn.disabled = false; btn.textContent = 'XÁC NHẬN';
 }
 
 // ────── Account ──────
@@ -888,6 +893,11 @@ function toast(msg) {
 
 // Set today as default date
 document.getElementById('exp-date').valueAsDate = new Date();
+
+// Slider hình dáng (chỉ co giãn xem trước, chưa lưu DB)
+function applyShape(){const h=document.getElementById('sl-h').value/100,w=document.getElementById('sl-w').value/100;
+  document.getElementById('ava-svg').style.transform=`scale(${w},${h})`;}
+['sl-h','sl-w'].forEach(i=>document.getElementById(i).addEventListener('input',applyShape));
 </script>
 </body>
 </html>

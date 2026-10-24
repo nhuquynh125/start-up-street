@@ -1,525 +1,339 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Startup Street - Quản lý Kinh Doanh</title>
-    <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #f4f6f9; margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        h1, h2 { color: #2c3e50; }
-        .topbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-        .wallet { background: #fff; border-radius: 20px; padding: 6px 16px; font-weight: bold; color: #8e44ad; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-top: 4px solid #3498db; display: flex; flex-direction: column; }
-        .card h3 { margin-top: 0; color: #2980b9; }
-        .card p { color: #7f8c8d; font-size: 14px; margin: 4px 0; }
-        .card .meta { font-size: 14px; color: #34495e; margin: 3px 0; }
-        .card .capital { font-weight: bold; color: #e74c3c; font-size: 16px; margin: 10px 0; }
-        .card .btn { margin-top: auto; }
-        .card.selected { border-top-color: #2ecc71; outline: 3px solid #2ecc71; }
-        .btn { background: #2ecc71; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; }
-        .btn:hover { background: #27ae60; }
-        .btn:disabled { background: #95a5a6; cursor: not-allowed; }
-        .btn-stock { background: #f39c12; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
-        .btn-stock:hover { background: #d68910; }
-        .btn-stock:disabled { background: #95a5a6; cursor: not-allowed; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #34495e; color: white; }
-        .table-wrap { overflow-x: auto; }
-        .section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .hidden { display: none; }
-        .error-box { background: #fdecea; color: #c0392b; border: 1px solid #f5b7b1; border-radius: 6px; padding: 12px 15px; grid-column: 1 / -1; }
-        .error-box code { background: #fff; padding: 2px 6px; border-radius: 3px; }
-        .toast { position: fixed; top: 20px; right: 20px; padding: 12px 18px; border-radius: 6px; color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 1000; max-width: 360px; }
-        .toast.ok { background: #27ae60; }
-        .toast.err { background: #e74c3c; }
-        .stock-input { width: 70px; }
-        .price-input { width: 110px; }
-        .row-total { display: inline-block; min-width: 90px; font-size: 13px; color: #7f8c8d; margin: 0 6px; }
-        .row-total.bad { color: #c0392b; font-weight: bold; }
-        .my-shop { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; }
-        .my-shop:last-child { border-bottom: none; }
-        .my-shop .btn { width: auto; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Startup Street — Cửa hàng & Kho hàng</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--wood-d:#4a2a16;--wood:#8a5a3b;--wood-l:#b9835a;--paper:#f7e8c8;--paper-d:#e6cb98;--cream:#fff6dd;--sky:#bfe3f5;
+--ok:#6fb23f;--ok-d:#4c8a26;--no:#d95b4f;--no-d:#a63a31;--warn:#e19a1f;--ink:#4a2a16;--coin:#7a4fb5;
+--font:"Baloo 2","Nunito","Segoe UI",system-ui,sans-serif}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;min-height:100vh;font-family:var(--font);color:var(--ink);background:#cfe0c3 repeating-linear-gradient(45deg,#0000 0 26px,#ffffff18 26px 52px)}
+button,input{font-family:inherit}button{cursor:pointer}
+:focus-visible{outline:3px solid #ffb703;outline-offset:2px}
+a{color:inherit}
+/* HUD giống bản đồ */
+.hud{position:sticky;top:0;z-index:20;height:52px;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 14px;background:var(--paper);border-bottom:4px solid var(--wood);font-weight:800}
+.hud .r{display:flex;align-items:center;gap:10px}
+.logo{text-decoration:none;display:flex;gap:8px;align-items:center}
+.coin{display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--coin);border:3px solid #4b2d78;margin-right:6px;vertical-align:-2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:3px solid var(--wood-d);border-radius:12px;padding:5px 16px;font-weight:800;font-size:16px;color:#fff;background:var(--wood);box-shadow:0 4px 0 var(--wood-d);text-decoration:none;transition:transform .08s,box-shadow .08s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--wood-d)}
+.btn.ok{background:var(--ok);border-color:var(--ok-d);box-shadow:0 4px 0 var(--ok-d)}
+.btn.no{background:var(--no);border-color:var(--no-d);box-shadow:0 4px 0 var(--no-d)}
+.btn.gold{background:linear-gradient(#f2b441,#e19a1f);border-color:#8a5a12;box-shadow:0 4px 0 #8a5a12;color:var(--wood-d)}
+.btn.sm{font-size:13px;padding:2px 10px;box-shadow:0 3px 0 var(--wood-d)}
+.btn:disabled{background:#c9c0ad;border-color:#8c8470;box-shadow:0 4px 0 #8c8470;color:#6d664f;cursor:not-allowed}
+/* khung */
+.wrap{max-width:1200px;margin:0 auto;padding:18px 14px 40px;display:grid;grid-template-columns:260px 1fr;gap:18px;align-items:start}
+.panel{background:var(--paper);border:5px solid var(--wood);border-radius:20px;padding:14px;box-shadow:0 6px 0 var(--wood-d),0 18px 30px #0002}
+.side{position:sticky;top:70px}
+.tag{display:inline-block;background:var(--wood);color:var(--cream);border-radius:10px;padding:0 12px;font-weight:800;font-size:14px;margin-bottom:10px}
+.note{font-size:13px;opacity:.75;margin:8px 0 0}
+.sc{width:100%;display:flex;gap:10px;align-items:center;text-align:left;margin-bottom:8px;padding:8px;color:var(--ink);background:var(--cream);border:3px solid var(--paper-d);border-radius:14px}
+.sc:hover{border-color:var(--wood-l)}
+.sc.on{background:#ffe08a;border-color:var(--warn)}
+.sc b{display:block;line-height:1.2}.sc small{opacity:.75;font-weight:600}
+.se{flex:none;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:23px;border:3px solid var(--wood-d)}
+/* banner cửa hàng */
+.bn{position:relative;overflow:hidden;display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:34px 16px 14px;background:var(--cream);border:4px solid var(--wood);border-radius:16px}
+.bn::before{content:"";position:absolute;left:0;right:0;top:0;height:20px;background:repeating-linear-gradient(90deg,var(--c) 0 26px,#fff6dd 26px 52px);border-bottom:4px solid var(--wood-d)}
+.be{width:68px;height:68px;border-radius:16px;display:grid;place-items:center;font-size:36px;background:var(--c);border:4px solid var(--wood-d)}
+.bn h2{margin:0;font-size:clamp(20px,3.4vw,30px);line-height:1.1}
+.bn p{margin:2px 0 0;font-weight:600;opacity:.8}
+.bn .acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.st{background:var(--cream);border:3px solid var(--paper-d);border-radius:14px;padding:8px 12px}
+.st small{display:block;font-weight:600;opacity:.75;font-size:13px}.st b{font-size:20px}
+.st.al{border-color:var(--no);background:#fde0dc}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.bar input[type=search]{flex:1;min-width:150px;font-size:15px;font-weight:600;padding:6px 12px;border:3px solid var(--wood);border-radius:12px;background:var(--cream);color:var(--ink)}
+.ch{border:3px solid var(--wood);border-radius:999px;padding:1px 12px;font-weight:800;font-size:14px;background:var(--paper-d);color:var(--ink)}
+.ch.on{background:var(--wood);color:#fff}
+/* thẻ sản phẩm */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.pc{background:var(--cream);border:4px solid var(--paper-d);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.pc.low{border-color:var(--warn)}.pc.out{border-color:var(--no)}
+.pt{display:flex;gap:10px;align-items:center}
+.pe{flex:none;width:48px;height:48px;display:grid;place-items:center;font-size:28px;background:var(--paper);border:3px solid var(--paper-d);border-radius:12px}
+.pt h4{margin:0;font-size:17px;line-height:1.15;flex:1}
+.bg{flex:none;font-size:12px;font-weight:800;padding:0 9px;border-radius:999px;border:2px solid var(--ok-d);background:#d9efc4;color:#2f5f12}
+.low .bg{background:#ffe7b0;border-color:var(--warn);color:#7a4d00}.out .bg{background:#fde0dc;border-color:var(--no-d);color:#8a2a2a}
+.meter{height:12px;border:2px solid var(--wood-d);border-radius:8px;background:var(--paper);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--ok)}.low .meter i{background:var(--warn)}.out .meter i{background:var(--no)}
+.ml{display:flex;justify-content:space-between;font-size:14px;font-weight:600}
+.fld{display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px}
+.fld span{flex:1}
+input[type=number]{width:92px;font-size:15px;font-weight:700;padding:3px 8px;border:3px solid var(--wood);border-radius:10px;background:#fff;color:var(--ink);text-align:right}
+.mg{font-size:13px;font-weight:800;min-width:62px;text-align:right}.mg.up{color:var(--ok-d)}.mg.dn{color:var(--no-d)}
+.qty{display:flex;gap:6px;align-items:center}
+.qty input{flex:1;width:auto;text-align:center}
+.qb{width:34px;height:34px;border:3px solid var(--wood-d);border-radius:10px;background:var(--wood);color:#fff;font-size:18px;font-weight:800;padding:0}
+.qc{display:flex;gap:6px}.qc button{flex:1;border:2px solid var(--wood-l);border-radius:8px;background:var(--paper);font-weight:800;font-size:13px;color:var(--ink);padding:1px 0}
+.sum{font-weight:800}.sum.bad{color:var(--no-d)}
+.tot{display:flex;justify-content:space-between;font-weight:600}
+/* tạo cửa hàng */
+.tg{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin:12px 0}
+.tc{position:relative;display:flex;flex-direction:column;gap:3px;text-align:left;padding:12px;color:var(--ink);background:var(--cream);border:4px solid var(--paper-d);border-radius:16px}
+.tc:hover:not(:disabled){border-color:var(--wood-l)}.tc.on{background:#ffe08a;border-color:var(--warn)}
+.tc:disabled{opacity:.6;cursor:not-allowed}
+.te{display:grid;place-items:center;width:52px;height:52px;border-radius:14px;font-size:28px;background:var(--c);border:3px solid var(--wood-d);margin-bottom:4px}
+.tc small,.tc em{font-style:normal;font-size:13px;font-weight:600;opacity:.8}
+.cap{margin-top:4px;font-weight:800;color:var(--no-d)}.cap.bad{background:#fde0dc;border-radius:8px;padding:0 6px}
+.cf{display:flex;gap:12px;align-items:end;flex-wrap:wrap;background:var(--cream);border:4px solid var(--paper-d);border-radius:16px;padding:12px}
+.cf label{flex:1;min-width:220px;font-weight:800}
+.cf input[type=text]{width:100%;margin-top:4px;font-size:16px;font-weight:600;padding:7px 10px;border:3px solid var(--wood);border-radius:12px;background:#fff;color:var(--ink)}
+.empty{text-align:center;padding:36px 12px}.empty .big{font-size:60px}
+.empty h2{margin:6px 0}
+.ov{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:14px;background:#2a160a88}
+.dl{width:min(460px,100%)}
+.dl ul{list-style:none;margin:8px 0;padding:0;max-height:260px;overflow:auto}
+.dl li{display:flex;justify-content:space-between;padding:3px 0;border-bottom:2px dashed var(--paper-d);font-weight:600}
+.toasts{position:fixed;top:64px;right:14px;z-index:60;display:flex;flex-direction:column;gap:8px}
+.toast{max-width:340px;background:var(--wood-d);color:var(--cream);border:3px solid var(--wood-l);border-radius:14px;padding:8px 14px;font-weight:800;box-shadow:0 6px 16px #0004;animation:pop .2s ease-out}
+.toast.ok{border-color:var(--ok)}.toast.err{border-color:var(--no)}
+@keyframes pop{from{transform:translateX(30px);opacity:0}}
+@media(max-width:860px){.wrap{grid-template-columns:1fr}.side{position:static}.stats{grid-template-columns:1fr 1fr}.bn .acts{margin-left:0}#shops{display:flex;gap:8px;overflow-x:auto}#shops .sc{min-width:200px;margin:0}.hud .nm{display:none}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
 </head>
 <body>
+<header class="hud">
+  <a class="logo" href="map.php">🏙️ Startup Street</a>
+  <div class="r">
+    <span><i class="coin"></i>Vốn: <strong id="money">…</strong></span>
+    <a class="btn sm" href="map.php">🗺️ Bản đồ</a>
+    <a class="btn sm" href="profile.html">👤 <span class="nm" id="uname">…</span></a>
+    <button class="btn no sm" id="logout" type="button" aria-label="Đăng xuất">🚪</button>
+  </div>
+</header>
 
-<div class="container">
-    <div class="topbar">
-        <h1>🏬 Quản Lý Cửa Hàng & Kho Hàng</h1>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <div class="wallet">💰 Ví: <span id="wallet-balance">—</span></div>
-            <a href="map.php" class="btn" style="text-decoration:none;font-size:14px;padding:6px 14px;">🗺️ Về bản đồ</a>
-            <button class="btn" id="btn-logout" style="font-size:14px;padding:6px 14px;background:#e74c3c;border-color:#c0392b;">🚪 Đăng xuất</button>
+<main class="wrap">
+  <aside class="panel side">
+    <span class="tag">Cửa hàng của tôi</span>
+    <div id="shops"></div>
+    <p class="note">Muốn mở thêm chi nhánh? Thuê mặt bằng mới trên bản đồ.</p>
+  </aside>
+
+  <section>
+    <!-- Chưa có cửa hàng -->
+    <div id="empty" class="panel empty" hidden>
+      <div class="big">🏚️</div>
+      <h2>Bạn chưa có cửa hàng nào</h2>
+      <p>Ra bản đồ, chọn một mặt bằng và thuê để bắt đầu kinh doanh.</p>
+      <a class="btn gold" href="map.php">🗺️ Mở bản đồ</a>
+    </div>
+
+    <!-- Mở cửa hàng cho mặt bằng đã thuê -->
+    <div id="create" class="panel" hidden>
+      <span class="tag" id="ctag">Mở cửa hàng</span>
+      <h2 style="margin:0">Chọn mô hình kinh doanh</h2>
+      <p class="note" style="margin-top:2px">Mô hình nào cũng cần đủ vốn trong ví. Thẻ bị mờ là bạn chưa đủ vốn.</p>
+      <div class="tg" id="tgrid"><p>Đang tải mô hình…</p></div>
+      <div class="cf" id="cform" hidden>
+        <label>Tên cửa hàng<input type="text" id="cname" maxlength="100" placeholder="Ví dụ: Moon Tea"></label>
+        <button class="btn gold" id="cgo" type="button">🏪 Mở cửa hàng</button>
+      </div>
+    </div>
+
+    <!-- Quản lý kho -->
+    <div id="shop" hidden>
+      <div class="panel">
+        <div class="bn" id="bn"></div>
+        <div class="stats" id="stats"></div>
+        <div class="bar">
+          <input type="search" id="q" placeholder="🔍 Tìm sản phẩm…" aria-label="Tìm sản phẩm">
+          <span id="chips"></span>
+          <button class="btn ok sm" id="bulk" type="button">📦 Bổ sung đầy kho</button>
         </div>
+        <div class="grid" id="grid"></div>
+        <p class="note">Giá bán mới được lưu cùng lần nhập hàng. Tiền và tồn kho do server tính, trang này chỉ hiển thị.</p>
+      </div>
     </div>
+  </section>
+</main>
 
-    <!-- 0. CỬA HÀNG CỦA TÔI -->
-    <div id="section-my-shops" class="section hidden">
-        <h2>Cửa hàng của tôi</h2>
-        <div id="my-shops-list"></div>
+<div class="ov" id="dlg" hidden>
+  <div class="panel dl" role="dialog" aria-modal="true" aria-labelledby="dt">
+    <span class="tag" id="dt">Bổ sung đầy kho</span>
+    <ul id="dlist"></ul>
+    <p style="margin:6px 0;font-weight:800">Tổng: <span id="dtot"></span></p>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn no" id="dno" type="button">Hủy</button>
+      <button class="btn ok" id="dyes" type="button">Nhập hàng</button>
     </div>
-    <div id="section-no-property" class="section hidden">
-        <div class="error-box" role="alert">⚠️ Vui lòng chọn và thuê một mặt bằng trên bản đồ trước.</div>
-    </div>
-    <!-- 1. CHỌN MÔ HÌNH KINH DOANH & TẠO CỬA HÀNG -->
-    <div id="section-create-shop" class="section">
-        <h2>1. Chọn Mô Hình Kinh Doanh</h2>
-        <div id="business-types-list" class="card-grid">
-            <p>Đang tải danh sách mô hình kinh doanh...</p>
-        </div>
-
-        <!-- FORM TẠO CỬA HÀNG -->
-        <div id="create-shop-form" class="hidden">
-            <hr>
-            <h3 id="create-shop-heading">Tạo Cửa Hàng Mới Cho Mặt Bằng Đã Thuê</h3>
-            <div class="form-group">
-                <label for="selected-type-name">Loại hình đã chọn:</label>
-                <input type="text" id="selected-type-name" disabled style="background: #eee;">
-                <input type="hidden" id="selected-type-id">
-            </div>
-            <div class="form-group">
-                <label for="shop-name">Tên cửa hàng của bạn:</label>
-                <input type="text" id="shop-name" placeholder="Ví dụ: Trà Sữa Moon Tea" maxlength="100">
-            </div>
-            <button class="btn" id="btn-create-shop" type="button">Mở Cửa Hàng Ngay</button>
-        </div>
-    </div>
-
-    <!-- 2. QUẢN LÝ SẢN PHẨM & KHO HÀNG -->
-    <div id="section-inventory" class="section hidden">
-        <h2 id="current-shop-title">2. Quản Lý Kho Hàng Cửa Hàng</h2>
-
-        <h3>Danh Sách Sản Phẩm & Tồn Kho</h3>
-        <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Tên Sản Phẩm</th>
-                    <th>Giá Vốn (Gốc)</th>
-                    <th>Giá Bán (Của Cửa Hàng)</th>
-                    <th>Tồn Kho Hiện Tại</th>
-                    <th>Thao Tác Nhập Hàng</th>
-                </tr>
-            </thead>
-            <tbody id="inventory-table-body">
-                <!-- Dữ liệu sản phẩm sẽ đổ vào đây -->
-            </tbody>
-        </table>
-        </div>
-    </div>
+  </div>
 </div>
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
 
 <script>
-    // ---------- Cấu hình ----------
-    // Người chơi do server xác định qua session ($_SESSION['user_id']); trang này không gửi user id.
-    // Từ bản đồ (map.php) sẽ mở thẳng kho bằng ?shop_id=..., hoặc tạo cửa hàng cho mặt bằng bằng ?property_id=...
-    const params = new URLSearchParams(location.search);
-    const MAX_PROPERTY_ID = 48; // map.php has 4 rows x 12 lots
-    const rawPropertyId = Number(params.get('property_id'));
-    const RENTED_PROPERTY_ID = (Number.isInteger(rawPropertyId) && rawPropertyId >= 1 && rawPropertyId <= MAX_PROPERTY_ID)
-        ? rawPropertyId : null;
-    // Đường dẫn TƯƠNG ĐỐI (không có dấu "/" ở đầu) để chạy được ở cả 2 nơi:
-    //  - php -S 127.0.0.1:8000 -t public  -> /api/...
-    //  - PhpStorm preview (localhost:63342/map.php/public/...) -> .../public/api/...
-    const API_BASE = 'api/';
+const API='api/',$=id=>document.getElementById(id),MAXS=40,LOW=10;
+const qs=new URLSearchParams(location.search);
+const toId=v=>{const n=Number(v);return Number.isInteger(n)&&n>0?n:null};
+const PID=(n=>n&&n<=48?n:null)(toId(qs.get('property_id')));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const vnd=n=>Number(n).toLocaleString('vi-VN')+'đ';
+const norm=s=>String(s||'').toLowerCase().replace(/đ/g,'d').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const lotCode=id=>'ABCD'[Math.floor((id-1)/12)]+((id-1)%12+1);
+const TYPES=[[/tap hoa/,'🛒','#d9b57a'],[/tra sua|do uong/,'🧋','#8fb87a'],[/quan an|do an/,'🍜','#e08f5f'],[/banh/,'🥐','#d6a46a'],[/quan ao|thoi trang/,'👗','#8fabc9'],[/hoa/,'🌷','#e9a7bd']];
+const tInfo=n=>{n=norm(n);const t=TYPES.find(x=>x[0].test(n));return t?{e:t[1],c:t[2]}:{e:'🏪',c:'#b9835a'}};
+const PE=[[/tra sua/,'🧋'],[/tra dao/,'🍑'],[/matcha/,'🍵'],[/ca phe/,'☕'],[/bun bo|mi goi/,'🍜'],[/com/,'🍗'],[/banh trang/,'🥟'],[/nuoc ngot/,'🥤'],[/banh mi/,'🥖'],[/banh kem/,'🎂'],[/croissant/,'🥐'],[/cookie/,'🍪'],[/\bao /,'👕'],[/quan/,'👖'],[/vay/,'👗'],[/non/,'👒'],[/hoa hong/,'🌹'],[/huong duong/,'🌻'],[/chau cay/,'🪴'],[/hop qua/,'🎁'],[/gao/,'🍚'],[/dau an/,'🫒'],[/nuoc suoi/,'💧']];
+const pEmoji=(n,fb)=>{n=norm(n);const p=PE.find(x=>x[0].test(n));return p?p[1]:fb};
 
-    let currentShopId = null;
-    let currentBalance = null;
-    let myShops = [];       // bản sao danh sách cửa hàng của tôi (dùng để tìm shop theo property_id khi gặp 409)
-    let shopLoadSeq = 0;    // đánh số mỗi lần tải kho: kết quả của lần tải cũ (đến muộn) sẽ bị bỏ qua
+let balance=null,shops=[],types=[],cur=null,prods=[],filt='all',sel=null;
+const S=()=>shops.find(s=>+s.shop_id===cur);
+const post=b=>({method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
 
-    // ---------- Tiện ích ----------
+async function call(p,o){
+ let r;try{r=await fetch(API+p,o)}catch(e){throw new Error('Không kết nối được server')}
+ let j;try{j=JSON.parse(await r.text())}catch(e){throw new Error('Server không trả về JSON (HTTP '+r.status+')')}
+ if(r.status===401){location.href='login.html';throw new Error('Bạn chưa đăng nhập')}
+ if(!j.success){const e=new Error(j.message||'Lỗi API');e.status=r.status;e.data=j.data;throw e}
+ return j}
+function toast(m,ok){const t=document.createElement('div');t.className='toast '+(ok?'ok':'err');t.textContent=m;$('toasts').append(t);setTimeout(()=>t.remove(),3500)}
+function setBal(v){balance=v==null?null:Number(v);$('money').textContent=balance==null?'…':vnd(balance);refreshAll();if(!$('create').hidden)renderTypes()}
+function show(v){['empty','create','shop'].forEach(k=>$(k).hidden=k!==v)}
 
-    // Chống lỗi HTML khi tên có dấu ' " < > &
-    function escapeHtml(value) {
-        return String(value ?? '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
+/* ── danh sách cửa hàng ── */
+function renderShops(){
+ $('shops').innerHTML=shops.map(s=>{const t=tInfo(s.business_type_name);
+  return `<button type="button" class="sc${+s.shop_id===cur?' on':''}" data-id="${+s.shop_id}"><span class="se" style="background:${t.c}">${t.e}</span><span><b>${esc(s.name)}</b><small>${esc(s.business_type_name)} · Mặt bằng ${lotCode(+s.property_id)}</small></span></button>`}).join('')||'<p class="note">Chưa có cửa hàng nào.</p>'}
+$('shops').addEventListener('click',e=>{const b=e.target.closest('.sc');if(b)openShop(+b.dataset.id)});
 
-    function formatVnd(value) {
-        return Number(value).toLocaleString('vi-VN') + ' VNĐ';
-    }
+/* ── quản lý kho ── */
+async function openShop(id){
+ cur=id;renderShops();show('shop');
+ $('grid').innerHTML='<p>Đang tải kho hàng…</p>';
+ try{await loadShop(id)}catch(e){if(id===cur)$('grid').innerHTML='<p style="color:var(--no-d);font-weight:800">❌ '+esc(e.message)+'</p>'}}
+async function loadShop(id){
+ const j=await call('get-shop-products.php?shop_id='+id);
+ if(id!==cur)return;
+ prods=j.data.products;renderShop();setBal(j.data.balance)}
+const state=p=>p.stock_quantity<=0?'out':p.stock_quantity<=LOW?'low':'ok';
+const stLabel={ok:'Còn hàng',low:'Sắp hết',out:'Hết hàng'};
 
-    function showToast(message, ok) {
-        const el = document.createElement('div');
-        el.className = 'toast ' + (ok ? 'ok' : 'err');
-        el.textContent = message;
-        document.body.appendChild(el);
-        setTimeout(() => el.remove(), 3500);
-    }
+function renderShop(){
+ const s=S(),t=tInfo(s.business_type_name);
+ $('bn').style.setProperty('--c',t.c);
+ $('bn').innerHTML=`<div class="be">${t.e}</div><div><h2>${esc(s.name)}</h2><p>${esc(s.business_type_name)} · Mặt bằng ${lotCode(+s.property_id)}</p></div>
+  <div class="acts"><a class="btn gold" href="startup-street-ui.html?shop_id=${+s.shop_id}">🎮 Vận hành</a><a class="btn" href="map.php">🗺️ Bản đồ</a></div>`;
+ const units=prods.reduce((a,p)=>a+ +p.stock_quantity,0),costV=prods.reduce((a,p)=>a+p.stock_quantity*p.base_cost,0),
+  revV=prods.reduce((a,p)=>a+p.stock_quantity*p.selling_price,0),alerts=prods.filter(p=>state(p)!=='ok').length;
+ $('stats').innerHTML=`<div class="st"><small>📦 Tổng tồn kho</small><b>${units} món</b></div>
+  <div class="st"><small>🧾 Vốn đang nằm trong kho</small><b>${vnd(costV)}</b></div>
+  <div class="st"><small>💵 Doanh thu nếu bán hết</small><b>${vnd(revV)}</b></div>
+  <div class="st${alerts?' al':''}"><small>⚠️ Cần nhập thêm</small><b>${alerts} sản phẩm</b></div>`;
+ const cnt=k=>prods.filter(p=>state(p)===k).length;
+ $('chips').innerHTML=[['all','Tất cả',prods.length],['low','Sắp hết',cnt('low')],['out','Hết hàng',cnt('out')]]
+  .map(c=>`<button type="button" class="ch${filt===c[0]?' on':''}" data-f="${c[0]}">${c[1]} (${c[2]})</button>`).join(' ');
+ $('grid').innerHTML=prods.length?prods.map(p=>{const st=state(p),pct=Math.min(100,p.stock_quantity/MAXS*100);
+  return `<article class="pc ${st}" data-id="${+p.product_id}" data-st="${st}" data-name="${esc(norm(p.product_name))}" data-label="${esc(p.product_name)}" data-cost="${+p.base_cost}" data-stock="${+p.stock_quantity}">
+ <div class="pt"><span class="pe">${pEmoji(p.product_name,t.e)}</span><h4>${esc(p.product_name)}</h4><span class="bg">${stLabel[st]}</span></div>
+ <div class="meter"><i style="width:${pct}%"></i></div>
+ <div class="ml"><span>Tồn kho: <b>${+p.stock_quantity}</b> / ${MAXS}</span><span>Giá vốn: <b>${vnd(p.base_cost)}</b></span></div>
+ <label class="fld"><span>Giá bán</span><input type="number" class="price" min="1" step="500" value="${Math.round(p.selling_price)}"><b class="mg"></b></label>
+ <div class="qty"><button type="button" class="qb" data-d="-1" aria-label="Giảm">−</button><input type="number" class="q" min="1" max="9999" value="10" aria-label="Số lượng nhập"><button type="button" class="qb" data-d="1" aria-label="Tăng">+</button></div>
+ <div class="qc"><button type="button" data-add="10">+10</button><button type="button" data-add="25">+25</button><button type="button" data-fill="1">Đủ ${MAXS}</button></div>
+ <div class="tot"><span>Thành tiền</span><span class="sum"></span></div>
+ <button type="button" class="btn ok go">📥 Nhập hàng</button></article>`}).join(''):'<div class="empty" style="grid-column:1/-1"><div class="big">📭</div><p>Loại hình này chưa có sản phẩm trong database.</p></div>';
+ refreshAll();applyFilter()}
 
-    function setBalance(value) {
-        currentBalance = (value === null || value === undefined) ? null : Number(value);
-        document.getElementById('wallet-balance').textContent = currentBalance === null ? '—' : formatVnd(currentBalance);
-    }
+function refresh(c){
+ const cost=+c.dataset.cost,q=parseInt(c.querySelector('.q').value,10),p=parseFloat(c.querySelector('.price').value),
+  okQ=Number.isInteger(q)&&q>0&&q<=9999,okP=Number.isFinite(p)&&p>0,tot=okQ?q*cost:0,mg=c.querySelector('.mg'),bad=balance!=null&&tot>balance;
+ if(okP&&cost>0){const m=(p-cost)/cost*100;mg.textContent=(m>=0?'Lãi ':'Lỗ ')+Math.abs(Math.round(m))+'%';mg.className='mg '+(m>=0?'up':'dn')}else{mg.textContent='';mg.className='mg'}
+ const sm=c.querySelector('.sum');sm.textContent=okQ?vnd(tot):'—';sm.classList.toggle('bad',bad);
+ const b=c.querySelector('.go');b.disabled=!(okQ&&okP)||bad;b.title=bad?'Không đủ tiền trong ví':''}
+const refreshAll=()=>document.querySelectorAll('#grid .pc').forEach(refresh);
+function applyFilter(){
+ const k=norm($('q').value.trim());
+ document.querySelectorAll('#grid .pc').forEach(c=>c.hidden=!((filt==='all'||c.dataset.st===filt)&&c.dataset.name.includes(k)))}
+$('q').addEventListener('input',applyFilter);
+$('chips').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(!b)return;filt=b.dataset.f;
+ document.querySelectorAll('#chips .ch').forEach(x=>x.classList.toggle('on',x===b));applyFilter()});
+$('grid').addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;const c=b.closest('.pc'),q=c.querySelector('.q');
+ if(b.dataset.d)q.value=Math.max(1,(parseInt(q.value,10)||0)+ +b.dataset.d);
+ else if(b.dataset.add)q.value=(parseInt(q.value,10)||0)+ +b.dataset.add;
+ else if(b.dataset.fill)q.value=Math.max(1,MAXS-(+c.dataset.stock));
+ else if(b.classList.contains('go')){buy(c,b);return}
+ refresh(c)});
+$('grid').addEventListener('input',e=>{const c=e.target.closest('.pc');if(c)refresh(c)});
 
-    // Chuyển giá trị bất kỳ thành id nguyên dương, hoặc null nếu không hợp lệ
-    function toId(value) {
-        const n = Number(value);
-        return (Number.isInteger(n) && n > 0) ? n : null;
-    }
+async function buy(c,b){
+ const q=parseInt(c.querySelector('.q').value,10),p=parseFloat(c.querySelector('.price').value);b.disabled=true;
+ try{
+  const j=await call('purchase-inventory.php',post({shop_id:cur,product_id:+c.dataset.id,quantity:q,selling_price:p}));
+  toast('✅ Đã nhập '+q+' × '+c.dataset.label+' · −'+vnd(j.data.total_cost),1);
+  await loadShop(cur);
+ }catch(e){toast('❌ '+e.message);if(e.data&&e.data.balance!==undefined)setBal(e.data.balance);b.disabled=false;refresh(c)}}
 
-    // Gọi API, luôn trả về object { success, message, data } hoặc ném lỗi có thông điệp rõ ràng
-    async function callApi(path, options) {
-        let res;
-        try {
-            res = await fetch(API_BASE + path, options);
-        } catch (networkErr) {
-            throw new Error('Không kết nối được tới server. Hãy chạy: php -S 127.0.0.1:8000 -t public rồi mở http://127.0.0.1:8000/business-management.html');
-        }
+/* ── nhập đầy kho hàng loạt (giữ nguyên giá bán hiện tại) ── */
+let plan=[];
+$('bulk').addEventListener('click',()=>{
+ plan=prods.filter(p=>p.stock_quantity<MAXS).map(p=>({id:+p.product_id,n:p.product_name,q:MAXS-p.stock_quantity,c:p.base_cost*(MAXS-p.stock_quantity)}));
+ if(!plan.length){toast('📦 Kho đã đầy!',1);return}
+ const tot=plan.reduce((a,x)=>a+x.c,0);
+ $('dlist').innerHTML=plan.map(x=>`<li><span>${esc(x.n)} × ${x.q}</span><span>${vnd(x.c)}</span></li>`).join('');
+ $('dtot').textContent=vnd(tot)+(balance!=null&&tot>balance?' (không đủ tiền, sẽ nhập đến khi hết vốn)':'');
+ $('dlg').hidden=false;$('dyes').focus()});
+$('dno').addEventListener('click',()=>$('dlg').hidden=true);
+$('dyes').addEventListener('click',async()=>{
+ const btn=$('dyes');btn.disabled=true;let paid=0,n=0;
+ for(const x of plan){
+  try{const j=await call('purchase-inventory.php',post({shop_id:cur,product_id:x.id,quantity:x.q}));paid+=j.data.total_cost;n++;setBal(j.data.balance)}
+  catch(e){toast('❌ '+x.n+': '+e.message);break}}
+ btn.disabled=false;$('dlg').hidden=true;
+ if(n)toast('✅ Đã nhập '+n+' sản phẩm · −'+vnd(paid),1);
+ try{await loadShop(cur)}catch(e){}});
 
-        const text = await res.text();
-        let json;
-        try {
-            json = JSON.parse(text);
-        } catch (parseErr) {
-            throw new Error(`API ${path} không trả về JSON (HTTP ${res.status}). Kiểm tra đường dẫn hoặc lỗi PHP.`);
-        }
+/* ── tạo cửa hàng ── */
+async function openCreate(){
+ show('create');$('ctag').textContent='Mở cửa hàng tại mặt bằng '+lotCode(PID);
+ if(!types.length){try{types=(await call('business-types.php')).data.business_types}catch(e){$('tgrid').innerHTML='<p style="color:var(--no-d);font-weight:800">❌ '+esc(e.message)+'</p>';return}}
+ renderTypes()}
+function renderTypes(){
+ if(!types.length){$('tgrid').innerHTML='<p>Chưa có mô hình kinh doanh nào trong database.</p>';return}
+ $('tgrid').innerHTML=types.map(t=>{const i=tInfo(t.name),cap=+t.required_capital,low=balance!=null&&balance<cap;
+  return `<button type="button" class="tc${sel===+t.id?' on':''}" data-id="${+t.id}" ${low?'disabled':''} style="--c:${i.c}"><span class="te">${i.e}</span><b>${esc(t.name)}</b><small>${esc(t.description)}</small>${t.target_customers?`<em>👥 ${esc(t.target_customers)}</em>`:''}${t.estimated_cost?`<em>🧾 Chi phí dự kiến ${vnd(t.estimated_cost)}</em>`:''}<span class="cap${low?' bad':''}">Vốn cần ${vnd(cap)}${low?' · thiếu vốn':''}</span></button>`}).join('')}
+$('tgrid').addEventListener('click',e=>{
+ const b=e.target.closest('.tc');if(!b||b.disabled)return;sel=+b.dataset.id;
+ const t=types.find(x=>+x.id===sel);$('cname').value=t.name;$('cform').hidden=false;renderTypes();$('cname').focus();$('cname').select()});
+$('cgo').addEventListener('click',async()=>{
+ const name=$('cname').value.trim(),btn=$('cgo');
+ if(!sel)return toast('Hãy chọn một mô hình kinh doanh.');
+ if(!name)return toast('Hãy đặt tên cho cửa hàng.');
+ btn.disabled=true;
+ try{
+  const j=await call('create-shop.php',post({property_id:PID,business_type_id:sel,name}));
+  toast('🎉 Đã mở cửa hàng '+name+'!',1);
+  await reloadShops();openShop(+j.data.shop_id);
+ }catch(e){
+  if(e.status===409){await reloadShops();const id=toId(e.data&&e.data.shop_id)||(shops.find(s=>+s.property_id===PID)||{}).shop_id;
+   if(id){toast('Mặt bằng này đã có cửa hàng, đang mở kho.',1);openShop(+id);btn.disabled=false;return}}
+  toast('❌ '+e.message)}
+ btn.disabled=false});
+async function reloadShops(){try{shops=(await call('get-shops.php')).data.shops}catch(e){toast('❌ '+e.message)}renderShops()}
 
-        if (!json.success) {
-            const err = new Error(res.status === 401 ? 'Bạn chưa đăng nhập' : (json.message || `API ${path} báo lỗi (HTTP ${res.status})`));
-            err.status = res.status;
-            err.data = json.data;
-            throw err;
-        }
-        return json;
-    }
+$('logout').addEventListener('click',async()=>{try{await fetch(API+'auth/logout.php',{method:'POST'})}catch(e){}location.href='login.html'});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('dlg').hidden=true});
 
-    // ---------- Khởi động ----------
-
-    document.addEventListener('DOMContentLoaded', async () => {
-        // Kiểm tra đăng nhập qua session
-        try {
-            const me = await callApi('auth/me.php');
-            setBalance(me.data.balance);
-        } catch (err) {
-            if (err.status === 401) {
-                window.location.href = 'login.html';
-                return;
-            }
-            // Lỗi khác (mạng, server...): không chặn trang, nhưng báo để người chơi biết ví chưa tải được
-            console.error('Lỗi kiểm tra đăng nhập:', err);
-            showToast('Không tải được số dư ví: ' + err.message, false);
-        }
-
-        const hasProperty = RENTED_PROPERTY_ID !== null;
-        const hasShop = Number(params.get('shop_id')) > 0;
-
-        // Without a valid property_id, the creation section (cards + form) is hidden entirely
-        document.getElementById('section-create-shop').classList.toggle('hidden', !hasProperty);
-        // Show the warning, unless the user came from the map's "Quản lý kho hàng" link (shop_id only)
-        document.getElementById('section-no-property').classList.toggle('hidden', hasProperty || hasShop);
-
-        if (hasProperty) {
-            document.getElementById('btn-create-shop').addEventListener('click', submitCreateShop);
-            loadBusinessTypes();
-        }
-        await loadMyShops();
-
-        const shopIdParam = toId(params.get('shop_id'));
-        if (shopIdParam) openShop(shopIdParam);
-    });
-
-    // 0. Danh sách cửa hàng của tôi (GET api/get-shops.php). Trả về mảng cửa hàng (rỗng nếu lỗi).
-    async function loadMyShops() {
-        const section = document.getElementById('section-my-shops');
-        const list = document.getElementById('my-shops-list');
-        try {
-            const json = await callApi('get-shops.php');
-            const shops = json.data.shops;
-            myShops = shops;
-            if (!shops.length) {
-                section.classList.add('hidden');
-                return shops;
-            }
-            section.classList.remove('hidden');
-            list.innerHTML = shops.map(s => `
-                <div class="my-shop">
-                    <div><b>${escapeHtml(s.name)}</b><br>
-                        <small>${escapeHtml(s.business_type_name)} · Mặt bằng #${Number(s.property_id)}</small></div>
-                    <button class="btn" data-shop-id="${Number(s.shop_id)}">Quản lý kho</button>
-                </div>
-            `).join('');
-            list.querySelectorAll('button[data-shop-id]').forEach(btn => {
-                btn.addEventListener('click', () => openShop(Number(btn.dataset.shopId)));
-            });
-            return shops;
-        } catch (err) {
-            console.error('Lỗi load cửa hàng của tôi:', err);
-            myShops = [];
-            section.classList.remove('hidden');
-            list.innerHTML = `<div class="error-box">❌ ${escapeHtml(err.message)}</div>`;
-            return [];
-        }
-    }
-
-    // Tìm shop_id của cửa hàng đang đứng trên một mặt bằng (từ danh sách cửa hàng của tôi)
-    function findShopIdByProperty(propertyId) {
-        const shop = myShops.find(s => Number(s.property_id) === Number(propertyId));
-        return shop ? toId(shop.shop_id) : null;
-    }
-
-    // Mở khu vực quản lý kho của 1 cửa hàng. Trả về true nếu tải được kho.
-    async function openShop(shopId) {
-        const id = toId(shopId);
-        if (id === null) return false;
-
-        currentShopId = id;
-        const section = document.getElementById('section-inventory');
-        section.classList.remove('hidden');
-        const loaded = await loadShopProducts(id);
-        // Chỉ cuộn khi kho của đúng cửa hàng này đã hiện ra (không bị lần mở khác ghi đè)
-        if (loaded) section.scrollIntoView({ behavior: 'smooth' });
-        return loaded;
-    }
-
-    // 1. Lấy loại hình kinh doanh (GET api/business-types.php)
-    async function loadBusinessTypes() {
-        const box = document.getElementById('business-types-list');
-        try {
-            const json = await callApi('business-types.php');
-            const types = json.data.business_types;
-
-            if (!types.length) {
-                box.innerHTML = '<div class="error-box">Chưa có loại hình kinh doanh nào trong database.</div>';
-                return;
-            }
-
-            box.innerHTML = types.map(type => `
-                <div class="card" data-card-id="${Number(type.id)}">
-                    <h3>${escapeHtml(type.name)}</h3>
-                    <p>${escapeHtml(type.description)}</p>
-                    ${type.target_customers ? `<div class="meta">👥 Khách mục tiêu: ${escapeHtml(type.target_customers)}</div>` : ''}
-                    ${type.estimated_cost ? `<div class="meta">🧾 Chi phí dự kiến: ${formatVnd(type.estimated_cost)}</div>` : ''}
-                    <div class="capital">Vốn cần: ${formatVnd(type.required_capital)}</div>
-                    <button class="btn" data-type-id="${Number(type.id)}" data-type-name="${escapeHtml(type.name)}">Chọn Mô Hình</button>
-                </div>
-            `).join('');
-
-            box.querySelectorAll('button[data-type-id]').forEach(btn => {
-                btn.addEventListener('click', () => selectBusinessType(btn.dataset.typeId, btn.dataset.typeName));
-            });
-        } catch (err) {
-            console.error('Lỗi load business types:', err);
-            box.innerHTML = `<div class="error-box">❌ ${escapeHtml(err.message)}</div>`;
-        }
-    }
-    // Chọn loại hình kinh doanh
-    function selectBusinessType(typeId, typeName) {
-        if (RENTED_PROPERTY_ID === null) return;
-        document.getElementById('selected-type-id').value = typeId;
-        document.getElementById('selected-type-name').value = typeName;
-        document.getElementById('create-shop-heading').textContent = `Tạo Cửa Hàng Mới Cho Mặt Bằng #${RENTED_PROPERTY_ID}`;
-        document.getElementById('create-shop-form').classList.remove('hidden');
-        document.querySelectorAll('#business-types-list .card').forEach(c => {
-            c.classList.toggle('selected', c.dataset.cardId === String(typeId));
-        });
-        document.getElementById('shop-name').focus();
-    }
-
-    // 2. Tạo cửa hàng (POST api/create-shop.php)
-    async function submitCreateShop() {
-        if (RENTED_PROPERTY_ID === null) return;
-        const typeId = document.getElementById('selected-type-id').value;
-        const shopName = document.getElementById('shop-name').value.trim();
-        const btn = document.getElementById('btn-create-shop');
-
-        if (!typeId) {
-            showToast('Vui lòng chọn mô hình kinh doanh!', false);
-            return;
-        }
-        if (!shopName) {
-            showToast('Vui lòng nhập tên cửa hàng!', false);
-            return;
-        }
-
-        btn.disabled = true;
-        try {
-            const json = await callApi('create-shop.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    property_id: RENTED_PROPERTY_ID,
-                    business_type_id: Number(typeId),
-                    name: shopName
-                })
-            });
-
-            showToast('Tạo cửa hàng thành công!', true);
-            document.getElementById('create-shop-form').classList.add('hidden');
-            document.getElementById('shop-name').value = '';
-            await loadMyShops();
-            await openShop(json.data.shop_id);
-        } catch (err) {
-            console.error('Lỗi tạo cửa hàng:', err);
-
-            // 409 = mặt bằng đã có cửa hàng. Đây không phải lỗi cần dọa người chơi:
-            // tìm cửa hàng đó (ưu tiên shop_id server trả về, nếu không có thì tra theo property_id
-            // trong danh sách cửa hàng của tôi) rồi mở thẳng kho của nó.
-            if (err.status === 409) {
-                await loadMyShops(); // làm mới danh sách trước để bước tra cứu dự phòng có dữ liệu mới
-                const existingId = toId(err.data && err.data.shop_id) || findShopIdByProperty(RENTED_PROPERTY_ID);
-                if (existingId) {
-                    showToast('Mặt bằng này đã có cửa hàng — đang mở kho hàng.', true);
-                    document.getElementById('create-shop-form').classList.add('hidden');
-                    await openShop(existingId);
-                    return; // finally bên dưới vẫn chạy
-                }
-            }
-
-            showToast('Lỗi: ' + err.message, false);
-        } finally {
-            // Luôn mở lại nút, dù thành công, lỗi 409 hay lỗi bất kỳ
-            btn.disabled = false;
-        }
-    }
-
-    // 3. Load sản phẩm và tồn kho (GET api/get-shop-products.php). Trả về true nếu tải xong.
-    async function loadShopProducts(shopId) {
-        const requestId = ++shopLoadSeq;
-        const tbody = document.getElementById('inventory-table-body');
-        tbody.innerHTML = '<tr><td colspan="6">Đang tải sản phẩm...</td></tr>';
-
-        try {
-            const json = await callApi(`get-shop-products.php?shop_id=${encodeURIComponent(shopId)}`);
-            if (requestId !== shopLoadSeq) return false; // đã có lần tải mới hơn, bỏ kết quả cũ
-
-            const products = json.data.products;
-            setBalance(json.data.balance);
-            document.getElementById('current-shop-title').textContent = `2. Quản Lý Kho Hàng: ${json.data.shop.name}`;
-
-            if (!products.length) {
-                tbody.innerHTML = '<tr><td colspan="6">Loại hình này chưa có sản phẩm nào trong database.</td></tr>';
-                return true;
-            }
-
-            tbody.innerHTML = products.map(p => `
-                <tr>
-                    <td>${Number(p.product_id)}</td>
-                    <td><b>${escapeHtml(p.product_name)}</b></td>
-                    <td data-cost="${Number(p.base_cost)}">${formatVnd(p.base_cost)}</td>
-                    <td>
-                        <input type="number" class="price-input" id="price-${Number(p.product_id)}"
-                               value="${Math.round(Number(p.selling_price))}" min="1" step="500"> VNĐ
-                    </td>
-                    <td><span style="color:blue; font-weight:bold;">${Number(p.stock_quantity)}</span> cái</td>
-                    <td>
-                        <input type="number" class="stock-input" id="qty-${Number(p.product_id)}" value="10" min="1" max="9999">
-                        <span class="row-total" id="total-${Number(p.product_id)}"></span>
-                        <button class="btn-stock" data-product-id="${Number(p.product_id)}">Nhập Hàng</button>
-                    </td>
-                </tr>
-            `).join('');
-
-            tbody.querySelectorAll('button[data-product-id]').forEach(btn => {
-                btn.addEventListener('click', () => purchaseInventory(btn.dataset.productId, btn));
-            });
-            tbody.querySelectorAll('input.stock-input').forEach(inp => {
-                inp.addEventListener('input', refreshRowTotals);
-            });
-            refreshRowTotals();
-            return true;
-        } catch (err) {
-            if (requestId !== shopLoadSeq) return false;
-            console.error('Lỗi load sản phẩm:', err);
-            tbody.innerHTML = `<tr><td colspan="6"><div class="error-box">❌ ${escapeHtml(err.message)}</div></td></tr>`;
-            return false;
-        }
-    }
-
-    // Hiện "thành tiền" của từng dòng và khóa nút nếu vượt số dư (server vẫn kiểm tra lại)
-    function refreshRowTotals() {
-        document.querySelectorAll('#inventory-table-body tr').forEach(tr => {
-            const btn = tr.querySelector('button[data-product-id]');
-            if (!btn) return;
-            const id = btn.dataset.productId;
-            const cost = Number(tr.querySelector('td[data-cost]').dataset.cost);
-            const qty = parseInt(document.getElementById(`qty-${id}`).value, 10);
-            const label = document.getElementById(`total-${id}`);
-            if (!Number.isInteger(qty) || qty <= 0) {
-                label.textContent = '';
-                label.classList.remove('bad');
-                btn.disabled = true;
-                return;
-            }
-            const total = cost * qty;
-            const tooMuch = currentBalance !== null && total > currentBalance;
-            label.textContent = '= ' + formatVnd(total);
-            label.classList.toggle('bad', tooMuch);
-            btn.disabled = tooMuch;
-            btn.title = tooMuch ? 'Không đủ tiền trong ví' : '';
-        });
-    }
-
-    // 4. Nhập hàng vào kho (POST api/purchase-inventory.php)
-    async function purchaseInventory(productId, btn) {
-        const qty = parseInt(document.getElementById(`qty-${productId}`).value, 10);
-        const sellingPrice = parseFloat(document.getElementById(`price-${productId}`).value);
-
-        if (!Number.isInteger(qty) || qty <= 0) {
-            showToast('Số lượng nhập phải lớn hơn 0!', false);
-            return;
-        }
-        if (!Number.isFinite(sellingPrice) || sellingPrice <= 0) {
-            showToast('Giá bán phải lớn hơn 0!', false);
-            return;
-        }
-
-        const shopId = currentShopId;
-        if (btn) btn.disabled = true;
-        try {
-            const json = await callApi('purchase-inventory.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    shop_id: shopId,
-                    product_id: Number(productId),
-                    quantity: qty,
-                    selling_price: sellingPrice
-                })
-            });
-
-            showToast(`Nhập hàng thành công! Đã trả ${formatVnd(json.data.total_cost)}`, true);
-            await loadShopProducts(currentShopId); // Refresh lại bảng kho + số dư ví
-        } catch (err) {
-            console.error('Lỗi nhập hàng:', err);
-            showToast('Lỗi: ' + err.message, false);
-            if (err.data && err.data.balance !== undefined) setBalance(err.data.balance);
-        } finally {
-            // Luôn mở lại nút (sau khi tải lại bảng, nút cũ đã bị thay thế nên dòng này vô hại),
-            // rồi áp lại quy tắc khóa theo số dư / số lượng hiện tại.
-            if (btn) btn.disabled = false;
-            refreshRowTotals();
-        }
-    }
-
-    // Đăng xuất — gọi trực tiếp thay vì DOMContentLoaded riêng vì script chạy sau DOM đã sẵn sàng
-    const logoutBtn = document.getElementById('btn-logout');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
-            logoutBtn.disabled = true;
-            try {
-                await fetch(API_BASE + 'auth/logout.php', { method: 'POST' });
-            } catch (e) {
-                // Mất mạng vẫn cho về trang đăng nhập
-            } finally {
-                window.location.href = 'login.html';
-            }
-        });
-    }
+/* ── khởi động ── */
+(async()=>{
+ try{const me=(await call('auth/me.php')).data;setBal(me.balance);$('uname').textContent=(me.profile&&me.profile.display_name)||me.username}
+ catch(e){if(e.status!==401)toast('Không tải được số dư ví: '+e.message)}
+ await reloadShops();
+ const sid=toId(qs.get('shop_id'));
+ if(sid&&shops.some(s=>+s.shop_id===sid))return openShop(sid);
+ if(sid)toast('Không tìm thấy cửa hàng #'+sid+' trong danh sách của bạn.');
+ const ex=PID&&shops.find(s=>+s.property_id===PID);
+ if(ex)return openShop(+ex.shop_id);
+ if(PID)return openCreate();
+ if(shops.length)return openShop(+shops[0].shop_id);
+ show('empty')})();
 </script>
-
 </body>
 </html>
