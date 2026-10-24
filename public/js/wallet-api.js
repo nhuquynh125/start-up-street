@@ -66,6 +66,46 @@
     showToast('🧪', 'Chế độ demo: chưa có shop_id nên đơn chỉ chạy cục bộ, KHÔNG ghi vào MySQL.');
   }
 
+  // ── Tab "Kho hàng": chỉ hiện kho THẬT của cửa hàng đang mở (SHOP_ID), không dùng menu mẫu cứng trong game.js ──
+  // (game.js vẽ từ mảng Products; nếu quán không phải trà sữa / tên món lệch thì bảng sẽ hiện kho của "quán khác")
+  let shopRows = null; // null = đang tải | false = lỗi | mảng = dòng kho từ get-shop-products.php
+
+  const baseUpdateInventory = window.updateInventoryTable;
+  window.updateInventoryTable = function () {
+    baseUpdateInventory();          // game.js vẫn cập nhật các nút "Gọi món thủ công"
+    if (!SHOP_ID) return;           // chế độ demo: giữ bảng mẫu như cũ
+
+    const tbody = document.getElementById('inventory-table-body');
+    if (!tbody) return;
+    const msg = t => { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;opacity:.6">' + t + '</td></tr>'; };
+
+    if (shopRows === null) return msg('Đang tải...');
+    if (shopRows === false) return msg('Không tải được kho của cửa hàng này.');
+    if (!shopRows.length) return msg('Cửa hàng này chưa có sản phẩm nào.');
+
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    tbody.innerHTML = shopRows.map(sp => {
+      // Món có trong menu game.js thì lấy số đang chạy trong phiên (bán / nhập sẽ cập nhật ở đó)
+      const live = Products.find(p => p.dbId === Number(sp.product_id));
+      const stock = live ? live.stock : Number(sp.stock_quantity);
+      const cost  = live ? live.costPrice : Number(sp.base_cost);
+      const price = live ? live.sellPrice : Number(sp.selling_price);
+      const pct = Math.max(0, Math.min(100, stock / MAX_STOCK * 100));
+      const cls = pct > 50 ? 'stock-high' : pct > 20 ? 'stock-medium' : 'stock-low';
+      const out = stock <= 0;
+      return '<tr>'
+        + '<td><span class="product-emoji">' + (live ? live.emoji : '📦') + '</span><strong>' + esc(sp.product_name) + '</strong>'
+        + (out ? '<span style="color:var(--accent-red);font-size:0.75rem;font-weight:800;margin-left:6px;">[HẾT HÀNG]</span>' : '') + '</td>'
+        + '<td>' + formatMoney(cost) + '</td>'
+        + '<td>' + formatMoney(price) + '</td>'
+        + '<td><span style="font-weight:700;color:' + (out ? 'var(--accent-red)' : 'inherit') + ';">' + stock + '</span> / ' + MAX_STOCK
+        + '<div class="stock-bar"><div class="stock-bar-fill ' + cls + '" style="width:' + pct + '%"></div></div></td>'
+        + '<td><strong>' + (live ? live.soldTotal : '—') + '</strong></td>'
+        + '</tr>';
+    }).join('');
+  };
+
   // ── Nạp sản phẩm / tồn kho / giá từ MySQL (khớp theo tên món) ──
   async function loadShop() {
     if (!SHOP_ID) {
@@ -75,6 +115,7 @@
     }
     try {
       const d = (await api('get-shop-products.php?shop_id=' + SHOP_ID)).data;
+      shopRows = d.products;
       d.products.forEach(sp => {
         const p = Products.find(x => x.name === sp.product_name);
         if (!p) return;
@@ -86,6 +127,8 @@
       updateInventoryTable();
     } catch (e) {
       showToast('❌', e.message);
+      shopRows = false;
+      updateInventoryTable();
     }
     await syncBalance();
   }
