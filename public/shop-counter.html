@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Startup Street — Trong cửa hàng</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--wood-d:#4a2a16;--wood:#8a5a3b;--wood-l:#b9835a;--paper:#f7e8c8;--paper-d:#e6cb98;--cream:#fff6dd;
+--ok:#6fb23f;--ok-d:#4c8a26;--no:#d95b4f;--no-d:#a63a31;--gold:#f2b441;--ink:#4a2a16;--font:'Baloo 2',system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+body{font-family:var(--font);color:var(--ink);background:#f0e6c8;min-height:100vh}
+button{font-family:inherit;cursor:pointer}
+:focus-visible{outline:3px solid #ffb703;outline-offset:2px}
+.hud{position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;
+ padding:8px 14px;background:var(--paper);border-bottom:4px solid var(--wood);font-weight:800}
+.hud .r{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pill{background:var(--cream);border:3px solid var(--wood);border-radius:12px;padding:1px 12px;font-size:14px}
+.btn{display:inline-block;border:3px solid var(--wood-d);border-radius:12px;padding:5px 14px;font-weight:800;font-size:15px;color:#fff;
+ background:var(--wood);box-shadow:0 4px 0 var(--wood-d);text-decoration:none}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--wood-d)}
+.btn.ok{background:var(--ok);border-color:var(--ok-d);box-shadow:0 4px 0 var(--ok-d)}
+.btn.no{background:var(--no);border-color:var(--no-d);box-shadow:0 4px 0 var(--no-d)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+main{max-width:1100px;margin:0 auto;padding:14px}
+#notice{display:none;margin-bottom:12px;padding:10px 14px;border:3px solid #e8a020;background:#fff0c9;border-radius:12px;font-weight:700}
+/* Cảnh quầy: ghi đè chiều cao mặc định của shop-scene.js để quầy to hơn */
+#stage.ss-scene{height:clamp(280px,48vh,420px);margin-bottom:0;border-radius:18px 18px 0 0;border-bottom:0}
+.counter-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+ padding:10px 14px;background:var(--wood);border:4px solid var(--wood);border-radius:0 0 18px 18px;color:var(--cream);margin-bottom:14px;box-shadow:0 4px 0 var(--wood-d)}
+#status{font-weight:700;font-size:14px;flex:1;min-width:220px}
+.panel{background:var(--paper);border:4px solid var(--wood);border-radius:18px;padding:12px;box-shadow:0 4px 0 var(--wood-d);margin-bottom:14px}
+.panel h3{font-size:16px;margin-bottom:10px}
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.it{background:var(--cream);border:3px solid var(--paper-d);border-radius:14px;padding:8px;text-align:center;transition:transform .15s,border-color .15s}
+.it.hit{transform:translateY(-6px);border-color:var(--ok)}
+.it.out{border-color:var(--no);opacity:.75}
+.it .em{font-size:34px;display:block;line-height:1.2}
+.it b{display:block;font-size:13px;line-height:1.15;min-height:30px}
+.it small{display:block;font-size:12px;font-weight:600;opacity:.8}
+.bar{height:8px;background:#e6d8b8;border-radius:5px;margin:4px 0;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok)}
+.it.low .bar i{background:#e8a020}.it.out .bar i{background:var(--no)}
+#feed{display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto}
+#feed div{display:flex;justify-content:space-between;gap:8px;padding:5px 10px;background:var(--cream);border-radius:10px;font-size:13px;font-weight:600}
+#feed .in b{color:var(--ok-d)}#feed .out b{color:var(--no-d)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--wood-d);color:var(--cream);padding:8px 20px;
+ border-radius:14px;border:3px solid var(--wood-l);font-weight:800;display:none;z-index:50;max-width:90vw}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="hud">
+  <span>🏪 <span id="shopName">Cửa hàng</span></span>
+  <span class="r">
+    <span class="pill">⭐ <b id="rep">–</b></span>
+    <span class="pill">💰 <b id="balance">…</b></span>
+    <a class="btn" id="lnkStock" href="business-management.html">📥 Nhập hàng</a>
+    <a class="btn" id="lnkOps" href="startup-street-ui.html">📊 Vận hành quán</a>
+    <a class="btn" href="map.php">🗺️ Bản đồ</a>
+  </span>
+</header>
+
+<main>
+  <div id="notice" role="status"></div>
+
+  <div id="stage" role="img" aria-label="Quầy hàng: bạn đứng sau quầy, khách đến mua và rời đi"></div>
+  <div class="counter-bar">
+    <span id="status">Đang tải trạng thái quán…</span>
+    <button class="btn ok" id="toggle" type="button" disabled>🔓 Mở cửa quán</button>
+  </div>
+
+  <section class="panel">
+    <h3>🧺 Hàng trên quầy</h3>
+    <div class="shelf" id="shelf"><small>Đang tải…</small></div>
+  </section>
+
+  <section class="panel">
+    <h3>📝 Khách vừa ghé</h3>
+    <div id="feed"><div><span>Mở cửa quán để khách bắt đầu ghé mua.</span></div></div>
+  </section>
+</main>
+<div id="toast" role="status"></div>
+
+<script src="js/shop-scene.js"></script>
+<script>
+(function () {
+  'use strict';
+  const SHOP_ID = Number(new URLSearchParams(location.search).get('shop_id')) || null;
+  const POLL_MS = 4000;
+  const $ = id => document.getElementById(id);
+  const vnd = n => Number(n).toLocaleString('vi-VN') + 'đ';
+  const norm = s => String(s || '').toLowerCase().replace(/đ/g, 'd').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const PE = [[/tra sua/,'🧋'],[/tra dao/,'🍑'],[/matcha/,'🍵'],[/ca phe/,'☕'],[/bun bo|mi goi/,'🍜'],[/com/,'🍗'],[/banh trang/,'🥟'],
+    [/nuoc ngot/,'🥤'],[/banh mi/,'🥖'],[/banh kem/,'🎂'],[/croissant/,'🥐'],[/cookie/,'🍪'],[/\bao /,'👕'],[/quan/,'👖'],[/vay/,'👗'],
+    [/non/,'👒'],[/hoa hong/,'🌹'],[/huong duong/,'🌻'],[/chau cay/,'🪴'],[/hop qua/,'🎁'],[/gao/,'🍚'],[/dau an/,'🫒'],[/nuoc suoi/,'💧']];
+  const pEmoji = n => { n = norm(n); const p = PE.find(x => x[0].test(n)); return p ? p[1] : '📦'; };
+
+  let products = [], isOpen = false, lastId = 0, first = true, busy = false, timer = null, toastT;
+
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.style.display = 'block';
+    clearTimeout(toastT); toastT = setTimeout(() => { t.style.display = 'none'; }, 2600);
+  }
+  function notice(msg) { const n = $('notice'); n.textContent = msg; n.style.display = msg ? 'block' : 'none'; }
+
+  async function api(path, body) {
+    let res;
+    try {
+      res = await fetch('api/' + path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined);
+    } catch (e) { throw new Error('Không kết nối được server'); }
+    if (res.status === 401) { location.href = 'login.html'; throw new Error('Bạn chưa đăng nhập'); }
+    const json = await res.json().catch(() => null);
+    if (!json) throw new Error('Server không trả về JSON (HTTP ' + res.status + ')');
+    if (!json.success) throw new Error(json.message || 'Lỗi API');
+    return json.data;
+  }
+
+  // Cảnh quầy: người chơi (đầu bếp) đứng sau quầy, khách tới theo đơn do server sinh ra
+  const scene = ShopScene.mount($('stage'), {
+    emojiFor: id => { const p = products.find(x => Number(x.product_id) === id); return p ? pEmoji(p.product_name) : '🛍️'; },
+    onSale: e => flash(e.items[0].name)
+  });
+
+  // ── Kệ hàng ──
+  function renderShelf() {
+    const box = $('shelf');
+    if (!products.length) { box.innerHTML = '<small>Cửa hàng chưa có sản phẩm. Hãy nhập hàng trước.</small>'; return; }
+    box.innerHTML = '';
+    products.forEach(p => {
+      const d = document.createElement('div');
+      d.className = 'it'; d.dataset.pid = p.product_id; d.dataset.name = p.product_name;
+      const em = document.createElement('span'); em.className = 'em'; em.textContent = pEmoji(p.product_name);
+      const nm = document.createElement('b'); nm.textContent = p.product_name;
+      const pr = document.createElement('small'); pr.textContent = vnd(p.selling_price);
+      const bar = document.createElement('div'); bar.className = 'bar'; bar.innerHTML = '<i></i>';
+      const q = document.createElement('small'); q.className = 'q';
+      d.append(em, nm, pr, bar, q); box.appendChild(d);
+    });
+    paintStock();
+  }
+  function paintStock() {
+    document.querySelectorAll('#shelf .it').forEach(d => {
+      const p = products.find(x => String(x.product_id) === d.dataset.pid);
+      const n = Number(p.stock_quantity);
+      d.classList.toggle('out', n <= 0); d.classList.toggle('low', n > 0 && n <= 10);
+      d.querySelector('.bar i').style.width = Math.min(100, n / 40 * 100) + '%';
+      d.querySelector('.q').textContent = n <= 0 ? 'HẾT HÀNG' : 'Còn ' + n;
+    });
+  }
+  function flash(name) {
+    const d = [...document.querySelectorAll('#shelf .it')].find(x => x.dataset.name === name);
+    if (!d) return;
+    d.classList.add('hit'); setTimeout(() => d.classList.remove('hit'), 450);
+  }
+
+  // ── Nhật ký ──
+  function log(cls, text, amount) {
+    const feed = $('feed');
+    if (!feed.querySelector('.in,.out')) feed.innerHTML = '';
+    const row = document.createElement('div'); row.className = cls;
+    const t = document.createElement('span'); t.textContent = text;
+    const a = document.createElement('b'); a.textContent = amount || '';
+    row.append(t, a); feed.insertBefore(row, feed.firstChild);
+    while (feed.children.length > 30) feed.removeChild(feed.lastChild);
+  }
+  function logOrder(o) {
+    const emoji = pEmoji(o.product_name);
+    if (o.status === 'served') log('in', `${emoji} ${o.customer} mua ${o.quantity}× ${o.product_name}`, '+' + vnd(o.total));
+    else log('out', `😞 ${o.customer} muốn ${emoji} ${o.product_name} nhưng hết hàng, khách bỏ về`, '0đ');
+  }
+
+  // ── Áp trạng thái từ server ──
+  function handle(s) {
+    const fresh = s.orders.filter(o => o.id > lastId);
+    if (fresh.length) lastId = Math.max(lastId, ...fresh.map(o => o.id));
+
+    scene.setOpen(s.is_open);
+    scene.push(fresh, { silent: first });           // lần tải đầu: không dựng lại khách cũ
+    if (!first) scene.walkBy(s.walked_by);
+    (first ? fresh.slice(-5) : fresh).forEach(logOrder);
+    if (!first && s.walked_by > 0) log('out', `🚶 ${s.walked_by} người ghé qua nhưng chê giá cao`, '');
+    if (first && s.is_open && s.new_customers > 0) toast('🛎️ Trong lúc bạn vắng, quán đã đón ' + s.new_customers + ' lượt khách');
+    first = false;
+
+    isOpen = s.is_open;
+    Object.entries(s.stock || {}).forEach(([pid, qty]) => {
+      const p = products.find(x => String(x.product_id) === pid);
+      if (p) p.stock_quantity = qty;
+    });
+    paintStock();
+
+    $('balance').textContent = vnd(s.balance);
+    $('rep').textContent = s.reputation;
+    $('status').textContent = (isOpen ? '🟢 Đang mở cửa' : '🔴 Đang đóng cửa')
+      + ` · Hôm nay ${s.today.served} khách mua, ${s.today.missed} bỏ về · Doanh thu ${vnd(s.today.revenue)}`;
+    const b = $('toggle');
+    b.textContent = isOpen ? '🔒 Đóng cửa quán' : '🔓 Mở cửa quán';
+    b.className = 'btn ' + (isOpen ? 'no' : 'ok');
+    b.disabled = false;
+
+    if (isOpen) startPolling(); else stopPolling();
+  }
+
+  async function tick() {
+    if (busy) return;
+    busy = true;
+    try { handle(await api('shop-tick.php', { shop_id: SHOP_ID, since_id: lastId })); }
+    catch (e) { toast('❌ ' + e.message); }
+    finally { busy = false; }
+  }
+  function startPolling() { if (!timer) timer = setInterval(() => { if (!document.hidden) tick(); }, POLL_MS); }
+  function stopPolling() { clearInterval(timer); timer = null; }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && isOpen) tick(); });
+
+  $('toggle').addEventListener('click', async () => {
+    const b = $('toggle'); b.disabled = true;
+    try {
+      const s = await api('shop-open.php', { shop_id: SHOP_ID, open: !isOpen });
+      handle(s);
+      toast(s.is_open ? '🔓 Quán đã mở cửa! Khách sẽ bắt đầu ghé.' : '🔒 Quán đã đóng cửa.');
+    } catch (e) { toast('❌ ' + e.message); b.disabled = false; }
+  });
+
+  async function init() {
+    if (!SHOP_ID) {
+      notice('Thiếu shop_id. Hãy vào cửa hàng từ bản đồ: chọn mặt bằng của bạn rồi bấm "Vào cửa hàng".');
+      $('status').textContent = 'Chưa chọn cửa hàng.';
+      return;
+    }
+    $('lnkStock').href = 'business-management.html?shop_id=' + SHOP_ID;
+    $('lnkOps').href = 'startup-street-ui.html?shop_id=' + SHOP_ID;
+    try {
+      const d = await api('get-shop-products.php?shop_id=' + SHOP_ID);
+      $('shopName').textContent = d.shop.name;
+      products = d.products;
+      renderShelf();
+    } catch (e) {
+      notice('❌ ' + e.message);
+      $('status').textContent = 'Không vào được cửa hàng này.';
+      return;
+    }
+    tick(); // lấy trạng thái ban đầu (quán đang mở sẽ bù khách trong lúc vắng mặt)
+  }
+  init();
+})();
+</script>
+</body>
+</html>

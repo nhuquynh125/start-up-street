@@ -184,6 +184,7 @@ input[type=range]{width:100%;accent-color:var(--wood)}
 <p id="business-type-note" class="note">Chọn mô hình để xem trước mặt tiền phù hợp.</p>
 <button class="btn big" id="buy" type="button">Thuê mặt bằng ngay</button>
 <a class="btn" id="manage" hidden style="display:block;text-align:center;text-decoration:none;margin-top:10px">Quản lý kho hàng</a>
+<a class="btn" id="enter" hidden style="display:block;text-align:center;text-decoration:none;margin-top:10px">🏪 Vào cửa hàng</a>
 <div id="msg" role="status"></div>
 </aside>
 
