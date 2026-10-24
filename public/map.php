@@ -303,7 +303,6 @@ const loadDesigns=()=>JSON.parse(localStorage.getItem('startupStreetDesigns')||'
 const saveDesigns=d=>localStorage.setItem('startupStreetDesigns',JSON.stringify(d));
 const d0=loadDesigns();
 // Chỉ khôi phục shopName và thiết kế tùy chỉnh từ localStorage, không khôi phục status (status do server quyết định)
-lots.forEach(l=>{if(d0[l.code]&&d0[l.code].rented)l.status='mine'});
 
 
 const fmt=n=>n.toLocaleString('vi-VN')+'đ';
@@ -423,6 +422,7 @@ function showPanel(i){
  buy.textContent=l.status==='available'?'Thuê mặt bằng ngay':l.status==='mine'?'Tùy chỉnh cửa hàng':labels[l.status];
  const mg=$('manage'),sid=(saved[l.code]||{}).shopId;mg.hidden=!(l.status==='mine'&&sid);
  if(sid)mg.href='business-management.html?shop_id='+sid;
+ const en=$('enter');en.hidden=!(l.status==='mine'&&sid);if(sid)en.href='shop-counter.html?shop_id='+sid;
  $('msg').textContent='';
  panel.style.display='block';
 }

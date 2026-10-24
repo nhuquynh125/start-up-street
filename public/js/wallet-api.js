@@ -183,43 +183,20 @@
 
   // ── NHẬP HÀNG: dùng purchase-inventory.php (server trừ ví + cộng kho trong 1 transaction) ──
   window.restockAllProducts = async function () {
-    if (!SHOP_ID) { showToast('⚠️', 'Thiếu shop_id trên URL.'); return; }
-    const todo = Products.filter(p => p.dbId && MAX_STOCK - p.stock > 0);
-    if (todo.length === 0) { showToast('📦', 'Tồn kho nguyên liệu đã đầy!'); return; }
-
-    let totalCost = 0;
-    for (const p of todo) {
-      try {
-        const r = (await api('purchase-inventory.php', post({
-          shop_id: SHOP_ID, product_id: p.dbId, quantity: MAX_STOCK - p.stock
-        }))).data;
-        p.stock = r.stock_quantity;
-        totalCost += r.total_cost;
-        walletBalance = r.balance;
-        GameState.balance = r.balance;
-      } catch (e) {
-        showToast('❌', e.message); // vd. không đủ tiền → dừng, các món đã nhập xong vẫn được giữ
-        break;
-      }
-    }
-
-    if (totalCost > 0) {
-      GameState.today.materialCost += totalCost;
-      GameState.transactions.push({
-        id: 'TX' + String(Date.now()).slice(-6),
-        day: GameState.day,
-        type: 'cost',
-        desc: 'Nhập bổ sung nguyên vật liệu quầy pha chế',
-        amount: -totalCost,
-        balance: walletBalance,
-      });
-      addActivityFeed('📥 Nhập nguyên liệu kho', '-' + formatMoney(totalCost), 'expense');
-      showToast('✅', 'Đã nhập hàng: -' + formatMoney(totalCost));
-    }
-    updateInventoryTable();
-    updateTransactionTable();
-    paintBalance();
-  };
+  if (!SHOP_ID) { showToast('⚠️', 'Thiếu shop_id trên URL.'); return; }
+  const items = Products.filter(p => p.dbId && MAX_STOCK - p.stock > 0)
+    .map(p => ({ product_id: p.dbId, quantity: MAX_STOCK - p.stock }));
+  if (!items.length) { showToast('📦', 'Tồn kho nguyên liệu đã đầy!'); return; }
+  try {
+    const r = (await api('restock-bulk.php', post({ shop_id: SHOP_ID, items }))).data;
+    r.items.forEach(it => { const p = Products.find(x => x.dbId === it.product_id); if (p) p.stock = it.stock_quantity; });
+    walletBalance = r.balance; GameState.balance = r.balance;
+    GameState.today.materialCost += r.total_cost;
+    addActivityFeed('📥 Nhập nguyên liệu kho', '-' + formatMoney(r.total_cost), 'expense');
+    showToast('✅', 'Đã nhập hàng: -' + formatMoney(r.total_cost));
+  } catch (e) { showToast('❌', e.message); }
+  updateInventoryTable(); paintBalance();
+};
 
   // ── CHỐT CA: phí cố định (mặt bằng/lương/điện nước) CHƯA có endpoint server ──
   // game.js vẫn tự trừ GameState.balance cục bộ. Bọc lại để màn hình luôn quay về số dư thật của server,

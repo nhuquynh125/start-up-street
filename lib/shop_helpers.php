@@ -21,7 +21,7 @@ const WALLET_BALANCE_COL = 'balance';
 const DEFAULT_MARKUP = 1.5;   // giá bán mặc định = giá vốn x 1.5 (khớp với get-shop-products.php)
 const MAX_RESTOCK_QTY = 9999; // chặn nhập quá nhiều trong 1 lần
 const MAX_SALE_QTY    = 999;  // chặn bán quá nhiều trong 1 lần
-
+const MAX_STOCK_PER_PRODUCT = 40; // sức chứa kho mỗi món, khớp MAX_STOCK trong wallet-api.js
 class ApiException extends Exception
 {
     public $data;

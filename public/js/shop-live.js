@@ -21,6 +21,7 @@
   let firstState = true;
   let lastError = '';
   let warnedEmpty = false;
+  let gone = false;         // cửa hàng đã bị đóng vĩnh viễn / không còn tồn tại -> dừng mọi request
   const feedQueue = [];
   let draining = false;
 
@@ -43,6 +44,13 @@
       });
     } catch (e) { throw new Error('Không kết nối được server'); }
     if (res.status === 401) { location.href = 'login.html'; throw new Error('Bạn chưa đăng nhập'); }
+    if (res.status === 404) {
+      // Server không còn thấy cửa hàng (vd. vừa đóng vĩnh viễn ở tab khác): dừng hỏi và về bản đồ
+      gone = true;
+      stopPolling();
+      setTimeout(() => { location.href = 'map.php'; }, 1500);
+      throw new Error('Cửa hàng không còn tồn tại, đang về bản đồ…');
+    }
     const json = await res.json().catch(() => null);
     if (!json) throw new Error('Server không trả về JSON (HTTP ' + res.status + ')');
     if (!json.success) {
@@ -144,7 +152,7 @@
 
   // ── Vòng lặp: hỏi server xem có khách mới không ──
   async function tick() {
-    if (busy) return;
+    if (busy || gone) return;
     busy = true;
     try {
       handle(await post('shop-tick.php', { shop_id: SHOP_ID, since_id: lastOrderId }));

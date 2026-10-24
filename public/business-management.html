@@ -219,7 +219,7 @@ function renderShop(){
  const s=S(),t=tInfo(s.business_type_name);
  $('bn').style.setProperty('--c',t.c);
  $('bn').innerHTML=`<div class="be">${t.e}</div><div><h2>${esc(s.name)}</h2><p>${esc(s.business_type_name)} · Mặt bằng ${lotCode(+s.property_id)}</p></div>
-  <div class="acts"><a class="btn gold" href="startup-street-ui.html?shop_id=${+s.shop_id}">🎮 Vận hành</a><a class="btn" href="map.php">🗺️ Bản đồ</a></div>`;
+  <div class="acts"><a class="btn gold" href="startup-street-ui.html?shop_id=${+s.shop_id}">🎮 Vận hành</a><a class="btn" href="map.php">🗺️ Bản đồ</a><button class="btn no" id="closeShop" type="button">🔒 Đóng vĩnh viễn</button></div>`;
  const units=prods.reduce((a,p)=>a+ +p.stock_quantity,0),costV=prods.reduce((a,p)=>a+p.stock_quantity*p.base_cost,0),
   revV=prods.reduce((a,p)=>a+p.stock_quantity*p.selling_price,0),alerts=prods.filter(p=>state(p)!=='ok').length;
  $('stats').innerHTML=`<div class="st"><small>📦 Tổng tồn kho</small><b>${units} món</b></div>
@@ -278,17 +278,41 @@ $('bulk').addEventListener('click',()=>{
  if(!plan.length){toast('📦 Kho đã đầy!',1);return}
  const tot=plan.reduce((a,x)=>a+x.c,0);
  $('dlist').innerHTML=plan.map(x=>`<li><span>${esc(x.n)} × ${x.q}</span><span>${vnd(x.c)}</span></li>`).join('');
- $('dtot').textContent=vnd(tot)+(balance!=null&&tot>balance?' (không đủ tiền, sẽ nhập đến khi hết vốn)':'');
+ const short=balance!=null&&tot>balance;
+ $('dtot').textContent=vnd(tot)+(short?' (không đủ tiền trong ví, đơn nhập sẽ không được thực hiện)':'');
+ $('dyes').disabled=short;
  $('dlg').hidden=false;$('dyes').focus()});
 $('dno').addEventListener('click',()=>$('dlg').hidden=true);
 $('dyes').addEventListener('click',async()=>{
- const btn=$('dyes');btn.disabled=true;let paid=0,n=0;
- for(const x of plan){
-  try{const j=await call('purchase-inventory.php',post({shop_id:cur,product_id:x.id,quantity:x.q}));paid+=j.data.total_cost;n++;setBal(j.data.balance)}
-  catch(e){toast('❌ '+x.n+': '+e.message);break}}
+ /* 1 request = 1 transaction ở server: nhập đủ cả đơn hoặc không đổi gì (restock-bulk.php) */
+ const btn=$('dyes');btn.disabled=true;
+ try{
+  const j=await call('restock-bulk.php',post({shop_id:cur,items:plan.map(x=>({product_id:x.id,quantity:x.q}))}));
+  setBal(j.data.balance);
+  toast('✅ Đã nhập '+j.data.items.length+' sản phẩm · −'+vnd(j.data.total_cost),1);
+ }catch(e){
+  toast('❌ '+e.message);
+  if(e.data&&e.data.balance!==undefined)setBal(e.data.balance);
+ }
  btn.disabled=false;$('dlg').hidden=true;
- if(n)toast('✅ Đã nhập '+n+' sản phẩm · −'+vnd(paid),1);
  try{await loadShop(cur)}catch(e){}});
+
+/* ── đóng cửa vĩnh viễn ── */
+let closing=false;
+$('bn').addEventListener('click',e=>{if(e.target.closest('#closeShop'))closeShop()});
+async function closeShop(){
+ const s=S();if(!s||closing)return;
+ const typed=prompt('Đóng cửa VĨNH VIỄN "'+s.name+'"?\nKhông thể hoàn tác. Hàng còn trong kho được thanh lý 50% giá vốn, tiền thuê mặt bằng không được hoàn.\n\nGõ đúng tên cửa hàng để xác nhận:');
+ if(typed===null)return;
+ closing=true;
+ try{
+  const j=await call('close-shop.php',post({shop_id:cur,confirm_name:typed}));
+  toast('🔒 Đã đóng '+s.name+(j.data.refund>0?' · thanh lý +'+vnd(j.data.refund):''),1);
+  cur=null;prods=[];setBal(j.data.balance);
+  await reloadShops();
+  if(shops.length)openShop(+shops[0].shop_id);else show('empty');
+ }catch(e){toast('❌ '+e.message)}
+ closing=false}
 
 /* ── tạo cửa hàng ── */
 async function openCreate(){

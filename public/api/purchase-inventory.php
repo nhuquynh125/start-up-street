@@ -59,14 +59,22 @@ try {
 
     if ($inv) {
         $newQty   = (int)$inv['quantity'] + $quantity;
+        if ($newQty > MAX_STOCK_PER_PRODUCT) {
+    throw new ApiException("Kho chỉ chứa tối đa " . MAX_STOCK_PER_PRODUCT . " mỗi món", 409);
         $newPrice = $sellingPrice !== null ? $sellingPrice : (float)$inv['selling_price'];
         $pdo->prepare('UPDATE inventory SET quantity = ?, selling_price = ?, last_restocked = CURRENT_TIMESTAMP WHERE id = ?')
             ->execute([$newQty, $newPrice, $inv['id']]);
+        
+}
     } else {
         $newQty   = $quantity;
+        if ($newQty > MAX_STOCK_PER_PRODUCT) {
+    throw new ApiException("Kho chỉ chứa tối đa " . MAX_STOCK_PER_PRODUCT . " mỗi món", 409);
+}
         $newPrice = $sellingPrice !== null ? $sellingPrice : (float)$product['base_cost'] * DEFAULT_MARKUP;
         $pdo->prepare('INSERT INTO inventory (shop_id, product_id, quantity, selling_price) VALUES (?, ?, ?, ?)')
             ->execute([$shopId, $productId, $newQty, $newPrice]);
+        
     }
 
     // Ghi sổ chi phí cho module Tài chính (TV4). Bảng này là tùy chọn: lỗi ở đây không làm hỏng việc nhập hàng.
