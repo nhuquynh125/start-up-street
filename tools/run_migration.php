@@ -53,6 +53,7 @@ $migrations = [
     '06_settlement.sql',
     '07_product_emoji.sql',
     '08_game_days_reports.sql',
+    '09_inventory_max_stock.sql',
 ];
 
 $migrationDir = $root . '/database/migrations/';
