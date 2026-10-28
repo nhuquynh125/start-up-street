@@ -213,6 +213,7 @@ tr:hover td{background:var(--bg-highlight)}
     <select id="shop-select" class="shop-select" aria-label="Chọn cửa hàng" hidden></select>
   </div>
   <div class="hud-actions">
+    <button class="btn-hud" type="button" id="btn-enter-shop">🏪 Vào cửa hàng</button>
     <button class="btn-hud" type="button" onclick="location.href='map.php'">🗺️ Bản đồ</button>
     <button class="btn-hud" type="button" id="btn-inventory">🏬 Kho hàng</button>
     <button class="btn-hud red" type="button" onclick="doLogout()" aria-label="Đăng xuất">🚪</button>
@@ -410,6 +411,10 @@ tr:hover td{background:var(--bg-highlight)}
   // Nút Kho hàng mở đúng cửa hàng đang xem
   document.getElementById('btn-inventory').addEventListener('click', () => {
     location.href = 'business-management.html' + (currentId ? '?shop_id=' + currentId : '');
+  });
+   // Nút Vào cửa hàng mở đúng cửa hàng đang xem (không có shop_id thì shop-counter tự chọn cửa hàng đầu tiên)
+  document.getElementById('btn-enter-shop').addEventListener('click', () => {
+    location.href = 'shop-counter.html' + (currentId ? '?shop_id=' + currentId : '');
   });
 
   function showNotice(kind, text, href, linkText) {

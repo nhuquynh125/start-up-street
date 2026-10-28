@@ -51,6 +51,8 @@ button{font-family:inherit;cursor:pointer}
 .bar i{display:block;height:100%;background:var(--ok)}
 .it.low .bar i{background:#e8a020}.it.out .bar i{background:var(--no)}
 
+.shop-select{max-width:240px;border:3px solid var(--wood);border-radius:12px;padding:1px 10px;
+ font-family:inherit;font-weight:700;font-size:14px;background:var(--cream);color:var(--ink)}
 #toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:var(--wood-d);color:var(--cream);padding:8px 20px;
  border-radius:14px;border:3px solid var(--wood-l);font-weight:800;display:none;z-index:50;max-width:90vw}
 @media(max-height:620px){.it .em{font-size:22px}.it b{min-height:0}}
@@ -59,7 +61,9 @@ button{font-family:inherit;cursor:pointer}
 </head>
 <body>
 <header class="hud">
-  <span>🏪 <span id="shopName">Cửa hàng</span></span>
+  <span>🏪 <span id="shopName">Cửa hàng</span>
+    <select id="shopSelect" class="shop-select" aria-label="Chọn cửa hàng" hidden></select>
+  </span>
   <span class="r">
     <span class="pill">⭐ <b id="rep">–</b></span>
     <span class="pill">💰 <b id="balance">…</b></span>
@@ -207,12 +211,54 @@ button{font-family:inherit;cursor:pointer}
     } catch (e) { toast('❌ ' + e.message); b.disabled = false; }
   });
 
+  function goToShop(id, replace) {
+    const u = new URL(location.href);
+    u.searchParams.set('shop_id', id);
+    if (replace) location.replace(u.toString()); else location.href = u.toString();
+  }
+  $('shopSelect').addEventListener('change', e => { if (e.target.value) goToShop(e.target.value, false); });
+
+  // Điền ô chọn bằng các cửa hàng của chính người chơi (get-shops.php chỉ trả cửa hàng của người đang đăng nhập)
+  function fillShopSelect(shops, currentId) {
+    const sel = $('shopSelect');
+    sel.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value = ''; ph.textContent = '– Chọn cửa hàng –';
+    sel.append(ph);
+    shops.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s.shop_id;
+      o.textContent = s.name + ' (' + s.business_type_name + ')';
+      sel.append(o);
+    });
+    sel.value = currentId && shops.some(s => Number(s.shop_id) === currentId) ? String(currentId) : '';
+    sel.hidden = false;
+  }
+
   async function init() {
-    if (!SHOP_ID) {
-      notice('Thiếu shop_id. Hãy vào cửa hàng từ bản đồ: chọn mặt bằng của bạn rồi bấm "Vào cửa hàng".');
+    let shops;
+    try {
+      shops = (await api('get-shops.php')).shops;
+    } catch (e) {
+      notice('❌ ' + e.message);
+      $('status').textContent = 'Không tải được danh sách cửa hàng.';
+      return;
+    }
+    if (!shops.length) {
+      notice('Bạn chưa có cửa hàng nào. Hãy thuê mặt bằng và mở cửa hàng trên bản đồ.');
+      $('status').textContent = 'Chưa có cửa hàng.';
+      return;
+    }
+    // Không có shop_id trên URL: vào cửa hàng đầu tiên của người chơi
+    if (!SHOP_ID) { goToShop(shops[0].shop_id, true); return; }
+
+    fillShopSelect(shops, SHOP_ID);
+    if (!shops.some(s => Number(s.shop_id) === SHOP_ID)) {
+      notice('Không tìm thấy cửa hàng #' + SHOP_ID + ' trong danh sách của bạn. Hãy chọn một cửa hàng ở thanh trên.');
       $('status').textContent = 'Chưa chọn cửa hàng.';
       return;
     }
+
     $('lnkStock').href = 'business-management.html?shop_id=' + SHOP_ID;
     $('lnkOps').href = 'startup-street-ui.html?shop_id=' + SHOP_ID;
     try {

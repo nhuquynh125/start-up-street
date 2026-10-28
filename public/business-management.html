@@ -289,7 +289,7 @@ function renderShop(){
  const s=S(),t=tInfo(s.business_type_name);
  $('bn').style.setProperty('--c',t.c);
  $('bn').innerHTML=`<div class="be">${t.e}</div><div><h2>${esc(s.name)}</h2><p>${esc(s.business_type_name)} · Mặt bằng ${lotCode(+s.property_id)}</p></div>
-  <div class="acts"><a class="btn gold" href="startup-street-ui.html?shop_id=${+s.shop_id}">🎮 Vận hành</a><a class="btn" href="map.php">🗺️ Bản đồ</a><button class="btn no" id="closeShop" type="button">🔒 Đóng vĩnh viễn</button></div>`;
+  <div class="acts"><a class="btn ok" href="shop-counter.html?shop_id=${+s.shop_id}">🏪 Vào cửa hàng</a><a class="btn gold" href="startup-street-ui.html?shop_id=${+s.shop_id}">🎮 Vận hành</a><a class="btn" href="map.php">🗺️ Bản đồ</a><button class="btn no" id="closeShop" type="button">🔒 Đóng vĩnh viễn</button></div>`;
  const units=prods.reduce((a,p)=>a+ +p.stock_quantity,0),costV=prods.reduce((a,p)=>a+p.stock_quantity*p.base_cost,0),
   revV=prods.reduce((a,p)=>a+p.stock_quantity*p.selling_price,0),profit=revV-costV,alerts=prods.filter(p=>state(p)!=='ok').length;
  $('stats').innerHTML=`<div class="st"><small>📦 Tổng tồn kho</small><b>${units} món</b></div>
