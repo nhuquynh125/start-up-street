@@ -56,6 +56,11 @@ button,select,input{font-family:inherit}button{cursor:pointer}
 
 /* nhà: mái + mặt tiền */
 .lot{cursor:pointer}
+.lot.available .lot-building{display:none}
+.lot.available .lot-empty{display:block}
+.lot.available:hover image{filter:brightness(1.08)}
+.lot.mine .lot-empty,.lot.owned .lot-empty{display:none}
+.lot.mine .lot-building,.lot.owned .lot-building{display:block}
 .lot.available{--r1:#93d68e;--r2:#6fb86b;--wall:#f3e6c9}
 .lot.owned{--r1:#d3d3d3;--r2:#b0b0b0;--wall:#e4dccb}
 .lot.mine{--r1:#f7cf6e;--r2:#e3a93a;--wall:#f6e3b0}
@@ -156,7 +161,7 @@ input[type=range]{width:100%;accent-color:var(--wood)}
 </head>
 <body>
 <div class="hud">
-  <span style="display:flex;align-items:center;gap:8px">🏙️ Startup Street</span>
+  <span style="display:flex;align-items:center;gap:8px"><img src="logo.png" alt="Startup Street Logo" style="height:36px;display:block"></span>
   <span class="keys">WASD / mũi tên: di chuyển &nbsp;·&nbsp; E: xem mặt bằng</span>
   <span style="display:flex;align-items:center;gap:10px">
     <span><i class="coin"></i>Vốn: <strong id="money"></strong></span>
@@ -234,6 +239,7 @@ input[type=range]{width:100%;accent-color:var(--wood)}
 </div>
 </section>
 
+<script src="js/avatar.js"></script>
 <script>
 const W=2440,H=1240,R=12,SPEED=260;
 const rows=[{y:170,h:170,face:'down',letter:'A'},{y:460,h:150,face:'up',letter:'B'},{y:630,h:150,face:'down',letter:'C'},{y:900,h:170,face:'up',letter:'D'}];
@@ -322,21 +328,38 @@ function lotSvg(l,i){
   :(i*3)%4===1?`<rect x="${l.x+22}" y="${mid-30}" width="16" height="22" fill="#6b4a3a" stroke="#3b2a1c" stroke-width="2"/>`:'';
  return `<g class="lot ${l.status}" data-i="${i}">
 <rect class="sh" x="${l.x+8}" y="${l.y+10}" width="${l.w}" height="${l.h}" rx="6"/>
-<rect class="r2" x="${l.x}" y="${ry}" width="${l.w}" height="${rh}"/>
-<rect class="r1" x="${l.x}" y="${ry}" width="${l.w}" height="${rh/2}"/>
-<rect fill="url(#shingle)" x="${l.x}" y="${ry}" width="${l.w}" height="${rh}"/>
-<line class="ridge" x1="${l.x}" y1="${mid}" x2="${l.x+l.w}" y2="${mid}"/>
-${extra}
-<rect class="wall" x="${l.x}" y="${fy}" width="${l.w}" height="${FH}"/>
-<rect class="win" x="${l.x+14}" y="${fo(26,22)}" width="30" height="22" rx="3"/>
-<rect class="win" x="${l.x+l.w-44}" y="${fo(26,22)}" width="30" height="22" rx="3"/>
-<rect class="door" x="${cx-13}" y="${fo(30,24)}" width="26" height="24" rx="3"/>
-<rect class="board" x="${cx-56}" y="${fo(4,16)}" width="112" height="16" rx="4"/>
-<text class="sgn" x="${cx}" y="${fo(4,16)+12}"></text>
-${stripes}
-<rect class="eave" x="${l.x}" y="${up?fy+FH-5:fy}" width="${l.w}" height="5"/>
-<rect class="out" x="${l.x}" y="${l.y}" width="${l.w}" height="${l.h}" rx="4"/>
-<text class="code" x="${cx}" y="${mid+8}">${l.code}</text></g>`;
+
+<!-- Khi đã thuê (cửa hàng): hiện nhà đầy đủ -->
+<g class="lot-building">
+ <rect class="r2" x="${l.x}" y="${ry}" width="${l.w}" height="${rh}"/>
+ <rect class="r1" x="${l.x}" y="${ry}" width="${l.w}" height="${rh/2}"/>
+ <rect fill="url(#shingle)" x="${l.x}" y="${ry}" width="${l.w}" height="${rh}"/>
+ <line class="ridge" x1="${l.x}" y1="${mid}" x2="${l.x+l.w}" y2="${mid}"/>
+ ${extra}
+ <rect class="wall" x="${l.x}" y="${fy}" width="${l.w}" height="${FH}"/>
+ <rect class="win" x="${l.x+14}" y="${fo(26,22)}" width="30" height="22" rx="3"/>
+ <rect class="win" x="${l.x+l.w-44}" y="${fo(26,22)}" width="30" height="22" rx="3"/>
+ <rect class="door" x="${cx-13}" y="${fo(30,24)}" width="26" height="24" rx="3"/>
+ <rect class="board" x="${cx-56}" y="${fo(4,16)}" width="112" height="16" rx="4"/>
+ <text class="sgn" x="${cx}" y="${fo(4,16)+12}"></text>
+ ${stripes}
+ <rect class="eave" x="${l.x}" y="${up?fy+FH-5:fy}" width="${l.w}" height="5"/>
+ <text class="code" x="${cx}" y="${mid+8}">${l.code}</text>
+</g>
+
+<!-- Khi còn trống (chưa có chủ): hiện ảnh mảnh đất dat.png -->
+<g class="lot-empty">
+ <image href="dat.png" xlink:href="dat.png" x="${l.x}" y="${l.y}" width="${l.w}" height="${l.h}" preserveAspectRatio="none"/>
+ <g transform="translate(${cx}, ${mid})">
+  <rect x="-44" y="-18" width="88" height="36" rx="8" fill="#fff9ea" stroke="#6b4423" stroke-width="2.5" filter="drop-shadow(0 3px 5px rgba(0,0,0,.25))"/>
+  <rect x="-40" y="-14" width="80" height="28" rx="5" fill="#fdf2d0"/>
+  <text x="0" y="-1" text-anchor="middle" font-size="14" font-weight="800" fill="#4a2a16">${l.code}</text>
+  <text x="0" y="11" text-anchor="middle" font-size="9" font-weight="800" fill="#2e7d32">CHO THUÊ</text>
+ </g>
+</g>
+
+<rect class="out" x="${l.x}" y="${l.y}" width="${l.w}" height="${l.h}" rx="6"/>
+</g>`;
 }
 
 /* ---- cảnh quan: đường lát đá, đèn đường, ghế, cây ---- */
@@ -349,16 +372,37 @@ for(let x=100;x<W;x+=380){if(x>1100&&x<1340)continue;
 const benches=[[300,352],[1500,436],[2200,352],[420,792],[1900,876]].map(([x,y])=>`<rect x="${x}" y="${y}" width="46" height="12" rx="3" fill="#8a5a3b" stroke="#4a2a16" stroke-width="2"/>`).join('');
 const bands=[[0,350,W,100],[0,790,W,100],[1170,0,100,H]];
 
-/* ---- người đi bộ ---- */
+/* ---- người đi bộ: NPC ngẫu nhiên đa dạng diện mạo ---- */
 const LANES=[{axis:'h',c:378,min:20,max:W-20},{axis:'h',c:422,min:20,max:W-20},{axis:'h',c:818,min:20,max:W-20},{axis:'h',c:862,min:20,max:W-20},{axis:'v',c:1198,min:20,max:H-20},{axis:'v',c:1242,min:20,max:H-20}];
-const NPC_BODY=['#d95b4f','#7a4fb5','#e9a03b','#3b9c8f','#c0568a','#5a7bd6','#6fb23f'],NPC_SKIN=['#ffd6a5','#e8b88a','#c68a5e','#8d5a3b'],NPC_HAIR=['#2b1b12','#5b3a1e','#111','#7a4a21'];
-const pick=a=>a[Math.floor(Math.random()*a.length)];
-const npcs=Array.from({length:18},(_,k)=>{const ln=LANES[k%LANES.length];
- return{ln,pos:ln.min+Math.random()*(ln.max-ln.min),dir:Math.random()<.5?-1:1,sp:26+Math.random()*34,t:Math.random()*6.28,off:(Math.random()-.5)*10,body:pick(NPC_BODY),skin:pick(NPC_SKIN),hair:pick(NPC_HAIR)}});
-const npcSvg=n=>`<g class="npc"><ellipse class="shadow" cx="0" cy="12" rx="10" ry="4.5"/><ellipse class="ft" cx="-4" cy="9" rx="3" ry="2.5" fill="#3a2a20"/><ellipse class="ft" cx="4" cy="9" rx="3" ry="2.5" fill="#3a2a20"/><circle cx="0" cy="1" r="9" fill="${n.body}" stroke="rgba(0,0,0,.35)" stroke-width="1.5"/><circle cx="0" cy="-10" r="6.5" fill="${n.skin}" stroke="rgba(0,0,0,.3)" stroke-width="1.2"/><path d="M-6.5 -10A6.5 6.5 0 0 1 6.5 -10Z" fill="${n.hair}"/></g>`;
+const npcs=Array.from({length:22},(_,k)=>{
+ const ln=LANES[k%LANES.length];
+ const dir=Math.random()<.5?-1:1;
+ const profile = window.AvatarRenderer ? window.AvatarRenderer.randomAvatarProfile() : {};
+ return {
+  ln,
+  pos:ln.min+Math.random()*(ln.max-ln.min),
+  dir,
+  facing: dir >= 0 ? 1 : -1,
+  sp:22+Math.random()*26,
+  t:Math.random()*6.28,
+  off:(Math.random()-.5)*12,
+  profile
+ };
+});
+
+const npcSvg=(n,k)=>{
+ const scale = 0.21;
+ const innerSvg = window.AvatarRenderer ? window.AvatarRenderer.avatarInner(n.profile) : '';
+ return `<g class="npc" data-k="${k}">
+  <ellipse class="shadow" cx="0" cy="10" rx="12" ry="5" fill="rgba(0,0,0,.22)"/>
+  <g class="npc-body" transform="translate(0, 10) scale(${n.facing * scale}, ${scale}) translate(-90, -226)">
+   ${innerSvg}
+  </g>
+ </g>`;
+};
 
 const world=document.getElementById('world');
-world.innerHTML=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+world.innerHTML=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns:xlink="http://www.w3.org/1999/xlink">
 <defs>
 <pattern id="cob" width="48" height="32" patternUnits="userSpaceOnUse"><rect width="48" height="32" fill="#d9cdb4"/>
 <g fill="#e8decb" stroke="#c4b69a" stroke-width="1.5"><rect x="2" y="2" width="20" height="13" rx="5"/><rect x="26" y="2" width="20" height="13" rx="5"/><rect x="14" y="18" width="20" height="12" rx="5"/><rect x="-10" y="18" width="20" height="12" rx="5"/><rect x="38" y="18" width="20" height="12" rx="5"/></g></pattern>
@@ -370,11 +414,34 @@ ${bands.map(b=>`<rect x="${b[0]}" y="${b[1]}" width="${b[2]}" height="${b[3]}" f
 ${bands.map(b=>`<rect x="${b[0]}" y="${b[1]}" width="${b[2]}" height="${b[3]}" fill="url(#cob)"/>`).join('')}
 ${trees}${benches}${lots.map(lotSvg).join('')}${lamps}
 ${npcs.map(npcSvg).join('')}
-<g id="player"><ellipse class="shadow" cx="0" cy="13" rx="14" ry="6"/><circle cx="0" cy="2" r="18" fill="rgba(255,255,255,.35)"/><circle class="pbody" cx="0" cy="2" r="12"/><circle class="phead" cx="0" cy="-12" r="8"/></g></svg>`;
+<g id="player">
+  <ellipse class="shadow" cx="0" cy="10" rx="14" ry="5.5" fill="rgba(0,0,0,.28)"/>
+  <circle cx="0" cy="2" r="15" fill="rgba(255,255,255,.26)"/>
+  <g id="player-avatar-body" transform="translate(0, 10) scale(0.24) translate(-90, -226)"></g>
+  <text id="player-nametag" x="0" y="-46" text-anchor="middle" font-size="11" font-weight="800" fill="#2b1b12" stroke="#fff" stroke-width="2.5" paint-order="stroke fill"></text>
+</g></svg>`;
 
 const $=id=>document.getElementById(id);
+let playerProfile = null;
+try { playerProfile = JSON.parse(localStorage.getItem('playerProfile')); } catch(e){}
+if(!playerProfile) playerProfile = { avatar_skin_tone: 2, avatar_hair_style: 0, avatar_outfit: 0, avatar_outfit_color: '#5b8dd9' };
+
+function updatePlayerAvatarVisual(p){
+ if(p) playerProfile = p;
+ const bodyEl = $('player-avatar-body');
+ if(bodyEl && window.AvatarRenderer) {
+  bodyEl.innerHTML = window.AvatarRenderer.avatarInner(playerProfile);
+ }
+}
+updatePlayerAvatarVisual(playerProfile);
+
 const els=world.querySelectorAll('.lot'),playerEl=$('player'),hint=$('hint'),panel=$('panel'),view=$('view'),moneyEl=$('money');
-world.querySelectorAll('.npc').forEach((el,k)=>{npcs[k].el=el;npcs[k].feet=el.querySelectorAll('.ft')});
+world.querySelectorAll('.npc').forEach((el,k)=>{
+ if(npcs[k]){
+  npcs[k].el=el;
+  npcs[k].bodyEl=el.querySelector('.npc-body');
+ }
+});
 const player={x:1220,y:400},cam={x:0,y:0},keys=new Set();
 let near=-1,open=-1;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -554,6 +621,7 @@ window.addEventListener('keydown',ev=>{
 window.addEventListener('keyup',ev=>keys.delete(ev.key.toLowerCase()));
 window.addEventListener('blur',()=>keys.clear());
 
+let playerFacing = 1, playerWalkTimer = 0;
 function step(dt){
  let dx=0,dy=0;
  if(keys.has('a')||keys.has('arrowleft'))dx-=1;if(keys.has('d')||keys.has('arrowright'))dx+=1;
@@ -561,16 +629,45 @@ function step(dt){
  if(dx&&dy){dx*=Math.SQRT1_2;dy*=Math.SQRT1_2}
  const nx=clamp(player.x+dx*SPEED*dt,R,W-R);if(!blocked(nx,player.y))player.x=nx;
  const ny=clamp(player.y+dy*SPEED*dt,R,H-R);if(!blocked(player.x,ny))player.y=ny;
+
+ if(dx > 0) playerFacing = 1;
+ else if(dx < 0) playerFacing = -1;
+
+ if(dx || dy){
+  playerWalkTimer += dt * 14;
+ } else {
+  playerWalkTimer = 0;
+ }
+ const bob = (dx || dy) ? Math.abs(Math.sin(playerWalkTimer)) * 2.5 : 0;
+ const bodyEl = $('player-avatar-body');
+ if(bodyEl) {
+  bodyEl.setAttribute('transform', `translate(0, ${(10 - bob).toFixed(1)}) scale(${(playerFacing * 0.24).toFixed(3)}, 0.24) translate(-90, -226)`);
+ }
 }
 /* người đi bộ: đi dọc làn đường, chạm đầu mút thì quay lại */
 function stepNpcs(dt){
  npcs.forEach(n=>{
   n.pos+=n.dir*n.sp*dt;
-  if(n.pos<n.ln.min){n.pos=n.ln.min;n.dir=1}else if(n.pos>n.ln.max){n.pos=n.ln.max;n.dir=-1}
-  n.t+=dt*n.sp*.22;
-  const h=n.ln.axis==='h',x=h?n.pos:n.ln.c+n.off,y=(h?n.ln.c+n.off:n.pos)-Math.abs(Math.sin(n.t))*1.5,s=Math.sin(n.t)*3;
-  n.el.setAttribute('transform',`translate(${x.toFixed(1)} ${y.toFixed(1)})`);
-  n.feet[0].setAttribute('cy',9+s);n.feet[1].setAttribute('cy',9-s);
+  if(n.pos<n.ln.min){
+   n.pos=n.ln.min;
+   n.dir=1;
+   n.facing=1;
+  } else if(n.pos>n.ln.max){
+   n.pos=n.ln.max;
+   n.dir=-1;
+   n.facing=-1;
+  }
+  n.t+=dt*n.sp*.24;
+  const h=n.ln.axis==='h';
+  const x=h?n.pos:n.ln.c+n.off;
+  const y=h?n.ln.c+n.off:n.pos;
+  const bob=Math.abs(Math.sin(n.t*3.2))*2.2;
+  if(n.el){
+   n.el.setAttribute('transform',`translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+  }
+  if(n.bodyEl){
+   n.bodyEl.setAttribute('transform',`translate(0, ${(10 - bob).toFixed(1)}) scale(${(n.facing * 0.21).toFixed(3)}, 0.21) translate(-90, -226)`);
+  }
  });
 }
 function updateNear(){
@@ -639,15 +736,23 @@ async function doLogout(){
  goLogin();
 }
 
-/* ---- hiển thị tên người dùng trên HUD (đồng thời xác minh phiên phía client) ---- */
+/* ---- hiển thị tên người dùng trên HUD, nametag và cập nhật avatar ---- */
 fetch('api/auth/me.php').then(r=>{
  if(r.status===401){goLogin();return null}
  return r.json();
 }).then(d=>{
  if(!d)return;
  if(!d.success){goLogin();return}
+ const p = d.data.profile;
+ const pName = (p?.display_name)||d.data.username;
  const el=document.getElementById('hud-username');
- if(el)el.textContent=(d.data.profile?.display_name)||d.data.username;
+ if(el)el.textContent=pName;
+ const tag=$('player-nametag');
+ if(tag)tag.textContent=pName;
+ if(p){
+  localStorage.setItem('playerProfile', JSON.stringify(p));
+  updatePlayerAvatarVisual(p);
+ }
 }).catch(()=>{});
 </script>
 </body>
