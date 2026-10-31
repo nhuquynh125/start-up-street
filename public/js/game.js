@@ -410,8 +410,10 @@ function updateFinanceDashboard() {
     ? ((GameState.totalProfit / GameState.totalRevenue) * 100).toFixed(1)
     : 0;
   const marginEl = document.getElementById('dash-margin-rate');
-  marginEl.textContent = `Margin: ${margin}%`;
-  marginEl.className = margin >= 0 ? 'stat-change up' : 'stat-change down';
+  if (marginEl) { // phần tử này đã bị bỏ khỏi startup-street-ui.html
+    marginEl.textContent = `Margin: ${margin}%`;
+    marginEl.className = margin >= 0 ? 'stat-change up' : 'stat-change down';
+  }
 }
 
 function renderDailyReport(dayData) {
@@ -487,7 +489,7 @@ function renderCustomerFeedbacks(feedbacks) {
 
 function updateTransactionTable() {
   const tbody = document.getElementById('tx-table-body');
-  if (GameState.transactions.length === 0) return;
+  if (!tbody || GameState.transactions.length === 0) return;
 
   tbody.innerHTML = GameState.transactions.slice().reverse().map(tx => `
     <tr>

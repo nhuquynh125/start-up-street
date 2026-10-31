@@ -38,8 +38,11 @@ try {
         throw $e;
     }
 
+    // Chỉ lấy các ngày đã kết thúc (đã chốt ca), không lấy ngày đang diễn ra
+    $closedDays = array_values(array_filter($rows, fn($r) => !$r['open']));
+
     $totals = ['served' => 0, 'missed' => 0, 'revenue' => 0.0, 'cost' => 0.0, 'profit' => 0.0, 'rent' => 0.0, 'net' => 0.0];
-    foreach ($rows as $r) {
+    foreach ($closedDays as $r) {
         foreach ($totals as $k => $_) {
             $totals[$k] += $r[$k];
         }
@@ -61,9 +64,9 @@ try {
         "week_days"   => REPORT_WEEK_DAYS,
         "month_days"  => RENT_CYCLE_DAYS,
         "balance"     => $balance,
-        "days"        => array_slice($rows, -REPORT_MAX_DAY_ROWS),
-        "weeks"       => shopGroupReports($rows, REPORT_WEEK_DAYS),
-        "months"      => shopGroupReports($rows, RENT_CYCLE_DAYS),
+        "days"        => array_values(array_slice($closedDays, -REPORT_MAX_DAY_ROWS)),
+        "weeks"       => shopGroupReports($closedDays, REPORT_WEEK_DAYS, true),
+        "months"      => shopGroupReports($closedDays, RENT_CYCLE_DAYS, true),
         "totals"      => $totals,
     ]);
 } catch (ApiException $e) {

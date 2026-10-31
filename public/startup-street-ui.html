@@ -36,6 +36,7 @@ button,input,select{font-family:inherit;cursor:pointer}
   border-bottom:4px solid var(--wood);z-index:100;
   display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:12px}
 .hud-logo{font-weight:800;font-size:17px;color:var(--wood-dark);display:flex;align-items:center;gap:8px;white-space:nowrap}
+.hud-logo img{height:36px;display:block}
 .hud-stats{display:flex;gap:10px;align-items:center;flex-wrap:nowrap;overflow:hidden}
 .hud-pill{background:var(--cream);border:3px solid var(--wood);border-radius:12px;
   padding:3px 12px;font-weight:800;font-size:14px;white-space:nowrap}
@@ -164,12 +165,6 @@ tr:hover td{background:var(--bg-highlight)}
 .chart-box h4{font-size:14px;font-weight:800;color:var(--wood-dark);margin-bottom:10px}
 .chart-wrap{height:200px;position:relative}
 
-/* Transaction table */
-.tx-type{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700}
-.tx-type.sale{background:#d4f0bc;color:#2f6012}
-.tx-type.cost{background:#fde0dc;color:#8a2a2a}
-.tx-type.rent{background:#e0d4f8;color:#4a2a8a}
-
 /* Daily report */
 #daily-report-content{font-size:14px}
 #feedback-list{display:flex;flex-direction:column;gap:8px}
@@ -195,6 +190,20 @@ tr:hover td{background:var(--bg-highlight)}
   .sidebar-section{flex:1;min-width:200px}
   .chart-row{grid-template-columns:1fr}
 }
+/* Modal bổ sung đầy kho (giống business-management.html) */
+.ov{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:14px;background:#2a160a88}
+.dl-panel{width:min(460px,100%);background:var(--paper);border:4px solid var(--wood);border-radius:18px;box-shadow:0 6px 0 var(--wood-dark),0 12px 24px rgba(42,22,10,.25);padding:16px}
+.dl-tag{display:inline-block;padding:2px 10px;border-radius:10px;background:var(--wood-medium);color:#fff;font-weight:800;font-size:12px;margin-bottom:8px}
+.dl-list{list-style:none;margin:8px 0;padding:0;max-height:260px;overflow-y:auto}
+.dl-list li{display:flex;justify-content:space-between;padding:4px 0;border-bottom:2px dashed var(--line-medium);font-weight:600;font-size:14px}
+.dl-total{margin:8px 0;font-weight:800;font-size:14px}
+.dl-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+.dl-btn{border:3px solid var(--wood-dark);border-radius:12px;padding:6px 16px;font-weight:800;font-size:14px;cursor:pointer;transition:transform .08s,box-shadow .08s}
+.dl-btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--wood-dark)}
+.dl-btn.ok{background:var(--ok);color:#fff;box-shadow:0 3px 0 var(--ok-dark)}
+.dl-btn.no{background:var(--no);color:#fff;box-shadow:0 3px 0 var(--no-dark)}
+.dl-btn:disabled{background:#ccc;color:#777;border-color:#999;box-shadow:none;cursor:not-allowed;opacity:.7}
+
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <link rel="stylesheet" href="css/reports.css">
@@ -205,7 +214,7 @@ tr:hover td{background:var(--bg-highlight)}
 
 <!-- HUD -->
 <header class="hud">
-  <div class="hud-logo">🏙️ <span class="name">Startup Street</span></div>
+  <div class="hud-logo"><img src="logo.png" alt="Startup Street Logo"></div>
   <div class="hud-stats">
     <div class="hud-pill"><span class="label">Ngày</span><span id="hud-day">1</span></div>
     <div class="hud-pill"><span class="label">Ví</span><strong id="hud-balance">…</strong></div>
@@ -267,7 +276,6 @@ tr:hover td{background:var(--bg-highlight)}
       <button class="nav-tab" type="button" role="tab" onclick="switchTab('inventory', event)">📦 Kho hàng</button>
       <button class="nav-tab" type="button" role="tab" onclick="switchTab('report', event)">📅 Báo cáo doanh thu</button>
       <button class="nav-tab" type="button" role="tab" onclick="switchTab('finance', event)">💰 Tài chính</button>
-      <button class="nav-tab" type="button" role="tab" onclick="switchTab('ledger', event)">📒 Sổ cái</button>
     </nav>
 
     <div class="tab-content">
@@ -329,7 +337,7 @@ tr:hover td{background:var(--bg-highlight)}
 
       <!-- TAB: Finance Dashboard -->
       <div class="tab-panel" id="tab-finance">
-        <p class="tab-note">Số liệu tài chính tổng hợp từ báo cáo doanh thu của cửa hàng này (lưu trên server, không mất khi tải lại trang). Lợi nhuận = doanh thu − vốn mặt hàng; lãi ròng = lợi nhuận − tiền thuê mặt bằng (tự trừ mỗi 30 ngày).</p>
+        <p class="tab-note">Số liệu tài chính tổng hợp từ báo cáo doanh thu của cửa hàng này (lưu trên server, không mất khi tải lại trang). Lợi nhuận = Doanh thu − Vốn mặt hàng.</p>
         <div class="stat-grid">
           <div class="stat-card">
             <div class="stat-label">Tổng doanh thu</div>
@@ -349,9 +357,8 @@ tr:hover td{background:var(--bg-highlight)}
             <div class="stat-value" id="dash-total-expenses">0đ</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Lãi ròng</div>
+            <div class="stat-label">Tổng lợi nhuận</div>
             <div class="stat-value" id="dash-net-profit">0đ</div>
-            <div class="stat-change up" id="dash-margin-rate">Biên lãi ròng: 0%</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Số dư ví hiện tại</div>
@@ -370,36 +377,25 @@ tr:hover td{background:var(--bg-highlight)}
         </div>
       </div>
 
-      <!-- TAB: Ledger -->
-      <div class="tab-panel" id="tab-ledger">
-        <div class="panel-card">
-          <div class="panel-title">📒 Sổ cái giao dịch</div>
-          <p class="tab-note">Sổ cái này chỉ ghi các giao dịch của phiên hiện tại. Lịch sử thuê mặt bằng và nhập hàng được lưu ở server trong bảng giao dịch.</p>
-          <div style="overflow-x:auto">
-            <table>
-              <thead>
-                <tr>
-                  <th>Mã GD</th>
-                  <th>Loại</th>
-                  <th>Mô tả</th>
-                  <th>Số tiền</th>
-                  <th>Số dư sau</th>
-                </tr>
-              </thead>
-              <tbody id="tx-table-body">
-                <tr><td colspan="5" style="text-align:center;padding:20px;opacity:.6">Chưa có giao dịch nào.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
     </div><!-- end tab-content -->
   </div><!-- end content -->
 </div><!-- end main -->
 
 <!-- Toast container -->
 <div id="toast-container" role="status" aria-live="polite"></div>
+
+<!-- Modal bổ sung đầy kho (giống business-management.html) -->
+<div class="ov" id="dlg-restock" hidden>
+  <div class="dl-panel" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
+    <span class="dl-tag" id="dlg-title">Bổ sung đầy kho</span>
+    <ul class="dl-list" id="dlg-list"></ul>
+    <p class="dl-total">Tổng: <span id="dlg-total" style="font-weight:800"></span></p>
+    <div class="dl-actions">
+      <button class="dl-btn no" id="dlg-btn-cancel" type="button">Hủy</button>
+      <button class="dl-btn ok" id="dlg-btn-confirm" type="button">Nhập hàng</button>
+    </div>
+  </div>
+</div>
 
 <!-- Xác định cửa hàng đang xem: chạy TRƯỚC wallet-api.js vì file đó đọc shop_id từ URL ngay khi nạp -->
 <script>

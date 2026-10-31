@@ -1,7 +1,7 @@
 /* Báo cáo doanh thu (startup-street-ui.html, tab "Báo cáo doanh thu") */
 .report-views{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .rv-btn{border:3px solid var(--wood);border-radius:10px;padding:4px 14px;font-weight:800;font-size:13px;
-  background:var(--paper-dark);color:var(--ink);transition:background .15s,color .15s}
+  background:var(--paper-dark);color:var(--ink);transition:background .15s,color .15s;cursor:pointer}
 .rv-btn:hover:not(.active){background:var(--cream)}
 .rv-btn.active{background:var(--wood);color:#fff}
 #tab-report th.num,#tab-report td.num{text-align:right;white-space:nowrap}

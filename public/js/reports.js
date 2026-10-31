@@ -39,7 +39,7 @@
   if (!SHOP_ID) {
     document.addEventListener('DOMContentLoaded', () => {
       const body = $('report-body');
-      if (body) body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;opacity:.6">Mở trang với ?shop_id=… để xem báo cáo của một cửa hàng.</td></tr>';
+      if (body) body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;opacity:.6">Mở trang với ?shop_id=… để xem báo cáo của một cửa hàng.</td></tr>';
     });
     return;
   }
@@ -49,11 +49,14 @@
   let loading = false;
 
   const NOTES = {
-    day: 'Mỗi dòng là một ngày chơi (chỉ sang ngày mới khi bạn bấm Chốt ca). Hiển thị tối đa 60 ngày gần nhất. Lợi nhuận = doanh thu − vốn mặt hàng; lãi ròng = lợi nhuận − tiền thuê mặt bằng.',
-    week: 'Tuần = 7 ngày chơi liên tiếp (Ngày 1–7, 8–14, …). Tính từ báo cáo ngày nên vẫn đủ số liệu dù nhật ký khách đã bị xóa sau 7 ngày.',
-    month: 'Tháng = 30 ngày chơi (Ngày 1–30, 31–60, …). Tiền thuê mặt bằng được tự trừ vào ví khi bước sang tháng mới và hiện ở cột Tiền thuê MB.',
+    day: 'Chỉ hiển thị các ngày đã kết thúc (sau khi bấm Chốt ca). Hiển thị tối đa 60 ngày gần nhất. Lợi nhuận = Doanh thu − Vốn mặt hàng.',
+    week: 'Tuần = 7 ngày chơi liên tiếp (Ngày 1–7, 8–14, …). Chỉ hiển thị báo cáo sau khi đã kết thúc trọn vẹn 7 ngày chơi.',
+    month: 'Tháng = 30 ngày chơi (Ngày 1–30, 31–60, …). Chỉ hiển thị báo cáo sau khi đã kết thúc trọn vẹn 30 ngày chơi. Cột Tiền thuê MB thể hiện tiền thuê mặt bằng được tính theo tháng.',
   };
-  const COLS = ['Kỳ', 'Đơn bán', 'Đơn lỡ', 'Doanh thu', 'Vốn mặt hàng', 'Lợi nhuận', 'Tiền thuê MB', 'Lãi ròng'];
+
+  const getCols = () => (view === 'month')
+    ? ['Kỳ', 'Đơn bán', 'Đơn lỡ', 'Doanh thu', 'Vốn mặt hàng', 'Lợi nhuận', 'Tiền thuê MB']
+    : ['Kỳ', 'Đơn bán', 'Đơn lỡ', 'Doanh thu', 'Vốn mặt hàng', 'Lợi nhuận'];
 
   const fmtTime = ts => ts ? new Date(ts * 1000).toLocaleString('vi-VN') : '';
 
@@ -63,9 +66,9 @@
     return 'Tháng ' + r.period + ' (Ngày ' + r.from_day + '–' + r.to_day + ')';
   }
   function subOf(r) {
-    if (view === 'day') return r.open ? 'đang diễn ra' : 'chốt lúc ' + fmtTime(r.closed_ts);
-    const size = view === 'week' ? data.week_days : data.month_days;
-    return r.days + '/' + size + ' ngày' + (r.open ? ' · đang diễn ra' : '');
+    if (view === 'day') return 'chốt lúc ' + fmtTime(r.closed_ts);
+    const size = view === 'week' ? (data?.week_days || 7) : (data?.month_days || 30);
+    return 'Hoàn thành ' + size + ' ngày';
   }
 
   function cell(content, cls) {
@@ -81,15 +84,35 @@
     return s;
   }
 
+  function getFilteredList() {
+    if (!data) return [];
+    if (view === 'day') {
+      // Chỉ lấy các ngày đã kết thúc (chốt ca)
+      return (data.days || []).filter(r => !r.open);
+    }
+    if (view === 'week') {
+      // Chỉ lấy các tuần đã kết thúc trọn vẹn 7 ngày
+      const size = data.week_days || 7;
+      return (data.weeks || []).filter(r => !r.open && r.days === size);
+    }
+    if (view === 'month') {
+      // Chỉ lấy các tháng đã kết thúc trọn vẹn 30 ngày
+      const size = data.month_days || 30;
+      return (data.months || []).filter(r => !r.open && r.days === size);
+    }
+    return [];
+  }
+
   function renderReport() {
     const head = $('report-head'), body = $('report-body'), note = $('report-note');
     if (!head || !body) return;
     if (note) note.textContent = NOTES[view];
     document.querySelectorAll('.rv-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
 
+    const cols = getCols();
     head.innerHTML = '';
     const hr = document.createElement('tr');
-    COLS.forEach((c, i) => {
+    cols.forEach((c, i) => {
       const th = document.createElement('th');
       th.textContent = c;
       if (i) th.className = 'num';
@@ -99,17 +122,16 @@
 
     body.innerHTML = '';
     if (!data) {
-      body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;opacity:.6">Đang tải...</td></tr>';
+      body.innerHTML = '<tr><td colspan="' + cols.length + '" style="text-align:center;padding:20px;opacity:.6">Đang tải...</td></tr>';
       return;
     }
-    const list = (view === 'day' ? data.days : view === 'week' ? data.weeks : data.months).slice().reverse(); // mới nhất trên cùng
+    const list = getFilteredList().slice().reverse(); // mới nhất trên cùng
     if (!list.length) {
-      body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;opacity:.6">Chưa có số liệu.</td></tr>';
+      body.innerHTML = '<tr><td colspan="' + cols.length + '" style="text-align:center;padding:20px;opacity:.6">Chưa có số liệu.</td></tr>';
       return;
     }
     list.forEach(r => {
       const tr = document.createElement('tr');
-      if (r.open) tr.className = 'open-row';
 
       const first = document.createElement('div');
       const b = document.createElement('strong');
@@ -119,16 +141,18 @@
       sub.textContent = subOf(r);
       first.append(b, sub);
 
-      tr.append(
+      const cells = [
         cell(first),
         cell(String(r.served), 'num'),
         cell(String(r.missed), 'num'),
         cell(money(r.revenue), 'num'),
         cell(money(r.cost), 'num'),
         cell(signed(r.profit), 'num'),
-        cell(r.rent > 0 ? money(r.rent) : '—', 'num'),
-        cell(signed(r.net), 'num')
-      );
+      ];
+      if (view === 'month') {
+        cells.push(cell(r.rent > 0 ? money(r.rent) : '—', 'num'));
+      }
+      tr.append(...cells);
       body.appendChild(tr);
     });
   }
@@ -138,34 +162,40 @@
 
   function renderFinance() {
     if (!data) return;
-    const t = data.totals;
+    const t = data.totals || { served: 0, missed: 0, revenue: 0, cost: 0, profit: 0, rent: 0, net: 0 };
+    const totalExpenses = (t.cost || 0) + (t.rent || 0);
+
     setText('dash-total-revenue', money(t.revenue));
     setText('dash-revenue-margin', t.served + ' đơn đã bán (' + t.missed + ' đơn lỡ)');
     setText('dash-total-cost', money(t.cost));
-    setText('dash-total-rent', money(t.rent));
-    setText('dash-total-expenses', money(t.cost + t.rent));
-    setText('dash-net-profit', (t.net > 0 ? '+' : '') + money(t.net));
+    setText('dash-total-rent', t.rent > 0 ? money(t.rent) : '—');
+    setText('dash-total-expenses', money(totalExpenses));
+    setText('dash-net-profit', (t.profit > 0 ? '+' : '') + money(t.profit));
     setText('dash-current-balance', data.balance === null ? '…' : money(data.balance));
 
-    const margin = t.revenue > 0 ? (t.net / t.revenue * 100).toFixed(1) : '0.0';
     const mEl = $('dash-margin-rate');
-    if (mEl) {
-      mEl.textContent = 'Biên lãi ròng: ' + margin + '%';
-      mEl.className = 'stat-change ' + (t.net >= 0 ? 'up' : 'down');
-    }
+    if (mEl) mEl.remove();
 
-    // Biểu đồ doanh thu vs chi phí theo ngày (30 ngày gần nhất) và cơ cấu chi phí. Biểu đồ do game.js (initCharts) tạo.
+    // Biểu đồ Doanh thu vs Chi phí theo ngày (30 ngày gần nhất)
     if (typeof trendChart !== 'undefined' && trendChart) {
-      const rows = data.days.slice(-30);
+      const rows = (data.days || []).slice(-30);
       trendChart.data.labels = rows.map(r => 'Ngày ' + r.day);
       trendChart.data.datasets[0].data = rows.map(r => r.revenue);
       trendChart.data.datasets[1].data = rows.map(r => r.cost + r.rent);
       trendChart.update();
     }
+
+    // Biểu đồ Cơ cấu chi phí
     if (typeof donutChart !== 'undefined' && donutChart) {
-      donutChart.data.labels = ['Vốn mặt hàng', 'Tiền thuê mặt bằng'];
-      donutChart.data.datasets[0].data = [t.cost, t.rent];
-      donutChart.data.datasets[0].backgroundColor = ['#D47B6C', '#B094C8'];
+      if (t.rent > 0) {
+        donutChart.data.labels = ['Vốn mặt hàng', 'Tiền thuê mặt bằng'];
+        donutChart.data.datasets[0].data = [t.cost || 0, t.rent || 0];
+        donutChart.data.datasets[0].backgroundColor = ['#D47B6C', '#B094C8'];
+      } else {
+        donutChart.data.labels = ['Vốn mặt hàng'];
+        donutChart.data.datasets[0].data = [t.cost > 0 ? t.cost : 0];
+        donutChart.data.datasets[0].backgroundColor = ['#D47B6C'];
+      }
       donutChart.update();
     }
   }
@@ -184,7 +214,7 @@
       renderFinance();
     } catch (e) {
       const body = $('report-body');
-      if (body && !data) body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--accent-red);font-weight:700"></td></tr>';
+      if (body && !data) body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--accent-red);font-weight:700"></td></tr>';
       if (body && !data) body.querySelector('td').textContent = '❌ ' + e.message;
       else if (typeof showToast === 'function') showToast('❌', e.message);
     } finally {

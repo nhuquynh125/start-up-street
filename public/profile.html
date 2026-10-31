@@ -29,7 +29,7 @@ button,input,select{font-family:inherit;cursor:pointer}
   border-bottom:4px solid var(--wood);z-index:50;
   display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:10px}
 .hud-logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:17px;color:var(--wood-dark)}
-.hud-logo span{font-size:22px}
+.hud-logo img{height:36px;display:block}
 .hud-actions{display:flex;gap:8px;align-items:center}
 .hud-balance{background:var(--cream);border:3px solid var(--gold-dark);border-radius:12px;
   padding:4px 12px;font-weight:800;font-size:14px;color:var(--wood-dark)}
@@ -121,38 +121,54 @@ button,input,select{font-family:inherit;cursor:pointer}
 .btn-save:active{transform:translateY(3px);box-shadow:0 1px 0 var(--wood-dark)}
 .btn-save:disabled{background:linear-gradient(#ccc,#aaa);color:#777;cursor:not-allowed}
 
-/* Expense tracker */
-.exp-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
-.exp-form .full{grid-column:1/-1}
 .form-label{display:block;font-weight:700;font-size:13px;color:var(--ink-mid);margin-bottom:4px}
 .form-input,.form-select{width:100%;padding:9px 12px;border:3px solid var(--paper-dark);border-radius:10px;
   background:var(--cream);font-size:14px;font-weight:600;color:var(--ink);outline:none;transition:border-color .15s}
 .form-input:focus,.form-select:focus{border-color:var(--wood-light)}
-.btn-add-exp{background:var(--ok);border:3px solid var(--ok-dark);border-radius:12px;
-  padding:10px 22px;font-weight:800;font-size:15px;color:#fff;box-shadow:0 3px 0 var(--ok-dark)}
-.btn-add-exp:active{transform:translateY(2px);box-shadow:none}
 
-.exp-month-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.exp-month-nav span{font-weight:800;font-size:16px;color:var(--wood-dark);flex:1;text-align:center}
-.btn-month{border:3px solid var(--wood);border-radius:10px;padding:5px 12px;background:var(--paper-dark);font-weight:800}
-.btn-month:hover{background:var(--wood);color:#fff}
-.exp-summary{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:18px}
-.exp-cat-card{background:var(--cream);border:3px solid var(--paper-dark);border-radius:12px;padding:10px;text-align:center}
-.exp-cat-icon{font-size:24px;display:block}
-.exp-cat-name{font-size:11px;font-weight:700;color:var(--ink-mid);margin-top:2px}
-.exp-cat-amount{font-size:14px;font-weight:800;color:var(--no-dark)}
-.exp-chart-wrap{height:220px;margin-bottom:18px}
-.exp-list{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;padding-right:4px}
-.exp-item{display:flex;align-items:center;gap:10px;background:var(--cream);
-  border:3px solid var(--paper-dark);border-radius:12px;padding:8px 12px}
-.exp-item-icon{font-size:22px;flex-shrink:0}
-.exp-item-info{flex:1}
-.exp-item-desc{font-weight:700;font-size:14px;color:var(--ink)}
-.exp-item-meta{font-size:12px;color:var(--ink-light);font-weight:600}
-.exp-item-amt{font-weight:800;font-size:15px;color:var(--no-dark);flex-shrink:0}
-.btn-del{border:2px solid var(--no);border-radius:8px;padding:3px 8px;background:#fdeaea;color:var(--no-dark);font-size:13px;font-weight:700}
-.btn-del:hover{background:var(--no);color:#fff}
-.empty-exp{text-align:center;padding:30px;color:var(--ink-light);font-weight:700;font-size:15px}
+/* Financial Management Styles */
+.fin-header-row{margin-bottom:16px}
+.fin-subtitle{font-size:14px;color:var(--ink-mid);font-weight:600;margin-top:4px}
+
+.fin-filter-panel{display:flex;align-items:center;gap:12px;background:var(--cream);border:3px solid var(--paper-dark);
+  border-radius:14px;padding:12px 16px;margin-bottom:20px;flex-wrap:wrap}
+.fin-filter-label{font-weight:800;font-size:14px;color:var(--wood-dark);white-space:nowrap}
+.fin-select{max-width:380px;font-weight:800;cursor:pointer}
+
+.fin-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:22px}
+.fin-stat-card{background:var(--cream);border:3px solid var(--paper-dark);border-radius:14px;padding:14px 16px;position:relative;transition:transform .12s}
+.fin-stat-card.highlight{border-color:var(--gold);background:#fff9e6}
+.fin-stat-card.highlight-green{border-color:var(--ok);background:#f2faee}
+.fin-stat-label{font-size:12px;font-weight:800;color:var(--ink-mid);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px}
+.fin-stat-val{font-size:20px;font-weight:800;color:var(--ink);line-height:1.2}
+.fin-stat-val.pos{color:var(--ok-dark)}
+.fin-stat-val.neg{color:var(--no-dark)}
+.fin-stat-sub{font-size:11px;font-weight:700;color:var(--ink-light);margin-top:4px}
+
+.fin-charts-row{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;margin-bottom:26px}
+.fin-chart-box{background:var(--cream);border:3px solid var(--paper-dark);border-radius:16px;padding:16px}
+.fin-chart-title{font-size:15px;font-weight:800;color:var(--wood-dark);margin-bottom:12px}
+.fin-chart-wrap{height:260px;position:relative}
+
+.fin-section-heading{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px;font-weight:800;font-size:16px;color:var(--wood-dark)}
+.fin-section-heading small{font-size:12px;color:var(--ink-light);font-weight:700}
+.fin-table-wrap{overflow-x:auto;border:3px solid var(--paper-dark);border-radius:14px;background:#fff;margin-bottom:20px}
+.fin-table{width:100%;border-collapse:collapse;font-size:13px}
+.fin-table th{background:var(--paper-dark);color:var(--wood-dark);font-weight:800;padding:10px 12px;text-align:left;border-bottom:3px solid var(--paper-dark)}
+.fin-table td{padding:10px 12px;border-bottom:1px solid #f0e6d6;font-weight:600;color:var(--ink)}
+.fin-table tr:hover td{background:#faf6ed}
+.fin-table th.num,.fin-table td.num{text-align:right;white-space:nowrap}
+.fin-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:800}
+.fin-badge.lot{background:#e8d8be;color:var(--wood-dark)}
+.fin-badge.open{background:#dcf2d1;color:#285c18}
+.fin-badge.closed{background:#ede6da;color:#786655}
+.fin-badge.income{background:#dcf2d1;color:#285c18}
+.fin-badge.expense{background:#fae0e0;color:#8a2020}
+.empty-fin{text-align:center;padding:36px 16px;color:var(--ink-light);font-weight:700;font-size:15px}
+
+@media(max-width:860px){
+  .fin-charts-row{grid-template-columns:1fr}
+}
 
 /* Toast */
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
@@ -169,7 +185,7 @@ button,input,select{font-family:inherit;cursor:pointer}
 .theme-card .theme-preview{height:30px;border-radius:8px;margin-bottom:4px}
 .theme-card span{font-size:11px;font-weight:700;color:var(--ink-mid)}
 
-@media(max-width:640px){.avatar-cols{grid-template-columns:1fr}.ava-preview{position:static}.exp-form{grid-template-columns:1fr}}
+@media(max-width:640px){.avatar-cols{grid-template-columns:1fr}.ava-preview{position:static}}
 
 /* ===== Cozy avatar modal (theo ảnh tham chiếu) ===== */
 .cz-modal{background:#fbefd5;border:5px solid #8a5a2b;border-radius:22px;padding:34px 16px 16px;position:relative;
@@ -212,7 +228,7 @@ button,input,select{font-family:inherit;cursor:pointer}
 
 <!-- HUD -->
 <header class="hud">
-  <div class="hud-logo"><span>🏙️</span>STARTUP STREET</div>
+  <div class="hud-logo"><img src="logo.png" alt="Startup Street Logo"></div>
   <div class="hud-actions">
     <div class="hud-balance">💰 <span id="hud-balance">…</span></div>
     <button class="btn-back" onclick="location.href='map.php'">🗺️ Bản đồ</button>
@@ -246,7 +262,7 @@ button,input,select{font-family:inherit;cursor:pointer}
   <div class="tab-nav">
     <button class="tab-nav-btn active" onclick="showTab('tab-avatar')">🎭 Tùy chỉnh Avatar</button>
     <button class="tab-nav-btn" onclick="showTab('tab-account')">⚙️ Tài khoản</button>
-    <button class="tab-nav-btn" onclick="showTab('tab-expenses')">📊 Quản lý Chi tiêu</button>
+    <button class="tab-nav-btn" onclick="showTab('tab-finance')">💰 Quản lý Tài chính</button>
   </div>
 
   <!-- ═══ TAB AVATAR ═══ -->
@@ -338,70 +354,123 @@ button,input,select{font-family:inherit;cursor:pointer}
     </div>
   </div>
 
-  <!-- ═══ TAB EXPENSES ═══ -->
-  <div id="tab-expenses" class="tab-pane">
+  <!-- ═══ TAB FINANCE ═══ -->
+  <div id="tab-finance" class="tab-pane">
     <div class="card">
-      <div class="section-title">📊 Quản lý Chi tiêu Cá nhân</div>
+      <div class="fin-header-row">
+        <div>
+          <div class="section-title">📊 Báo cáo Tài chính Cửa Hàng</div>
+          <p class="fin-subtitle">Tổng hợp số liệu kinh doanh, doanh thu, vốn hàng và lợi nhuận của toàn bộ cửa hàng thuộc sở hữu của bạn.</p>
+        </div>
+      </div>
 
-      <!-- Add expense form -->
-      <div style="background:var(--cream);border:3px solid var(--paper-dark);border-radius:14px;padding:16px;margin-bottom:20px">
-        <div style="font-weight:800;font-size:15px;color:var(--wood-dark);margin-bottom:12px">➕ Thêm khoản chi tiêu mới</div>
-        <div class="exp-form">
-          <div>
-            <label class="form-label" for="exp-cat">Danh mục</label>
-            <select id="exp-cat" class="form-select">
-              <option value="food">🍜 Ăn uống</option>
-              <option value="transport">🚗 Đi lại</option>
-              <option value="entertainment">🎮 Giải trí</option>
-              <option value="shopping">🛍️ Mua sắm</option>
-              <option value="utilities">⚡ Điện nước</option>
-              <option value="health">💊 Sức khỏe</option>
-              <option value="education">📚 Giáo dục</option>
-              <option value="other">📦 Khác</option>
-            </select>
+      <!-- Filter / Selector -->
+      <div class="fin-filter-panel">
+        <label for="fin-shop-select" class="fin-filter-label">🔍 Xem báo cáo:</label>
+        <select id="fin-shop-select" class="form-select fin-select" onchange="onShopFilterChange(this.value)">
+          <option value="all">🏢 Tất cả các cửa hàng (Toàn hệ thống)</option>
+        </select>
+      </div>
+
+      <!-- Stat cards grid -->
+      <div class="fin-stat-grid" id="fin-stat-grid">
+        <div class="fin-stat-card">
+          <div class="fin-stat-label">🏪 Số cửa hàng</div>
+          <div class="fin-stat-val" id="fin-total-shops">0</div>
+          <div class="fin-stat-sub" id="fin-sub-shops">đang hoạt động</div>
+        </div>
+        <div class="fin-stat-card highlight">
+          <div class="fin-stat-label">💵 Tổng doanh thu</div>
+          <div class="fin-stat-val pos" id="fin-total-rev">0đ</div>
+          <div class="fin-stat-sub" id="fin-sub-served">0 đơn đã bán</div>
+        </div>
+        <div class="fin-stat-card">
+          <div class="fin-stat-label">📦 Vốn mặt hàng</div>
+          <div class="fin-stat-val" id="fin-total-cost">0đ</div>
+          <div class="fin-stat-sub">chi phí nguyên vật liệu</div>
+        </div>
+        <div class="fin-stat-card">
+          <div class="fin-stat-label">🏠 Tiền thuê mặt bằng</div>
+          <div class="fin-stat-val" id="fin-total-rent">0đ</div>
+          <div class="fin-stat-sub">chu kỳ mặt bằng</div>
+        </div>
+        <div class="fin-stat-card highlight-green">
+          <div class="fin-stat-label">📈 Tổng lợi nhuận</div>
+          <div class="fin-stat-val pos" id="fin-total-profit">0đ</div>
+          <div class="fin-stat-sub">Doanh thu − Vốn hàng</div>
+        </div>
+        <div class="fin-stat-card">
+          <div class="fin-stat-label">🧾 Vốn hàng trong kho</div>
+          <div class="fin-stat-val" id="fin-total-inv">0đ</div>
+          <div class="fin-stat-sub" id="fin-sub-inv-qty">0 sản phẩm tồn kho</div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="fin-charts-row">
+        <div class="fin-chart-box">
+          <div class="fin-chart-title" id="chart-title-compare">📊 So sánh doanh thu giữa các cửa hàng</div>
+          <div class="fin-chart-wrap">
+            <canvas id="chart-fin-compare"></canvas>
           </div>
-          <div>
-            <label class="form-label" for="exp-amount">Số tiền (đ)</label>
-            <input type="number" id="exp-amount" class="form-input" placeholder="VD: 50000" min="1">
-          </div>
-          <div>
-            <label class="form-label" for="exp-date">Ngày</label>
-            <input type="date" id="exp-date" class="form-input">
-          </div>
-          <div>
-            <label class="form-label" for="exp-desc">Mô tả</label>
-            <input type="text" id="exp-desc" class="form-input" placeholder="VD: Cà phê sáng" maxlength="100">
-          </div>
-          <div class="full">
-            <button class="btn-add-exp" onclick="addExpense()">➕ Thêm chi tiêu</button>
+        </div>
+        <div class="fin-chart-box">
+          <div class="fin-chart-title">🍩 Cơ cấu tài chính chuỗi quán</div>
+          <div class="fin-chart-wrap">
+            <canvas id="chart-fin-donut"></canvas>
           </div>
         </div>
       </div>
 
-      <!-- Month navigation -->
-      <div class="exp-month-nav">
-        <button class="btn-month" onclick="changeMonth(-1)">◀</button>
-        <span id="month-label">Tháng …</span>
-        <button class="btn-month" onclick="changeMonth(1)">▶</button>
+      <!-- Store Breakdown Table / Cards -->
+      <div class="fin-section-heading">
+        <span>🏪 Chi tiết tài chính từng cửa hàng</span>
+        <small id="fin-table-count">0 cửa hàng</small>
+      </div>
+      <div class="fin-table-wrap">
+        <table class="fin-table">
+          <thead>
+            <tr>
+              <th>Cửa hàng</th>
+              <th>Mặt bằng</th>
+              <th>Trạng thái</th>
+              <th class="num">Đơn bán</th>
+              <th class="num">Doanh thu</th>
+              <th class="num">Vốn hàng</th>
+              <th class="num">Tiền thuê MB</th>
+              <th class="num">Lợi nhuận</th>
+              <th class="num">Vốn tồn kho</th>
+            </tr>
+          </thead>
+          <tbody id="fin-shops-tbody">
+            <tr><td colspan="9" style="text-align:center;padding:24px;color:var(--ink-light)">Đang tải số liệu tài chính...</td></tr>
+          </tbody>
+        </table>
       </div>
 
-      <!-- Category summary cards -->
-      <div class="exp-summary" id="exp-summary"></div>
-
-      <!-- Chart -->
-      <div class="exp-chart-wrap">
-        <canvas id="exp-chart"></canvas>
+      <!-- Recent Transactions -->
+      <div class="fin-section-heading" style="margin-top:28px">
+        <span>📜 Lịch sử giao dịch tài chính gần nhất</span>
+        <small>20 giao dịch mới nhất của bạn</small>
+      </div>
+      <div class="fin-table-wrap">
+        <table class="fin-table fin-tx-table">
+          <thead>
+            <tr>
+              <th>Thời gian</th>
+              <th>Cửa hàng</th>
+              <th>Loại giao dịch</th>
+              <th>Nội dung</th>
+              <th class="num">Số tiền</th>
+              <th class="num">Số dư sau GD</th>
+            </tr>
+          </thead>
+          <tbody id="fin-tx-tbody">
+            <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--ink-light)">Đang tải giao dịch...</td></tr>
+          </tbody>
+        </table>
       </div>
 
-      <!-- Total -->
-      <div style="text-align:right;font-weight:800;font-size:18px;color:var(--no-dark);margin-bottom:14px">
-        Tổng tháng này: <span id="exp-total">0đ</span>
-      </div>
-
-      <!-- List -->
-      <div class="exp-list" id="exp-list">
-        <div class="empty-exp">📭 Chưa có khoản chi tiêu nào. Hãy thêm khoản đầu tiên!</div>
-      </div>
     </div>
   </div>
 
@@ -411,17 +480,7 @@ button,input,select{font-family:inherit;cursor:pointer}
 
 <script>
 // ────── Config ──────
-const API      = 'api/auth/';
-const CAT_INFO = {
-  food:          { icon:'🍜', name:'Ăn uống',    color:'#e76f51' },
-  transport:     { icon:'🚗', name:'Đi lại',     color:'#5a8dd9' },
-  entertainment: { icon:'🎮', name:'Giải trí',   color:'#9c7ac9' },
-  shopping:      { icon:'🛍️', name:'Mua sắm',    color:'#f0b832' },
-  utilities:     { icon:'⚡', name:'Điện nước',  color:'#4a8a3a' },
-  health:        { icon:'💊', name:'Sức khỏe',   color:'#c94040' },
-  education:     { icon:'📚', name:'Giáo dục',   color:'#3a6ab0' },
-  other:         { icon:'📦', name:'Khác',        color:'#8a6040' },
-};
+const API = 'api/auth/';
 const SKIN_TONES   = ['#ffd6a5','#e8b88a','#c68a5e','#8d5a3b','#5a3018'];
 const HAIR_COLORS  = ['#2b1b12','#5b3a1e','#c0860c','#d4c075','#f0f0f0','#c87878'];
 const HAIR_STYLES  = ['👱','🧑','👩','🧔','💇','🪮'];
@@ -440,8 +499,34 @@ const GLASSES      = ['⬜','🕶️','👓'];
 
 // ────── State ──────
 let profile = {};
-let expMonth = new Date().toISOString().slice(0,7);
-let expChart = null;
+let finData = null;
+let currentFinShop = 'all';
+let chartFinCompare = null;
+let chartFinDonut = null;
+
+const SHOP_TYPES = [
+  [/tap hoa/i, '🛒', '#d9b57a'],
+  [/tra sua|do uong/i, '🧋', '#8fb87a'],
+  [/quan an|do an/i, '🍜', '#e08f5f'],
+  [/banh/i, '🥐', '#d6a46a'],
+  [/quan ao|thoi trang/i, '👗', '#8fabc9'],
+  [/hoa/i, '🌷', '#e9a7bd'],
+];
+function getShopTypeBadge(name) {
+  const norm = String(name || '').toLowerCase().replace(/đ/g, 'd').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const found = SHOP_TYPES.find(x => x[0].test(norm));
+  return found ? { icon: found[1], color: found[2] } : { icon: '🏪', color: '#b9835a' };
+}
+
+const TX_CATEGORIES = {
+  sale:      { label: 'Bán hàng', icon: '💵', cls: 'income' },
+  material:  { label: 'Nhập hàng', icon: '🌾', cls: 'expense' },
+  rent:      { label: 'Tiền thuê MB', icon: '🏠', cls: 'expense' },
+  salary:    { label: 'Lương NV', icon: '💼', cls: 'expense' },
+  utilities: { label: 'Điện nước', icon: '⚡', cls: 'expense' },
+  marketing: { label: 'Quảng cáo', icon: '📢', cls: 'expense' },
+  other:     { label: 'Khác', icon: '📦', cls: 'expense' },
+};
 
 // ────── Init ──────
 (async () => {
@@ -462,7 +547,7 @@ let expChart = null;
     decorateButtons();
     renderAvatar('ava-svg', profile, 180, 240);
     renderAvatar('hdr-avatar-svg', profile, 120, 160);
-    loadExpenses();
+    loadFinance();
   } catch { location.href = 'login.html'; }
 })();
 
@@ -473,8 +558,11 @@ function showTab(id) {
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.tab-nav-btn').forEach((b,i) => {
-    b.classList.toggle('active', ['tab-avatar','tab-account','tab-expenses'][i] === id);
+    b.classList.toggle('active', ['tab-avatar','tab-account','tab-finance'][i] === id);
   });
+  if (id === 'tab-finance') {
+    loadFinance();
+  }
 }
 
 // ────── Avatar Builder ──────
@@ -739,108 +827,330 @@ async function saveAccount() {
   } catch { toast('❌ Lỗi kết nối server.'); }
 }
 
-// ────── Expenses ──────
-async function loadExpenses() {
+// ────── Finance Management (Toàn bộ cửa hàng) ──────
+async function loadFinance() {
   try {
-    const res = await fetch(API + 'expenses.php?month=' + expMonth).then(r => r.json());
-    if (!res.success) return;
-    const d = res.data;
-    renderExpMonth(d);
-  } catch { toast('❌ Không tải được dữ liệu chi tiêu.'); }
+    const res = await fetch('api/get-all-shops-finance.php').then(r => r.json());
+    if (!res.success) {
+      toast('❌ ' + (res.message || 'Lỗi tải dữ liệu tài chính'));
+      return;
+    }
+    finData = res.data;
+    if (finData.balance !== null && finData.balance !== undefined) {
+      const hudBal = document.getElementById('hud-balance');
+      const profBal = document.getElementById('prof-balance');
+      if (hudBal) hudBal.textContent = fmt(finData.balance);
+      if (profBal) profBal.textContent = fmt(finData.balance);
+    }
+    renderFinanceUI(currentFinShop);
+  } catch (e) {
+    console.error(e);
+    toast('❌ Không kết nối được API tài chính.');
+  }
 }
 
-function renderExpMonth(d) {
-  document.getElementById('month-label').textContent = fmtMonth(expMonth);
-  document.getElementById('exp-total').textContent = fmt(d.total);
+function onShopFilterChange(shopId) {
+  currentFinShop = shopId;
+  renderFinanceUI(shopId);
+}
 
-  // Summary cards
-  const sumWrap = document.getElementById('exp-summary');
-  sumWrap.innerHTML = '';
-  Object.entries(CAT_INFO).forEach(([k, v]) => {
-    if (!d.totals[k]) return;
-    const c = document.createElement('div');
-    c.className = 'exp-cat-card';
-    c.innerHTML = `<span class="exp-cat-icon">${v.icon}</span>
-      <div class="exp-cat-name">${v.name}</div>
-      <div class="exp-cat-amount">${fmt(d.totals[k])}</div>`;
-    sumWrap.appendChild(c);
-  });
+function renderFinanceUI(shopFilter) {
+  if (!finData) return;
+  const { system_totals, shops, recent_transactions } = finData;
 
-  // Chart
-  if (expChart) expChart.destroy();
-  const cats = Object.keys(d.totals);
-  if (cats.length) {
-    expChart = new Chart(document.getElementById('exp-chart'), {
-      type: 'doughnut',
-      data: {
-        labels: cats.map(k => CAT_INFO[k]?.name || k),
-        datasets: [{ data: cats.map(k => d.totals[k]), backgroundColor: cats.map(k => CAT_INFO[k]?.color || '#aaa'), borderWidth: 3 }]
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { family: "'Baloo 2'", weight: '700', size: 13 } } } } }
+  // 1. Dropdown chọn cửa hàng
+  const select = document.getElementById('fin-shop-select');
+  if (select && select.options.length <= 1) {
+    select.innerHTML = '<option value="all">🏢 Tất cả các cửa hàng (Toàn hệ thống)</option>';
+    shops.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = String(s.shop_id);
+      const t = getShopTypeBadge(s.business_type_name);
+      opt.textContent = `${t.icon} ${s.name} (Mặt bằng ${s.property_code})`;
+      select.appendChild(opt);
     });
   }
+  if (select) select.value = shopFilter;
 
-  // List
-  const listWrap = document.getElementById('exp-list');
-  if (!d.items.length) {
-    listWrap.innerHTML = '<div class="empty-exp">📭 Không có khoản chi tiêu nào trong tháng này.</div>';
-    return;
+  const isAll = (shopFilter === 'all');
+  const selShop = isAll ? null : shops.find(s => String(s.shop_id) === String(shopFilter));
+
+  if (isAll || !selShop) {
+    // Stat cards - Toàn hệ thống
+    document.getElementById('fin-total-shops').textContent = system_totals.shop_count + ' cửa hàng';
+    document.getElementById('fin-sub-shops').textContent = shops.filter(s => s.is_open).length + ' đang mở cửa';
+
+    document.getElementById('fin-total-rev').textContent = fmt(system_totals.revenue);
+    document.getElementById('fin-sub-served').textContent = system_totals.served.toLocaleString('vi-VN') + ' đơn đã bán';
+
+    document.getElementById('fin-total-cost').textContent = fmt(system_totals.cost);
+    document.getElementById('fin-total-rent').textContent = fmt(system_totals.rent);
+
+    const profitEl = document.getElementById('fin-total-profit');
+    profitEl.textContent = (system_totals.profit > 0 ? '+' : '') + fmt(system_totals.profit);
+    profitEl.className = 'fin-stat-val ' + (system_totals.profit >= 0 ? 'pos' : 'neg');
+
+    document.getElementById('fin-total-inv').textContent = fmt(system_totals.inventory_val);
+    document.getElementById('fin-sub-inv-qty').textContent = system_totals.inventory_qty.toLocaleString('vi-VN') + ' sản phẩm tồn kho';
+  } else {
+    // Stat cards - 1 Cửa hàng được chọn
+    document.getElementById('fin-total-shops').textContent = selShop.name;
+    document.getElementById('fin-sub-shops').textContent = `Mặt bằng ${selShop.property_code} · ${selShop.is_open ? '🟢 Đang mở' : '⚪ Đang đóng'}`;
+
+    document.getElementById('fin-total-rev').textContent = fmt(selShop.revenue);
+    document.getElementById('fin-sub-served').textContent = selShop.served.toLocaleString('vi-VN') + ' đơn đã bán';
+
+    document.getElementById('fin-total-cost').textContent = fmt(selShop.cost);
+    document.getElementById('fin-total-rent').textContent = fmt(selShop.rent);
+
+    const profitEl = document.getElementById('fin-total-profit');
+    profitEl.textContent = (selShop.profit > 0 ? '+' : '') + fmt(selShop.profit);
+    profitEl.className = 'fin-stat-val ' + (selShop.profit >= 0 ? 'pos' : 'neg');
+
+    document.getElementById('fin-total-inv').textContent = fmt(selShop.inventory_cost);
+    document.getElementById('fin-sub-inv-qty').textContent = selShop.inventory_qty.toLocaleString('vi-VN') + ' sản phẩm tồn kho';
   }
-  listWrap.innerHTML = '';
-  d.items.forEach(item => {
-    const info = CAT_INFO[item.category] || CAT_INFO.other;
-    const div = document.createElement('div');
-    div.className = 'exp-item';
-    div.innerHTML = `
-      <span class="exp-item-icon">${info.icon}</span>
-      <div class="exp-item-info">
-        <div class="exp-item-desc">${item.description || info.name}</div>
-        <div class="exp-item-meta">${info.name} · ${item.expense_date}</div>
-      </div>
-      <span class="exp-item-amt">${fmt(item.amount)}</span>
-      <button class="btn-del" onclick="deleteExpense(${item.id})">🗑️</button>
-    `;
-    listWrap.appendChild(div);
-  });
+
+  // 2. Render Charts
+  renderFinanceCharts(shops, isAll, selShop);
+
+  // 3. Render Table Cửa hàng
+  const tbody = document.getElementById('fin-shops-tbody');
+  const countEl = document.getElementById('fin-table-count');
+  if (countEl) countEl.textContent = `${shops.length} cửa hàng`;
+
+  if (!shops.length) {
+    tbody.innerHTML = `<tr><td colspan="9" class="empty-fin">
+      <div style="font-size:32px;margin-bottom:6px">📊</div>
+      Chưa có dữ liệu cửa hàng nào để hiển thị báo cáo.
+    </td></tr>`;
+  } else {
+    const displayShops = isAll ? shops : shops.filter(s => String(s.shop_id) === String(shopFilter));
+    tbody.innerHTML = displayShops.map(s => {
+      const t = getShopTypeBadge(s.business_type_name);
+      const isProfPos = s.profit >= 0;
+      return `
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:20px;line-height:1">${t.icon}</span>
+              <div>
+                <b style="color:var(--wood-dark)">${s.name}</b>
+                <div style="font-size:11px;color:var(--ink-light)">${s.business_type_name}</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="fin-badge lot">${s.property_code}</span></td>
+          <td>
+            <span class="fin-badge ${s.is_open ? 'open' : 'closed'}">
+              ${s.is_open ? '🟢 Mở cửa' : '⚪ Đóng'}
+            </span>
+            <div style="font-size:11px;color:var(--ink-light);margin-top:2px">Ngày ${s.day_number}</div>
+          </td>
+          <td class="num">${s.served.toLocaleString('vi-VN')}</td>
+          <td class="num" style="font-weight:800;color:var(--wood-dark)">${fmt(s.revenue)}</td>
+          <td class="num" style="color:var(--ink-mid)">${fmt(s.cost)}</td>
+          <td class="num" style="color:var(--ink-mid)">${s.rent > 0 ? fmt(s.rent) : '—'}</td>
+          <td class="num" style="font-weight:800;color:${isProfPos ? 'var(--ok-dark)' : 'var(--no-dark)'}">
+            ${(s.profit > 0 ? '+' : '') + fmt(s.profit)}
+          </td>
+          <td class="num">
+            <div>${fmt(s.inventory_cost)}</div>
+            <div style="font-size:11px;color:var(--ink-light)">${s.inventory_qty} món</div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // 4. Render Table Transactions
+  const txTbody = document.getElementById('fin-tx-tbody');
+  if (recent_transactions && recent_transactions.length) {
+    const filteredTx = isAll
+      ? recent_transactions
+      : recent_transactions.filter(t => String(t.shop_id) === String(shopFilter));
+
+    if (filteredTx.length) {
+      txTbody.innerHTML = filteredTx.map(t => {
+        const cat = TX_CATEGORIES[t.category] || TX_CATEGORIES.other;
+        const isInc = (t.type === 'income');
+        const timeStr = new Date(t.created_at).toLocaleString('vi-VN');
+        return `
+          <tr>
+            <td style="color:var(--ink-light);font-size:12px;white-space:nowrap">${timeStr}</td>
+            <td><b style="color:var(--wood-dark)">${t.shop_name || 'Hệ thống'}</b></td>
+            <td><span class="fin-badge ${isInc ? 'income' : 'expense'}">${cat.icon} ${cat.label}</span></td>
+            <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.description}">${t.description}</td>
+            <td class="num" style="font-weight:800;color:${isInc ? 'var(--ok-dark)' : 'var(--no-dark)'}">
+              ${isInc ? '+' : '−'}${fmt(Math.abs(Number(t.amount)))}
+            </td>
+            <td class="num" style="color:var(--ink-mid)">${fmt(t.balance_after)}</td>
+          </tr>
+        `;
+      }).join('');
+    } else {
+      txTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--ink-light)">Cửa hàng này chưa có giao dịch nào gần đây.</td></tr>';
+    }
+  } else {
+    txTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--ink-light)">Chưa có giao dịch nào gần đây.</td></tr>';
+  }
 }
 
-function fmtMonth(m) {
-  const [y,mo] = m.split('-');
-  return `Tháng ${parseInt(mo)}/${y}`;
-}
+// Tự động làm mới dữ liệu tài chính & giao dịch định kỳ khi đang mở tab Báo cáo Tài chính
+setInterval(() => {
+  if (!document.hidden && document.getElementById('tab-finance')?.classList.contains('active')) {
+    loadFinance();
+  }
+}, 10000);
 
-function changeMonth(delta) {
-  const d = new Date(expMonth + '-01');
-  d.setMonth(d.getMonth() + delta);
-  expMonth = d.toISOString().slice(0,7);
-  loadExpenses();
-}
+function renderFinanceCharts(shops, isAll, selShop) {
+  const chartCompareEl = document.getElementById('chart-fin-compare');
+  const chartDonutEl = document.getElementById('chart-fin-donut');
+  const titleCompareEl = document.getElementById('chart-title-compare');
 
-async function addExpense() {
-  const cat    = document.getElementById('exp-cat').value;
-  const amount = parseFloat(document.getElementById('exp-amount').value);
-  const date   = document.getElementById('exp-date').value;
-  const desc   = document.getElementById('exp-desc').value.trim();
-  if (!amount || amount <= 0) { toast('⚠️ Nhập số tiền hợp lệ.'); return; }
-  if (!date) { toast('⚠️ Chọn ngày chi tiêu.'); return; }
-  try {
-    const res = await fetch(API + 'expenses.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ category: cat, amount, description: desc, expense_date: date })
-    }).then(r => r.json());
-    if (res.success) { toast('✅ Đã thêm chi tiêu!'); loadExpenses(); }
-    else toast('❌ ' + res.message);
-  } catch { toast('❌ Lỗi kết nối.'); }
-}
+  if (chartFinCompare) chartFinCompare.destroy();
+  if (chartFinDonut) chartFinDonut.destroy();
 
-async function deleteExpense(id) {
-  if (!confirm('Xóa khoản chi tiêu này?')) return;
-  try {
-    const res = await fetch(API + 'expenses.php?id=' + id, { method: 'DELETE' }).then(r => r.json());
-    if (res.success) { toast('🗑️ Đã xóa.'); loadExpenses(); }
-    else toast('❌ ' + res.message);
-  } catch { toast('❌ Lỗi kết nối.'); }
+  if (!chartCompareEl || !chartDonutEl) return;
+
+  if (isAll) {
+    if (titleCompareEl) titleCompareEl.textContent = '📊 So sánh doanh thu giữa các cửa hàng';
+
+    // Chart 1: Bar chart compare shops
+    const labels = shops.map(s => s.name);
+    const dataRev = shops.map(s => s.revenue);
+    const colors = shops.map(s => getShopTypeBadge(s.business_type_name).color);
+
+    chartFinCompare = new Chart(chartCompareEl, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Doanh thu',
+          data: dataRev,
+          backgroundColor: colors,
+          borderRadius: 8,
+          borderWidth: 2,
+          borderColor: 'rgba(74,47,29,0.3)'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => 'Doanh thu: ' + fmt(ctx.raw)
+            }
+          }
+        },
+        scales: {
+          y: {
+            ticks: {
+              callback: v => (v >= 1e6 ? (v / 1e6) + 'M' : (v >= 1e3 ? (v / 1e3) + 'k' : v))
+            }
+          }
+        }
+      }
+    });
+
+    // Chart 2: Donut chart cost structure
+    const t = finData.system_totals;
+    const donutLabels = ['Vốn mặt hàng', 'Tiền thuê mặt bằng', 'Tổng lợi nhuận'];
+    const donutData = [t.cost, t.rent, Math.max(0, t.profit)];
+    const donutColors = ['#d47b6c', '#b094c8', '#4a8a3a'];
+
+    chartFinDonut = new Chart(chartDonutEl, {
+      type: 'doughnut',
+      data: {
+        labels: donutLabels,
+        datasets: [{
+          data: donutData,
+          backgroundColor: donutColors,
+          borderWidth: 3,
+          borderColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: { font: { family: "'Baloo 2', sans-serif", weight: '700', size: 12 } }
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.label + ': ' + fmt(ctx.raw)
+            }
+          }
+        }
+      }
+    });
+  } else if (selShop) {
+    if (titleCompareEl) titleCompareEl.textContent = '📈 Tổng quan tài chính: ' + selShop.name;
+
+    // Chart 1: Bar chart for single shop
+    chartFinCompare = new Chart(chartCompareEl, {
+      type: 'bar',
+      data: {
+        labels: ['Doanh thu', 'Vốn mặt hàng', 'Tiền thuê MB', 'Lợi nhuận'],
+        datasets: [{
+          label: selShop.name,
+          data: [selShop.revenue, selShop.cost, selShop.rent, selShop.profit],
+          backgroundColor: ['#5a8dd9', '#d47b6c', '#b094c8', '#4a8a3a'],
+          borderRadius: 8,
+          borderWidth: 2,
+          borderColor: 'rgba(74,47,29,0.3)'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: { label: ctx => ctx.label + ': ' + fmt(ctx.raw) }
+          }
+        },
+        scales: {
+          y: {
+            ticks: {
+              callback: v => (v >= 1e6 ? (v / 1e6) + 'M' : (v >= 1e3 ? (v / 1e3) + 'k' : v))
+            }
+          }
+        }
+      }
+    });
+
+    // Chart 2: Donut chart for single shop cost breakdown
+    chartFinDonut = new Chart(chartDonutEl, {
+      type: 'doughnut',
+      data: {
+        labels: ['Vốn mặt hàng', 'Tiền thuê MB'],
+        datasets: [{
+          data: [selShop.cost, selShop.rent],
+          backgroundColor: ['#d47b6c', '#b094c8'],
+          borderWidth: 3,
+          borderColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: { font: { family: "'Baloo 2', sans-serif", weight: '700', size: 12 } }
+          },
+          tooltip: {
+            callbacks: { label: ctx => ctx.label + ': ' + fmt(ctx.raw) }
+          }
+        }
+      }
+    });
+  }
 }
 
 // ────── Logout ──────
@@ -853,13 +1163,11 @@ async function doLogout() {
 let toastTimer;
 function toast(msg) {
   const t = document.getElementById('toast');
+  if (!t) return;
   t.textContent = msg; t.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
 }
-
-// Set today as default date
-document.getElementById('exp-date').valueAsDate = new Date();
 
 // Slider hình dáng (chỉ co giãn xem trước, chưa lưu DB)
 function applyShape(){const h=document.getElementById('sl-h').value/100,w=document.getElementById('sl-w').value/100;

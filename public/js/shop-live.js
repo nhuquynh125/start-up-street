@@ -161,6 +161,9 @@
       const p = Products.find(x => x.dbId === Number(pid));
       if (p) p.stock = qty;
     });
+    if (window.StartupWallet && window.StartupWallet.setStock) {
+      window.StartupWallet.setStock(s.stock);
+    }
     updateInventoryTable();
 
     // Ngày chơi + số liệu "Hôm nay" lấy từ server (game.js dùng GameState.today để vẽ)

@@ -126,9 +126,10 @@ function shopReportRows(PDO $pdo, array $shop, ?array $rt): array
 
 /**
  * Gom các ngày thành kỳ dài hơn: $size = 7 (tuần) hoặc 30 (tháng).
- * Kỳ k gồm các ngày từ (k-1)*size+1 đến k*size. Kỳ chứa ngày đang diễn ra có open = true.
+ * Kỳ k gồm các ngày từ (k-1)*size+1 đến k*size.
+ * $onlyClosed = true: chỉ lấy kỳ đã kết thúc trọn vẹn ($size ngày và không còn ngày mở).
  */
-function shopGroupReports(array $days, int $size): array
+function shopGroupReports(array $days, int $size, bool $onlyClosed = true): array
 {
     $out = [];
     foreach ($days as $d) {
@@ -153,6 +154,12 @@ function shopGroupReports(array $days, int $size): array
             $g['open'] = true;
         }
         unset($g);
+    }
+    // Nếu chỉ lấy kỳ đã kết thúc: phải đủ số ngày ($size) và không có ngày đang mở
+    if ($onlyClosed) {
+        $out = array_filter($out, function ($g) use ($size) {
+            return $g['days'] === $size && !$g['open'];
+        });
     }
     foreach ($out as &$g) {
         foreach (['revenue', 'cost', 'profit', 'rent', 'net'] as $f) {

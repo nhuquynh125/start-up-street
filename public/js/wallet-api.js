@@ -95,7 +95,7 @@
       const cls = pct > 50 ? 'stock-high' : pct > 20 ? 'stock-medium' : 'stock-low';
       const out = stock <= 0;
       return '<tr>'
-        + '<td><span class="product-emoji">' + (live ? live.emoji : '📦') + '</span><strong>' + esc(sp.product_name) + '</strong>'
+        + '<td><span class="product-emoji">' + (sp.emoji || (live ? live.emoji : '📦')) + '</span><strong>' + esc(sp.product_name) + '</strong>'
         + (out ? '<span style="color:var(--accent-red);font-size:0.75rem;font-weight:800;margin-left:6px;">[HẾT HÀNG]</span>' : '') + '</td>'
         + '<td>' + formatMoney(cost) + '</td>'
         + '<td>' + formatMoney(price) + '</td>'
@@ -181,22 +181,123 @@
     return run;
   };
 
-  // ── NHẬP HÀNG: dùng purchase-inventory.php (server trừ ví + cộng kho trong 1 transaction) ──
+  // ── NHẬP HÀNG: bổ sung đầy kho hàng loạt giống business-management.html (restock-bulk.php) ──
+  let restockPlan = [];
+
+  async function executeRestockPlan() {
+    if (!restockPlan.length || !SHOP_ID) return;
+    const dyes = document.getElementById('dlg-btn-confirm');
+    const dlg = document.getElementById('dlg-restock');
+    if (dyes) dyes.disabled = true;
+
+    try {
+      const items = restockPlan.map(x => ({
+        product_id: x.id,
+        quantity: x.quantity,
+        selling_price: x.price > 0 ? x.price : undefined
+      }));
+      const r = (await api('restock-bulk.php', post({ shop_id: SHOP_ID, items }))).data;
+
+      // Cập nhật số dư ví
+      walletBalance = r.balance;
+      GameState.balance = r.balance;
+      paintBalance();
+
+      // Cập nhật tồn kho thật cho cả danh sách shopRows và Products
+      r.items.forEach(it => {
+        if (shopRows) {
+          const row = shopRows.find(x => Number(x.product_id) === Number(it.product_id));
+          if (row) row.stock_quantity = it.stock_quantity;
+        }
+        const p = Products.find(x => x.dbId === Number(it.product_id));
+        if (p) p.stock = it.stock_quantity;
+      });
+
+      addActivityFeed('📥 Bổ sung đầy kho', '-' + formatMoney(r.total_cost), 'expense');
+      showToast('✅', 'Đã nhập ' + r.items.length + ' sản phẩm · −' + formatMoney(r.total_cost));
+
+      if (dlg) dlg.hidden = true;
+      updateInventoryTable();
+    } catch (e) {
+      showToast('❌', e.message);
+      if (e.data && e.data.balance !== undefined) {
+        walletBalance = e.data.balance;
+        GameState.balance = e.data.balance;
+        paintBalance();
+      }
+    } finally {
+      if (dyes) dyes.disabled = false;
+    }
+  }
+
   window.restockAllProducts = async function () {
-  if (!SHOP_ID) { showToast('⚠️', 'Thiếu shop_id trên URL.'); return; }
-  const items = Products.filter(p => p.dbId && MAX_STOCK - p.stock > 0)
-    .map(p => ({ product_id: p.dbId, quantity: MAX_STOCK - p.stock }));
-  if (!items.length) { showToast('📦', 'Tồn kho nguyên liệu đã đầy!'); return; }
-  try {
-    const r = (await api('restock-bulk.php', post({ shop_id: SHOP_ID, items }))).data;
-    r.items.forEach(it => { const p = Products.find(x => x.dbId === it.product_id); if (p) p.stock = it.stock_quantity; });
-    walletBalance = r.balance; GameState.balance = r.balance;
-    /* vốn mặt hàng = giá vốn hàng ĐÃ BÁN do server tính (shop-tick); tiền nhập kho đã trừ vào ví, không cộng vào đây */
-    addActivityFeed('📥 Nhập nguyên liệu kho', '-' + formatMoney(r.total_cost), 'expense');
-    showToast('✅', 'Đã nhập hàng: -' + formatMoney(r.total_cost));
-  } catch (e) { showToast('❌', e.message); }
-  updateInventoryTable(); paintBalance();
-};
+    if (!SHOP_ID) {
+      const items = Products.filter(p => MAX_STOCK - p.stock > 0);
+      if (!items.length) { showToast('📦', 'Tồn kho nguyên liệu đã đầy!'); return; }
+      showToast('⚠️', 'Đang ở chế độ demo. Hãy vào cửa hàng từ bản đồ để nhập kho thật.');
+      return;
+    }
+
+    if (shopRows === null) {
+      await loadShop();
+    }
+    if (!shopRows || !shopRows.length) {
+      showToast('⚠️', 'Không tải được danh sách sản phẩm của cửa hàng.');
+      return;
+    }
+
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    // Lập danh sách bổ sung đầy kho dựa trên danh sách sản phẩm THẬT của cửa hàng
+    restockPlan = shopRows.map(sp => {
+      const live = Products.find(p => p.dbId === Number(sp.product_id));
+      const curStock = live ? Number(live.stock) : Number(sp.stock_quantity);
+      const maxS = sp.max_stock ? Number(sp.max_stock) : MAX_STOCK;
+      const need = maxS - curStock;
+      const baseCost = live ? Number(live.costPrice) : Number(sp.base_cost);
+      const sellPrice = live ? Number(live.sellPrice) : Number(sp.selling_price);
+      const emoji = sp.emoji || (live ? live.emoji : '📦');
+      return {
+        id: Number(sp.product_id),
+        name: sp.product_name,
+        emoji: emoji,
+        currentStock: curStock,
+        quantity: need,
+        cost: need > 0 ? baseCost * need : 0,
+        price: sellPrice
+      };
+    }).filter(x => x.quantity > 0);
+
+    if (!restockPlan.length) {
+      showToast('📦', 'Tồn kho đã đầy!');
+      return;
+    }
+
+    const totalCost = restockPlan.reduce((a, x) => a + x.cost, 0);
+
+    const dlg = document.getElementById('dlg-restock');
+    const dlist = document.getElementById('dlg-list');
+    const dtot = document.getElementById('dlg-total');
+    const dyes = document.getElementById('dlg-btn-confirm');
+
+    if (dlg && dlist && dtot && dyes) {
+      dlist.innerHTML = restockPlan.map(x =>
+        `<li><span>${x.emoji} ${esc(x.name)} × ${x.quantity}</span><span>${formatMoney(x.cost)}</span></li>`
+      ).join('');
+
+      const short = (walletBalance !== null && totalCost > walletBalance);
+      dtot.textContent = formatMoney(totalCost) + (short ? ' (không đủ tiền trong ví, đơn nhập sẽ không được thực hiện)' : '');
+      dyes.disabled = short;
+      dlg.hidden = false;
+      dyes.focus();
+    } else {
+      if (walletBalance !== null && totalCost > walletBalance) {
+        showToast('❌', 'Không đủ tiền trong ví! Cần ' + formatMoney(totalCost));
+        return;
+      }
+      executeRestockPlan();
+    }
+  };
 
   // ── CHỐT CA: phí cố định (mặt bằng/lương/điện nước) CHƯA có endpoint server ──
   // game.js vẫn tự trừ GameState.balance cục bộ. Bọc lại để màn hình luôn quay về số dư thật của server,
@@ -227,6 +328,40 @@
       settling = false;
     }
   };
-  window.StartupWallet = { setBalance(v) { walletBalance = Number(v); GameState.balance = walletBalance; paintBalance(); } };
+
+  // Đăng ký sự kiện đóng/hủy cho modal nhập hàng
+  document.addEventListener('DOMContentLoaded', () => {
+    const dlg = document.getElementById('dlg-restock');
+    const dno = document.getElementById('dlg-btn-cancel');
+    const dyes = document.getElementById('dlg-btn-confirm');
+    if (dno && dlg) {
+      dno.addEventListener('click', () => { dlg.hidden = true; });
+    }
+    if (dyes) {
+      dyes.addEventListener('click', executeRestockPlan);
+    }
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && dlg && !dlg.hidden) {
+        dlg.hidden = true;
+      }
+    });
+  });
+
+  // Đăng ký toàn cục để các script khác (vd: shop-live.js) có thể gọi cập nhật số dư và kho hiển thị
+  window.StartupWallet = {
+    setBalance(v) {
+      walletBalance = Number(v);
+      GameState.balance = walletBalance;
+      paintBalance();
+    },
+    setStock(stockMap) {
+      if (!shopRows || !stockMap) return;
+      Object.entries(stockMap).forEach(([pid, qty]) => {
+        const row = shopRows.find(r => Number(r.product_id) === Number(pid));
+        if (row) row.stock_quantity = Number(qty);
+      });
+    },
+    reloadShop: loadShop
+  };
 
 })();
