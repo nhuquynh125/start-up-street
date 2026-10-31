@@ -1,6 +1,6 @@
 <?php
 // POST api/auth/update-profile.php
-// { display_name?, theme?, avatar_age_group?, avatar_skin_tone?, avatar_hair_style?, avatar_hair_color?,
+// { display_name?, avatar_age_group?, avatar_skin_tone?, avatar_hair_style?, avatar_hair_color?,
 //   avatar_eye_style?, avatar_outfit?, avatar_outfit_color?, avatar_hat?, avatar_glasses? }
 require_once dirname(__DIR__, 3) . '/lib/shop_helpers.php';
 
@@ -10,7 +10,7 @@ try {
     $userId = getCurrentUserId();
     $input  = readJsonBody();
 
-    $allowed = ['display_name','theme','avatar_age_group','avatar_skin_tone','avatar_hair_style',
+    $allowed = ['display_name','avatar_age_group','avatar_skin_tone','avatar_hair_style',
                  'avatar_hair_color','avatar_eye_style','avatar_outfit','avatar_outfit_color',
                  'avatar_hat','avatar_glasses'];
 
@@ -21,8 +21,6 @@ try {
         // Validate per column
         if ($col === 'display_name') {
             $v = mb_substr(trim((string)$v), 0, 50);
-        } elseif ($col === 'theme') {
-            if (!in_array($v, ['warm','cool','forest','night'], true)) continue;
         } elseif ($col === 'avatar_age_group') {
             if (!in_array($v, ['teen','young','adult','middle','senior','elder'], true)) continue;
         } elseif ($col === 'avatar_outfit_color') {

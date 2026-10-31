@@ -270,34 +270,167 @@
     }
   }
 
+  // ── Hộp thoại chốt ca (thay cho confirm() của trình duyệt) ──
+  // Dùng lại biến CSS (--paper, --wood...), class .dl-btn và keyframes slideIn có sẵn trong startup-street-ui.html
+  function ensureDayModalCss() {
+    if (document.getElementById('day-modal-css')) return;
+    const s = document.createElement('style');
+    s.id = 'day-modal-css';
+    s.textContent = `
+.dm-ov{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:14px;background:#2a160a99}
+.dm-box{width:min(420px,100%);background:var(--paper);border:5px solid var(--wood);border-radius:20px;
+  box-shadow:0 6px 0 var(--wood-dark),0 16px 30px #0005;padding:18px;animation:slideIn .2s ease-out}
+.dm-title{font-size:20px;font-weight:800;color:var(--wood-dark);margin-bottom:10px}
+.dm-rows{background:var(--cream);border:3px solid var(--paper-dark);border-radius:12px;padding:6px 12px}
+.dm-row{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-weight:600;font-size:14px}
+.dm-row+.dm-row{border-top:2px dashed var(--paper-dark)}
+.dm-profit{margin:12px 0 4px;text-align:center;border-radius:14px;padding:10px;border:4px solid var(--ok-dark);background:#e6f4d7}
+.dm-profit.neg{border-color:var(--no-dark);background:#fde0dc}
+.dm-profit small{display:block;font-weight:700;opacity:.75;font-size:13px}
+.dm-profit b{font-size:30px;line-height:1.2;color:var(--ok-dark)}
+.dm-profit.neg b{color:var(--no-dark)}
+.dm-note{margin-top:8px;font-size:13px;font-weight:700;color:#7a4d00;background:#fff0c9;border-radius:10px;padding:6px 10px}
+.dm-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}`;
+    document.head.appendChild(s);
+  }
+
+  /**
+   * Hiện hộp thoại, trả về Promise<boolean> (true = bấm nút xác nhận).
+   * o = { title, rows: [[nhãn, giá trị], ...], profit, profitLabel, note?, confirmText, cancelText (null = ẩn nút hủy) }
+   */
+  function showDayModal(o) {
+    ensureDayModalCss();
+    return new Promise(resolve => {
+      const ov = document.createElement('div');
+      ov.className = 'dm-ov';
+      const box = document.createElement('div');
+      box.className = 'dm-box';
+      box.setAttribute('role', 'dialog');
+      box.setAttribute('aria-modal', 'true');
+
+      const title = document.createElement('div');
+      title.className = 'dm-title';
+      title.textContent = o.title;
+      box.appendChild(title);
+
+      const rows = document.createElement('div');
+      rows.className = 'dm-rows';
+      o.rows.forEach(([label, value]) => {
+        const r = document.createElement('div');
+        r.className = 'dm-row';
+        const a = document.createElement('span'); a.textContent = label;
+        const b = document.createElement('strong'); b.textContent = value;
+        r.append(a, b);
+        rows.appendChild(r);
+      });
+      box.appendChild(rows);
+
+      const p = document.createElement('div');
+      p.className = 'dm-profit' + (o.profit < 0 ? ' neg' : '');
+      const pl = document.createElement('small'); pl.textContent = o.profitLabel;
+      const pv = document.createElement('b');
+      pv.textContent = (o.profit > 0 ? '+' : '') + formatMoney(o.profit);
+      p.append(pl, pv);
+      box.appendChild(p);
+
+      if (o.note) {
+        const n = document.createElement('div');
+        n.className = 'dm-note';
+        n.textContent = o.note;
+        box.appendChild(n);
+      }
+
+      const act = document.createElement('div');
+      act.className = 'dm-actions';
+      const onKey = e => { if (e.key === 'Escape' && o.cancelText) done(false); };
+      const done = v => { document.removeEventListener('keydown', onKey); ov.remove(); resolve(v); };
+      if (o.cancelText) {
+        const no = document.createElement('button');
+        no.type = 'button'; no.className = 'dl-btn no'; no.textContent = o.cancelText;
+        no.onclick = () => done(false);
+        act.appendChild(no);
+      }
+      const yes = document.createElement('button');
+      yes.type = 'button'; yes.className = 'dl-btn ok'; yes.textContent = o.confirmText;
+      yes.onclick = () => done(true);
+      act.appendChild(yes);
+      box.appendChild(act);
+
+      document.addEventListener('keydown', onKey);
+      ov.addEventListener('click', e => { if (e.target === ov && o.cancelText) done(false); });
+
+      ov.appendChild(box);
+      document.body.appendChild(ov);
+      yes.focus();
+    });
+  }
+
   // ── CHỐT CA: server lưu báo cáo ngày, sang ngày mới, tự trừ tiền thuê khi sang tháng mới ──
   // Ghi đè endDayAndSettle của game.js (bản gốc chỉ tính cục bộ nên tải lại trang là về Ngày 1).
+  let endingDay = false;   // chặn bấm liên tiếp làm mở nhiều hộp thoại
   window.endDayAndSettle = async function () {
-    if (gone || busy) return;
-    const rentWarn = nextRentDay === currentDay + 1
-      ? '\n• Sang Ngày ' + nextRentDay + ' hệ thống sẽ TỰ TRỪ tiền thuê mặt bằng tháng mới.'
-      : '';
-    if (!confirm('Chốt ca Ngày ' + currentDay + ' và sang Ngày ' + (currentDay + 1) + '?\n'
-      + '• Báo cáo ngày được lưu lại.' + rentWarn)) return;
-
-    busy = true;
+    if (gone || busy || endingDay) return;
+    endingDay = true;
     try {
-      const r = await call('end-day.php', { shop_id: SHOP_ID, since_id: lastOrderId });
-      handle(r.state);
-      const c = r.closed;
-      showToast(c.profit >= 0 ? '💰' : '📉', `Chốt Ngày ${c.day}: lợi nhuận ${formatMoney(c.profit)}`);
-      logRow(`🌙 Chốt ca Ngày ${c.day}: ${c.served} đơn, doanh thu ${formatMoney(c.revenue)}, vốn mặt hàng ${formatMoney(c.cost)}, lợi nhuận ${formatMoney(c.profit)}`, '', '', c.day);
-      if (r.rent_charged > 0) {
-        logRow(`🏠 Tiền thuê mặt bằng tháng mới (Ngày ${r.new_day})`, '-' + formatMoney(r.rent_charged), 'expense', r.new_day);
-        showToast('🏠', 'Đã trừ tiền thuê mặt bằng: -' + formatMoney(r.rent_charged));
+      // Bước 1: xem trước số liệu hôm nay (lấy từ lần tick gần nhất của server)
+      const t = GameState.today;
+      const willPayRent = nextRentDay === currentDay + 1;
+      const ok = await showDayModal({
+        title: '🌙 Chốt ca Ngày ' + currentDay,
+        rows: [
+          ['🛒 Đơn bán thành công', t.orders + ' đơn'],
+          ['❌ Đơn lỡ (hết hàng)', t.missedOrders + ' đơn'],
+          ['💵 Doanh thu', formatMoney(t.revenue)],
+          ['🥤 Vốn mặt hàng', formatMoney(t.materialCost)],
+        ],
+        profit: t.revenue - t.materialCost,
+        profitLabel: 'Lợi nhuận hôm nay',
+        note: willPayRent ? '🏠 Sang Ngày ' + nextRentDay + ' hệ thống sẽ tự trừ tiền thuê mặt bằng tháng mới.' : '',
+        confirmText: 'Chốt ca',
+        cancelText: 'Để sau',
+      });
+      if (!ok || gone) return;
+
+      // Bước 2: gọi server chốt ca
+      let r = null;
+      busy = true;
+      try {
+        r = await call('end-day.php', { shop_id: SHOP_ID, since_id: lastOrderId });
+        handle(r.state);
+        const c = r.closed;
+        logRow(`🌙 Chốt ca Ngày ${c.day}: ${c.served} đơn, doanh thu ${formatMoney(c.revenue)}, vốn mặt hàng ${formatMoney(c.cost)}, lợi nhuận ${formatMoney(c.profit)}`, '', '', c.day);
+        if (r.rent_charged > 0) {
+          logRow(`🏠 Tiền thuê mặt bằng tháng mới (Ngày ${r.new_day})`, '-' + formatMoney(r.rent_charged), 'expense', r.new_day);
+        }
+        logRow(`☀️ Bắt đầu Ngày ${r.new_day}`, '', '', r.new_day);
+        if (r.purged_orders > 0) pruneLog(r.new_day);
+        if (window.StartupReports) window.StartupReports.reload();
+      } catch (e) {
+        showToast('❌', e.message);
+      } finally {
+        busy = false;
       }
-      logRow(`☀️ Bắt đầu Ngày ${r.new_day}`, '', '', r.new_day);
-      if (r.purged_orders > 0) pruneLog(r.new_day);
-      if (window.StartupReports) window.StartupReports.reload();
-    } catch (e) {
-      showToast('❌', e.message);
+
+      // Bước 3: hiện kết quả chính thức từ server
+      if (r) {
+        const c = r.closed;
+        await showDayModal({
+          title: '✅ Đã chốt Ngày ' + c.day,
+          rows: [
+            ['🛒 Đơn bán thành công', c.served + ' đơn'],
+            ['❌ Đơn lỡ', c.missed + ' đơn'],
+            ['💵 Doanh thu', formatMoney(c.revenue)],
+            ['🥤 Vốn mặt hàng', formatMoney(c.cost)],
+          ],
+          profit: c.profit,
+          profitLabel: 'Lợi nhuận Ngày ' + c.day,
+          note: r.rent_charged > 0 ? '🏠 Đã trừ tiền thuê mặt bằng tháng mới: -' + formatMoney(r.rent_charged) : '',
+          confirmText: 'Bắt đầu Ngày ' + r.new_day,
+          cancelText: null,
+        });
+      }
     } finally {
-      busy = false;
+      endingDay = false;
     }
   };
 

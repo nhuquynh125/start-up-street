@@ -41,7 +41,7 @@ button,input,select{font-family:inherit;cursor:pointer}
 .btn-back:active,.btn-logout:active{transform:translateY(2px);box-shadow:none}
 
 /* Layout */
-.page{margin-top:54px;padding:20px;max-width:1100px;margin-left:auto;margin-right:auto}
+.page{margin-top:54px;padding:20px 32px;max-width:1800px;margin-left:auto;margin-right:auto}
 .section-title{font-size:20px;font-weight:800;color:var(--wood-dark);
   display:flex;align-items:center;gap:8px;margin-bottom:14px}
 .section-title::after{content:'';flex:1;height:3px;background:var(--paper-dark);border-radius:2px}
@@ -148,7 +148,7 @@ button,input,select{font-family:inherit;cursor:pointer}
 .fin-charts-row{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;margin-bottom:26px}
 .fin-chart-box{background:var(--cream);border:3px solid var(--paper-dark);border-radius:16px;padding:16px}
 .fin-chart-title{font-size:15px;font-weight:800;color:var(--wood-dark);margin-bottom:12px}
-.fin-chart-wrap{height:260px;position:relative}
+.fin-chart-wrap{height:320px;position:relative}
 
 .fin-section-heading{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px;font-weight:800;font-size:16px;color:var(--wood-dark)}
 .fin-section-heading small{font-size:12px;color:var(--ink-light);font-weight:700}
@@ -162,8 +162,6 @@ button,input,select{font-family:inherit;cursor:pointer}
 .fin-badge.lot{background:#e8d8be;color:var(--wood-dark)}
 .fin-badge.open{background:#dcf2d1;color:#285c18}
 .fin-badge.closed{background:#ede6da;color:#786655}
-.fin-badge.income{background:#dcf2d1;color:#285c18}
-.fin-badge.expense{background:#fae0e0;color:#8a2020}
 .empty-fin{text-align:center;padding:36px 16px;color:var(--ink-light);font-weight:700;font-size:15px}
 
 @media(max-width:860px){
@@ -177,14 +175,11 @@ button,input,select{font-family:inherit;cursor:pointer}
   transition:transform .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none}
 #toast.show{transform:translateX(-50%) translateY(0)}
 
-/* Theme selector */
-.theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
-.theme-card{border:3px solid var(--paper-dark);border-radius:12px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .15s}
-.theme-card.sel{border-color:var(--gold-dark);background:#ffe08a}
-.theme-card:hover{transform:scale(1.04)}
-.theme-card .theme-preview{height:30px;border-radius:8px;margin-bottom:4px}
-.theme-card span{font-size:11px;font-weight:700;color:var(--ink-mid)}
-
+/* Account form */
+.acc-form{display:grid;gap:14px;max-width:480px}
+.acc-sep{font-weight:800;font-size:15px;color:var(--wood-dark);border-top:3px dashed var(--paper-dark);padding-top:14px;margin-top:4px}
+.acc-sep small{font-weight:600;color:var(--ink-light);font-size:12px}
+.acc-msg{min-height:18px;font-size:13px;font-weight:700;color:var(--no-dark)}
 @media(max-width:640px){.avatar-cols{grid-template-columns:1fr}.ava-preview{position:static}}
 
 /* ===== Cozy avatar modal (theo ảnh tham chiếu) ===== */
@@ -319,37 +314,40 @@ button,input,select{font-family:inherit;cursor:pointer}
     </div>
   </div>
 
-  <!-- ═══ TAB ACCOUNT ═══ -->
+    <!-- ═══ TAB ACCOUNT ═══ -->
   <div id="tab-account" class="tab-pane">
     <div class="card">
       <div class="section-title">⚙️ Thông tin tài khoản</div>
-      <div style="display:grid;gap:14px;max-width:480px">
+      <div class="acc-form">
         <div>
           <label class="form-label" for="acc-displayname">Tên hiển thị</label>
           <input type="text" id="acc-displayname" class="form-input" maxlength="50" placeholder="Tên hiển thị của bạn">
         </div>
         <div>
-          <div class="form-label">Giao diện màu sắc</div>
-          <div class="theme-grid" id="theme-grid">
-            <div class="theme-card sel" data-theme="warm" onclick="selectTheme('warm')">
-              <div class="theme-preview" style="background:linear-gradient(135deg,#f0b832,#c97a50)"></div>
-              <span>☀️ Ấm áp</span>
-            </div>
-            <div class="theme-card" data-theme="cool" onclick="selectTheme('cool')">
-              <div class="theme-preview" style="background:linear-gradient(135deg,#5a8dd9,#3a6ab0)"></div>
-              <span>❄️ Mát mẻ</span>
-            </div>
-            <div class="theme-card" data-theme="forest" onclick="selectTheme('forest')">
-              <div class="theme-preview" style="background:linear-gradient(135deg,#4a8a3a,#2a5a1a)"></div>
-              <span>🌿 Rừng xanh</span>
-            </div>
-            <div class="theme-card" data-theme="night" onclick="selectTheme('night')">
-              <div class="theme-preview" style="background:linear-gradient(135deg,#2a2a4a,#1a1a2a)"></div>
-              <span>🌙 Đêm tối</span>
-            </div>
-          </div>
+          <label class="form-label" for="acc-username">Tên đăng nhập</label>
+          <input type="text" id="acc-username" class="form-input" maxlength="32" autocomplete="username" placeholder="Chỉ chữ cái, số, dấu _">
         </div>
-        <button class="btn-save" onclick="saveAccount()" style="max-width:220px">💾 Lưu thay đổi</button>
+        <div>
+          <label class="form-label" for="acc-email">Email</label>
+          <input type="email" id="acc-email" class="form-input" maxlength="120" autocomplete="email" placeholder="email@example.com">
+        </div>
+
+        <div class="acc-sep">🔒 Đổi mật khẩu <small>(bỏ trống nếu không đổi)</small></div>
+        <div>
+          <label class="form-label" for="acc-cur-pass">Mật khẩu hiện tại</label>
+          <input type="password" id="acc-cur-pass" class="form-input" autocomplete="current-password" placeholder="Bắt buộc khi đổi email hoặc mật khẩu">
+        </div>
+        <div>
+          <label class="form-label" for="acc-new-pass">Mật khẩu mới</label>
+          <input type="password" id="acc-new-pass" class="form-input" autocomplete="new-password" placeholder="Tối thiểu 6 ký tự">
+        </div>
+        <div>
+          <label class="form-label" for="acc-new-pass2">Nhập lại mật khẩu mới</label>
+          <input type="password" id="acc-new-pass2" class="form-input" autocomplete="new-password" placeholder="Nhập lại mật khẩu mới">
+        </div>
+
+        <div id="acc-msg" class="acc-msg" role="alert"></div>
+        <button class="btn-save" id="btn-save-account" onclick="saveAccount()" style="max-width:220px">💾 Lưu thay đổi</button>
       </div>
     </div>
   </div>
@@ -448,29 +446,6 @@ button,input,select{font-family:inherit;cursor:pointer}
         </table>
       </div>
 
-      <!-- Recent Transactions -->
-      <div class="fin-section-heading" style="margin-top:28px">
-        <span>📜 Lịch sử giao dịch tài chính gần nhất</span>
-        <small>20 giao dịch mới nhất của bạn</small>
-      </div>
-      <div class="fin-table-wrap">
-        <table class="fin-table fin-tx-table">
-          <thead>
-            <tr>
-              <th>Thời gian</th>
-              <th>Cửa hàng</th>
-              <th>Loại giao dịch</th>
-              <th>Nội dung</th>
-              <th class="num">Số tiền</th>
-              <th class="num">Số dư sau GD</th>
-            </tr>
-          </thead>
-          <tbody id="fin-tx-tbody">
-            <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--ink-light)">Đang tải giao dịch...</td></tr>
-          </tbody>
-        </table>
-      </div>
-
     </div>
   </div>
 
@@ -518,16 +493,6 @@ function getShopTypeBadge(name) {
   return found ? { icon: found[1], color: found[2] } : { icon: '🏪', color: '#b9835a' };
 }
 
-const TX_CATEGORIES = {
-  sale:      { label: 'Bán hàng', icon: '💵', cls: 'income' },
-  material:  { label: 'Nhập hàng', icon: '🌾', cls: 'expense' },
-  rent:      { label: 'Tiền thuê MB', icon: '🏠', cls: 'expense' },
-  salary:    { label: 'Lương NV', icon: '💼', cls: 'expense' },
-  utilities: { label: 'Điện nước', icon: '⚡', cls: 'expense' },
-  marketing: { label: 'Quảng cáo', icon: '📢', cls: 'expense' },
-  other:     { label: 'Khác', icon: '📦', cls: 'expense' },
-};
-
 // ────── Init ──────
 (async () => {
   try {
@@ -541,7 +506,7 @@ const TX_CATEGORIES = {
     document.getElementById('prof-displayname').textContent = d.profile.display_name || d.username;
     document.getElementById('prof-username').textContent = '@' + d.username;
     document.getElementById('prof-since').textContent = new Date(d.created_at).toLocaleDateString('vi-VN');
-    document.getElementById('acc-displayname').value = d.profile.display_name || '';
+    fillAccountForm(d);
 
     buildAvatarUI();
     decorateButtons();
@@ -803,28 +768,81 @@ async function saveAvatar() {
 }
 
 // ────── Account ──────
-let selectedTheme = 'warm';
-function selectTheme(t) {
-  selectedTheme = t;
-  document.querySelectorAll('#theme-grid .theme-card').forEach(c =>
-    c.classList.toggle('sel', c.dataset.theme === t)
-  );
+let accountOrig = {};
+const byId = id => document.getElementById(id);
+
+function fillAccountForm(d) {
+  accountOrig = {
+    display_name: (d.profile && d.profile.display_name) || d.username,
+    username: d.username,
+    email: d.email || ''
+  };
+  byId('acc-displayname').value = accountOrig.display_name;
+  byId('acc-username').value = accountOrig.username;
+  byId('acc-email').value = accountOrig.email;
+  ['acc-cur-pass', 'acc-new-pass', 'acc-new-pass2'].forEach(id => byId(id).value = '');
 }
+
 async function saveAccount() {
-  const displayName = document.getElementById('acc-displayname').value.trim();
+  const msg = byId('acc-msg');
+  msg.textContent = '';
+  const fail = t => { msg.textContent = '❌ ' + t; };
+
+  const displayName = byId('acc-displayname').value.trim();
+  const username    = byId('acc-username').value.trim();
+  const email       = byId('acc-email').value.trim();
+  const curPass     = byId('acc-cur-pass').value;
+  const newPass     = byId('acc-new-pass').value;
+  const newPass2    = byId('acc-new-pass2').value;
+
+  const payload = {};
+  if (displayName !== accountOrig.display_name) payload.display_name = displayName;
+  if (username !== accountOrig.username) {
+    if (username.length < 3) return fail('Tên đăng nhập phải từ 3 ký tự.');
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) return fail('Tên đăng nhập chỉ gồm chữ cái, số và dấu _');
+    payload.username = username;
+  }
+  const emailChanged = email.toLowerCase() !== accountOrig.email.toLowerCase();
+  if (emailChanged) {
+    if (!/^\S+@\S+\.\S+$/.test(email)) return fail('Email không hợp lệ.');
+    payload.email = email;
+  }
+  if (newPass || newPass2) {
+    if (newPass.length < 6) return fail('Mật khẩu mới phải có ít nhất 6 ký tự.');
+    if (newPass !== newPass2) return fail('Hai mật khẩu mới không khớp.');
+    payload.new_password = newPass;
+  }
+  if ((emailChanged || payload.new_password) && !curPass) {
+    return fail('Hãy nhập mật khẩu hiện tại để đổi email hoặc mật khẩu.');
+  }
+  if (!Object.keys(payload).length) return fail('Bạn chưa thay đổi gì.');
+  if (curPass) payload.current_password = curPass;
+
+  const btn = byId('btn-save-account');
+  btn.disabled = true;
   try {
-    const res = await fetch(API + 'update-profile.php', {
+    const res = await fetch(API + 'update-account.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ display_name: displayName, theme: selectedTheme })
+      body: JSON.stringify(payload)
     }).then(r => r.json());
-    if (res.success) {
-      toast('✅ Đã cập nhật tài khoản!');
-      document.getElementById('prof-displayname').textContent = displayName || '@' + document.getElementById('prof-username').textContent;
-    } else {
-      toast('❌ ' + res.message);
-    }
-  } catch { toast('❌ Lỗi kết nối server.'); }
+
+    if (!res.success) { fail(res.message); return; }
+
+    const d = res.data;
+    accountOrig = { display_name: d.display_name, username: d.username, email: d.email };
+    byId('acc-displayname').value = d.display_name;
+    byId('acc-username').value = d.username;
+    byId('acc-email').value = d.email;
+    ['acc-cur-pass', 'acc-new-pass', 'acc-new-pass2'].forEach(id => byId(id).value = '');
+    byId('prof-displayname').textContent = d.display_name;
+    byId('prof-username').textContent = '@' + d.username;
+    toast(d.password_changed ? '✅ Đã đổi mật khẩu và cập nhật tài khoản!' : '✅ Đã cập nhật tài khoản!');
+  } catch {
+    fail('Lỗi kết nối server.');
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 // ────── Finance Management (Toàn bộ cửa hàng) ──────
@@ -856,7 +874,7 @@ function onShopFilterChange(shopId) {
 
 function renderFinanceUI(shopFilter) {
   if (!finData) return;
-  const { system_totals, shops, recent_transactions } = finData;
+  const { system_totals, shops } = finData;
 
   // 1. Dropdown chọn cửa hàng
   const select = document.getElementById('fin-shop-select');
@@ -962,41 +980,9 @@ function renderFinanceUI(shopFilter) {
       `;
     }).join('');
   }
-
-  // 4. Render Table Transactions
-  const txTbody = document.getElementById('fin-tx-tbody');
-  if (recent_transactions && recent_transactions.length) {
-    const filteredTx = isAll
-      ? recent_transactions
-      : recent_transactions.filter(t => String(t.shop_id) === String(shopFilter));
-
-    if (filteredTx.length) {
-      txTbody.innerHTML = filteredTx.map(t => {
-        const cat = TX_CATEGORIES[t.category] || TX_CATEGORIES.other;
-        const isInc = (t.type === 'income');
-        const timeStr = new Date(t.created_at).toLocaleString('vi-VN');
-        return `
-          <tr>
-            <td style="color:var(--ink-light);font-size:12px;white-space:nowrap">${timeStr}</td>
-            <td><b style="color:var(--wood-dark)">${t.shop_name || 'Hệ thống'}</b></td>
-            <td><span class="fin-badge ${isInc ? 'income' : 'expense'}">${cat.icon} ${cat.label}</span></td>
-            <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.description}">${t.description}</td>
-            <td class="num" style="font-weight:800;color:${isInc ? 'var(--ok-dark)' : 'var(--no-dark)'}">
-              ${isInc ? '+' : '−'}${fmt(Math.abs(Number(t.amount)))}
-            </td>
-            <td class="num" style="color:var(--ink-mid)">${fmt(t.balance_after)}</td>
-          </tr>
-        `;
-      }).join('');
-    } else {
-      txTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--ink-light)">Cửa hàng này chưa có giao dịch nào gần đây.</td></tr>';
-    }
-  } else {
-    txTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--ink-light)">Chưa có giao dịch nào gần đây.</td></tr>';
-  }
 }
 
-// Tự động làm mới dữ liệu tài chính & giao dịch định kỳ khi đang mở tab Báo cáo Tài chính
+// Tự động làm mới dữ liệu tài chính định kỳ khi đang mở tab Báo cáo Tài chính
 setInterval(() => {
   if (!document.hidden && document.getElementById('tab-finance')?.classList.contains('active')) {
     loadFinance();
