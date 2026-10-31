@@ -32,8 +32,6 @@ CREATE TABLE IF NOT EXISTS `player_profiles` (
     `avatar_outfit_color` VARCHAR(10) DEFAULT '#5b8dd9',
     `avatar_hat`         TINYINT     DEFAULT 0,          -- 0=none, 1-3
     `avatar_glasses`     TINYINT     DEFAULT 0,          -- 0=none, 1-2
-    -- UI theme
-    `theme`         ENUM('warm','cool','forest','night') DEFAULT 'warm',
     -- Metadata
     `display_name`  VARCHAR(50)  DEFAULT NULL,
     `updated_at`    TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
