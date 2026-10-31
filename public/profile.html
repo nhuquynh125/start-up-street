@@ -29,7 +29,7 @@ button,input,select{font-family:inherit;cursor:pointer}
   border-bottom:4px solid var(--wood);z-index:50;
   display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:10px}
 .hud-logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:17px;color:var(--wood-dark)}
-.hud-logo span{font-size:22px}
+.hud-logo img{height:36px;display:block}
 .hud-actions{display:flex;gap:8px;align-items:center}
 .hud-balance{background:var(--cream);border:3px solid var(--gold-dark);border-radius:12px;
   padding:4px 12px;font-weight:800;font-size:14px;color:var(--wood-dark)}
@@ -212,7 +212,7 @@ button,input,select{font-family:inherit;cursor:pointer}
 
 <!-- HUD -->
 <header class="hud">
-  <div class="hud-logo"><span>🏙️</span>STARTUP STREET</div>
+  <div class="hud-logo"><img src="../anh/logo.png" alt="Startup Street Logo"></div>
   <div class="hud-actions">
     <div class="hud-balance">💰 <span id="hud-balance">…</span></div>
     <button class="btn-back" onclick="location.href='map.php'">🗺️ Bản đồ</button>

@@ -36,6 +36,7 @@ button,input,select{font-family:inherit;cursor:pointer}
   border-bottom:4px solid var(--wood);z-index:100;
   display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:12px}
 .hud-logo{font-weight:800;font-size:17px;color:var(--wood-dark);display:flex;align-items:center;gap:8px;white-space:nowrap}
+.hud-logo img{height:36px;display:block}
 .hud-stats{display:flex;gap:10px;align-items:center;flex-wrap:nowrap;overflow:hidden}
 .hud-pill{background:var(--cream);border:3px solid var(--wood);border-radius:12px;
   padding:3px 12px;font-weight:800;font-size:14px;white-space:nowrap}
@@ -205,7 +206,7 @@ tr:hover td{background:var(--bg-highlight)}
 
 <!-- HUD -->
 <header class="hud">
-  <div class="hud-logo">🏙️ <span class="name">Startup Street</span></div>
+  <div class="hud-logo"><img src="../anh/logo.png" alt="Startup Street Logo"></div>
   <div class="hud-stats">
     <div class="hud-pill"><span class="label">Ngày</span><span id="hud-day">1</span></div>
     <div class="hud-pill"><span class="label">Ví</span><strong id="hud-balance">…</strong></div>
